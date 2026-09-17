@@ -9,6 +9,14 @@
 
 @section('actions')
     <a href="{{ route('admin.reservasi.index') }}" class="btn btn-brand-outline btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+    <form method="POST" action="{{ route('admin.reservasi.hapus', $reservasi->kode_reservasi) }}" class="d-inline-flex"
+          data-confirm="Seluruh data pemesanan {{ $reservasi->kode_transaksi }} ({{ $items->count() }} ruangan, dokumen, riwayat, dan faktur) akan dihapus permanen dan tidak bisa dikembalikan."
+          data-confirm-title="Hapus pemesanan ini?" data-icon="warning"
+          data-confirm-text="Ya, hapus" data-confirm-color="#e11d48">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3 me-1"></i>Hapus Data</button>
+    </form>
 @endsection
 
 @section('content')
@@ -162,7 +170,7 @@
                                     <form method="POST" action="{{ route('admin.reservasi.dokumen.verifikasi', $dok->id_dokumen) }}"
                                           data-confirm="Dokumen {{ $dok->nama_file }} akan ditandai TIDAK VALID. Keputusan ini tidak bisa diubah lagi."
                                           data-confirm-title="Tolak dokumen ini?" data-icon="warning"
-                                          data-confirm-text="Ya, tolak" data-confirm-color="#d95757">@csrf
+                                          data-confirm-text="Ya, tolak" data-confirm-color="#e11d48">@csrf
                                         <input type="hidden" name="status_verifikasi" value="Tidak Valid">
                                         <button class="btn btn-sm btn-outline-danger" title="Tandai Tidak Valid"><i class="bi bi-x-lg"></i> Tolak</button>
                                     </form>
@@ -198,7 +206,7 @@
                             <form method="POST" action="{{ route('admin.reservasi.tolak', $r->kode_reservasi) }}"
                                   data-confirm="Seluruh ruangan Menunggu pada pemesanan ini akan ditolak."
                                   data-confirm-title="Kirim penolakan?" data-icon="warning"
-                                  data-confirm-text="Ya, tolak" data-confirm-color="#d95757" data-nav-replace>@csrf
+                                  data-confirm-text="Ya, tolak" data-confirm-color="#e11d48" data-nav-replace>@csrf
                                 <label class="form-label">Alasan penolakan <span class="text-danger">*</span></label>
                                 <textarea name="alasan" class="form-control mb-2" rows="3" placeholder="Tulis alasan yang jelas untuk pemesan…" required>{{ old('alasan') }}</textarea>
                                 <button class="btn btn-danger btn-sm w-100">Kirim Penolakan</button>
@@ -235,22 +243,6 @@
                             <p class="text-muted small mb-0">Belum ada perubahan status.</p>
                         @endforelse
                     </div>
-                </div>
-            </div>
-
-            {{-- Zona berbahaya --}}
-            <div class="xcard" style="border-color:#f0c9c9">
-                <div class="xhead" style="background:#fdf6f6"><span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Hapus Data Reservasi</span></div>
-                <div class="p-3">
-                    <p class="small text-muted mb-2">Menghapus pemesanan ini menghilangkan seluruh data ({{ $items->count() }} ruangan, dokumen, riwayat, dan faktur) secara permanen. Tindakan ini tidak bisa dibatalkan.</p>
-                    <form method="POST" action="{{ route('admin.reservasi.hapus', $r->kode_reservasi) }}"
-                          data-confirm="Seluruh data pemesanan {{ $r->kode_transaksi }} ({{ $items->count() }} ruangan) akan dihapus permanen dan tidak bisa dikembalikan."
-                          data-confirm-title="Hapus pemesanan ini?" data-icon="warning"
-                          data-confirm-text="Ya" data-confirm-color="#d95757">
-                        @csrf
-                        @method('DELETE')
-                        <button class="btn btn-outline-danger w-100"><i class="bi bi-trash3 me-1"></i>Hapus Pemesanan Ini</button>
-                    </form>
                 </div>
             </div>
         </div>

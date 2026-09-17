@@ -26,6 +26,11 @@ class RedirectIfAuthenticated
                     return redirect()->route('admin.dashboard');
                 }
 
+                // Pemesan yang sudah login diarahkan ke dashboard Pemesan.
+                if ($guard === 'customer') {
+                    return redirect()->route('customer.dashboard');
+                }
+
                 return redirect(RouteServiceProvider::HOME);
             }
         }

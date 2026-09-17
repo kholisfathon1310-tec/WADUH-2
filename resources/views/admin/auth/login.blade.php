@@ -55,16 +55,36 @@
         .is-salah { border-color:#d95757 !important; background:#fffafa !important; animation:goyang .3s; }
         @keyframes goyang { 25% { transform:translateX(-4px); } 75% { transform:translateX(4px); } }
         .catatan-salah { display:flex; align-items:center; gap:.3rem; color:#c02929; font-size:.78rem; font-weight:600; margin-top:.3rem; }
+        /* SweetAlert2: matikan pointer-events overlay begitu animasi fade-out mulai, supaya klik berikutnya (mis. buka modal lagi) tidak tertelan. */
+        .swal2-backdrop-hide { pointer-events: none !important; }
 
         @media (max-width: 767.98px) {
             .login-visual { display:none; }
             .login-shell { min-height:0; }
             .login-form-panel { padding:2.25rem 1.75rem; }
         }
+
+        /* Pilihan peran — Pemesan / Admin, badge kecil di pojok kanan atas kartu login. */
+        .corner-toggle { position:absolute; top:1rem; right:1rem; z-index:5; display:flex; gap:.25rem;
+            background:rgba(255,255,255,.9); backdrop-filter:blur(6px); border-radius:9999px; padding:.2rem;
+            box-shadow:0 4px 14px -4px rgba(15,36,52,.2); }
+        .corner-toggle a, .corner-toggle span { display:inline-flex; align-items:center; gap:.3rem; font-size:.7rem; font-weight:700;
+            padding:.3rem .65rem; border-radius:9999px; text-decoration:none; color:var(--muted); transition:all .15s ease; }
+        .corner-toggle a:hover { color:var(--ink); }
+        .corner-toggle .active { background:var(--primary); color:#fff; }
+
+        @media (max-width: 767.98px) {
+            .corner-toggle { position:static; margin:0 0 1rem; justify-content:flex-end; background:transparent; box-shadow:none; padding:0; }
+        }
     </style>
 </head>
 <body>
     <div class="login-shell">
+        <div class="corner-toggle" role="tablist" aria-label="Pilih peran login">
+            <a href="{{ route('customer.login') }}"><i class="bi bi-person"></i> Pemesan</a>
+            <span class="active"><i class="bi bi-shield-lock"></i> Admin</span>
+        </div>
+
         <div class="login-visual">
             <div class="lv-grid"></div>
             <div>

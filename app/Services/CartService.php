@@ -14,6 +14,10 @@ class CartService
 {
     private const SESSION_KEY = 'reservasi_cart';
 
+    public function __construct(private FasilitasBawaanService $bawaan)
+    {
+    }
+
     /** @return array<int, array> */
     public function items(): array
     {
@@ -60,6 +64,22 @@ class CartService
         return $removed;
     }
 
+    /**
+     * Timpa item keranjang di $index dengan $item baru (dipakai oleh alur "Ubah" jadwal),
+     * tanpa mengubah urutan/index item lain.
+     */
+    public function replace(int $index, array $item): bool
+    {
+        $items = $this->items();
+        if (! isset($items[$index])) {
+            return false;
+        }
+        $items[$index] = $item;
+        session()->put(self::SESSION_KEY, $items);
+
+        return true;
+    }
+
     public function clear(): void
     {
         session()->forget(self::SESSION_KEY);
@@ -84,9 +104,12 @@ class CartService
      * Ruangan berbeda dengan jadwal bentrok, atau ruangan sama dengan jadwal TIDAK bentrok,
      * TIDAK dianggap konflik.
      */
-    public function hasConflict(array $item, AvailabilityService $availability): bool
+    public function hasConflict(array $item, AvailabilityService $availability, ?int $excludeIndex = null): bool
     {
-        foreach ($this->items() as $existing) {
+        foreach ($this->items() as $index => $existing) {
+            if ($index === $excludeIndex) {
+                continue;
+            }
             if (
                 (int) $existing['id_fasilitas'] === (int) $item['id_fasilitas']
                 && $availability->slotsConflict($existing, $item)
@@ -106,7 +129,7 @@ class CartService
      */
     public function buildItem(TarifSewa $tarif, array $data): array
     {
-        $tarif->loadMissing('fasilitas', 'jenisSewa');
+        $tarif->loadMissing('fasilitas.lantai', 'jenisSewa');
         $satuan = $tarif->jenisSewa->satuan; // enum SatuanSewa
         $harga = (float) $tarif->harga;
 
@@ -143,6 +166,8 @@ class CartService
             'satuan'          => $satuan->value,
             'nama_fasilitas'  => $tarif->fasilitas->nama_fasilitas,
             'kategori'        => $tarif->fasilitas->kategori_fasilitas,
+            'fasilitas_bawaan' => $this->bawaan->untuk($tarif->fasilitas, $satuan->value),
+            'lantai_nomor'    => $tarif->fasilitas->lantai->nomor_lantai ?? null,
             'tanggal_mulai'   => $tanggalMulai,
             'tanggal_selesai' => $tanggalSelesai,
             'jam_mulai'       => $jamMulai,

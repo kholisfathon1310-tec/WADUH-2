@@ -1,4 +1,4 @@
-@extends('layouts.reservasi')
+@extends('layouts.customer')
 @section('title', 'Reservasi Berhasil')
 
 @section('content')
@@ -7,12 +7,18 @@
         @keyframes sukses-ring { 0% { box-shadow:0 0 0 0 rgba(13,138,95,.35); } 100% { box-shadow:0 0 0 18px rgba(13,138,95,0); } }
         .sukses-ic { animation:sukses-pop .5s cubic-bezier(.2,.9,.3,1.3) both, sukses-ring 1.8s ease-out 1; }
         .sukses-kode { position:relative; overflow:hidden; }
-        .sukses-kode::before { content:''; position:absolute; inset:0; background:radial-gradient(20rem 10rem at 50% -30%, rgba(23,107,135,.08), transparent 60%); pointer-events:none; }
+        .sukses-kode::before { content:''; position:absolute; inset:0; background:radial-gradient(20rem 10rem at 50% -30%, rgba(14,107,125,.08), transparent 60%); pointer-events:none; }
+        .sukses-next { text-align:left; display:flex; flex-direction:column; gap:.8rem; }
+        .sukses-next .item { display:flex; gap:.8rem; align-items:flex-start; }
+        .sukses-next .num { display:grid; place-items:center; width:1.9rem; height:1.9rem; border-radius:50%; background:var(--primary-soft); color:var(--primary); font-weight:800; font-size:.8rem; flex:none; }
+        .sukses-next .tx b { font-family:'Plus Jakarta Sans',sans-serif; font-size:.86rem; color:var(--ink); display:block; }
+        .sukses-next .tx span { font-size:.78rem; color:var(--muted); }
     </style>
     <div class="xcard mx-auto text-center p-5" style="max-width:640px;" data-reveal>
         <div class="sukses-ic mx-auto mb-3" style="width:5.2rem;height:5.2rem;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#e2f7ef,#d4f2e5);color:#0d8a5f;font-size:2.5rem;">
             <i class="bi bi-check-lg"></i>
         </div>
+        <p class="eyebrow-sm mb-1 text-center" style="justify-content:center">Konfirmasi Reservasi</p>
         <h1 class="h4 mb-2">Reservasi Berhasil Diajukan</h1>
         <p class="text-muted">Status awal <span class="badge text-bg-warning">Menunggu</span> persetujuan admin. Simpan kode berikut untuk mengecek status kapan saja.</p>
 
@@ -29,8 +35,25 @@
             @endif
         </div>
 
+        <div class="p-3 rounded-4 mb-4" style="background:var(--surface)">
+            <div class="sukses-next">
+                <div class="item">
+                    <span class="num">1</span>
+                    <div class="tx"><b>Menunggu verifikasi admin</b><span>Admin BITC akan memeriksa jadwal &amp; kelengkapan data Anda.</span></div>
+                </div>
+                <div class="item">
+                    <span class="num">2</span>
+                    <div class="tx"><b>Pantau status di Reservasi Saya</b><span>Status berubah menjadi Disetujui / Ditolak setelah diproses.</span></div>
+                </div>
+                <div class="item">
+                    <span class="num">3</span>
+                    <div class="tx"><b>Gunakan ruangan sesuai jadwal</b><span>Datang sesuai tanggal &amp; jam yang telah disetujui.</span></div>
+                </div>
+            </div>
+        </div>
+
         <div class="d-flex flex-wrap justify-content-center gap-2">
-            <a href="{{ route('cek-status.form') }}" class="btn btn-brand px-4"><i class="bi bi-search me-1"></i>Cek Status</a>
+            <a href="{{ route('customer.reservasi-saya.index') }}" class="btn btn-brand px-4"><i class="bi bi-journal-check me-1"></i>Reservasi Saya</a>
             <a href="{{ route('reservasi.index') }}" class="btn btn-brand-outline px-4">Reservasi Lagi</a>
         </div>
     </div>

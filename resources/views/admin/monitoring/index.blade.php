@@ -2,8 +2,7 @@
 @section('title', 'Monitoring Fasilitas')
 
 @section('content')
-    <div class="rounded-4 p-4 mb-4 text-white d-flex flex-wrap justify-content-between align-items-center gap-3"
-         style="background:linear-gradient(120deg, var(--primary), var(--primary-dark)); box-shadow:0 16px 34px -14px rgba(21,36,59,.35)" data-reveal>
+    <div class="page-hero mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3" data-reveal>
         <div class="d-flex align-items-center gap-3">
             <span class="d-none d-sm-grid" style="place-items:center; width:3.2rem; height:3.2rem; border-radius:1rem; background:rgba(255,255,255,.16); font-weight:800; font-size:1.15rem;">L{{ $lantai?->nomor_lantai }}</span>
             <div>

@@ -46,6 +46,12 @@ return [
             'driver' => 'session',
             'provider' => 'admins',
         ],
+
+        // Guard khusus Pemesan (tabel `pemesan`, model App\Models\Pemesan).
+        'customer' => [
+            'driver' => 'session',
+            'provider' => 'pemesans',
+        ],
     ],
 
     /*
@@ -74,6 +80,11 @@ return [
         'admins' => [
             'driver' => 'eloquent',
             'model' => App\Models\Admin::class,
+        ],
+
+        'pemesans' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Pemesan::class,
         ],
     ],
 
@@ -107,6 +118,14 @@ return [
         // Broker khusus guard `admin` — dipakai fitur lupa password admin.
         'admins' => [
             'provider' => 'admins',
+            'table' => 'password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        // Broker khusus guard `customer` — dipakai fitur lupa password Pemesan.
+        'pemesans' => [
+            'provider' => 'pemesans',
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,

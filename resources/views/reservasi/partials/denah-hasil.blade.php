@@ -21,4 +21,4 @@
 @endphp
 <x-denah :lantai="$lantai->nomor_lantai" :status-per-fasilitas="$statusByKode" :clickable="true" :link-template="$tplDetail" :jenis="$jenis?->id_jenis_sewa" :kategori="$kategori"/>
 
-<p class="text-muted small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Klik ruangan <strong class="text-success">hijau/kuning</strong> untuk memilih (bisa lebih dari satu), lalu tekan <strong>Isi Jadwal</strong>. Ruangan <strong>merah</strong> penuh atau sedang tidak disewakan.</p>
+<p class="text-muted small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Klik ruangan <strong class="text-success">hijau/kuning</strong> untuk memilih (bisa lebih dari satu), lalu tekan <strong>Lihat Detail</strong>. Ruangan <strong>merah</strong> penuh atau sedang tidak disewakan.</p>

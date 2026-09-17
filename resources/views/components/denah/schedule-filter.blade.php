@@ -12,6 +12,13 @@
 @props(['jenisId' => null, 'sehariSaja' => false, 'jadwal'])
 
 <form method="GET" class="dn-filter" data-filter-form>
+    <div class="dn-filter-head">
+        <span class="dn-filter-ic"><i class="bi bi-funnel"></i></span>
+        <div>
+            <div class="dn-filter-title">Filter Jadwal</div>
+            <div class="dn-filter-sub">Cek ketersediaan ruangan pada tanggal pilihan Anda</div>
+        </div>
+    </div>
     <input type="hidden" name="jenis" value="{{ $jenisId }}">
     <div class="dn-filter-grid">
         <div class="dn-filter-field">
@@ -38,18 +45,21 @@
 
 @once
     <style>
-        .dn-filter { background:#fff; border:1px solid #E2E8F0; border-radius:1.35rem; padding:1rem 1.15rem; margin-bottom:1rem; box-shadow:0 3px 14px rgba(15,23,42,.04); transition:box-shadow .2s ease; }
+        .dn-filter { background:#fff; border:1px solid var(--line); border-radius:1.35rem; padding:1.1rem 1.2rem; margin-bottom:1rem; box-shadow:0 3px 14px rgba(15,23,42,.04); transition:box-shadow .2s ease; }
         .dn-filter:hover { box-shadow:0 8px 22px -8px rgba(15,23,42,.1); }
+        .dn-filter-head { display:flex; align-items:center; gap:.7rem; margin-bottom:.9rem; }
+        .dn-filter-ic { display:grid; place-items:center; width:2.35rem; height:2.35rem; border-radius:.75rem; background:var(--primary-soft); color:var(--primary); font-size:1rem; flex:none; }
+        .dn-filter-title { font-weight:800; font-size:.88rem; color:var(--ink); font-family:'Plus Jakarta Sans',sans-serif; }
+        .dn-filter-sub { font-size:.76rem; color:var(--muted); }
         .dn-filter-grid { display:flex; flex-wrap:wrap; align-items:end; gap:.85rem; }
         .dn-filter-field { display:flex; flex-direction:column; gap:.35rem; flex:1 1 9.5rem; min-width:8.5rem; }
         .dn-filter-field--sm { flex-basis:7.5rem; }
         .dn-filter-field--btn { flex:0 0 auto; align-self:end; }
         .dn-filter-label { font-size:.76rem; font-weight:700; color:#475569; margin:0; }
-        .dn-filter-input, .dn-filter-field .form-control, .dn-filter-field .form-select { height:2.6rem; border-radius:.65rem; border-color:#E2E8F0; }
-        .dn-filter-input:focus, .dn-filter-field .form-control:focus { border-color:#0F766E; box-shadow:0 0 0 .18rem rgba(15,118,110,.14); }
-        .dn-filter-btn { height:2.6rem; padding:0 1.2rem; border-radius:.65rem; font-weight:700; white-space:nowrap; background:#0F766E; border-color:#0F766E; }
-        .dn-filter-btn:hover { background:#0c5f58; border-color:#0c5f58; }
-        .dn-filter-note { flex-direction:row; align-items:center; gap:.4rem; color:#64748b; font-size:.82rem; height:2.6rem; }
-        .dn-filter-note i { color:#0F766E; }
+        .dn-filter-input, .dn-filter-field .form-control, .dn-filter-field .form-select { height:2.6rem; border-radius:.65rem; border-color:var(--line); }
+        .dn-filter-input:focus, .dn-filter-field .form-control:focus { border-color:var(--primary); box-shadow:0 0 0 .18rem rgba(14,107,125,.14); }
+        .dn-filter-btn { height:2.6rem; padding:0 1.2rem; border-radius:.65rem; font-weight:700; white-space:nowrap; }
+        .dn-filter-note { flex-direction:row; align-items:center; gap:.4rem; color:var(--muted); font-size:.82rem; height:2.6rem; }
+        .dn-filter-note i { color:var(--primary); }
     </style>
 @endonce

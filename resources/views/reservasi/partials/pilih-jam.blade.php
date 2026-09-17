@@ -38,10 +38,10 @@
 <style>
     .jampicker { position:relative; }
     .jam-btn { display:flex; align-items:center; gap:.25rem; text-align:left; background:#fff; cursor:pointer; }
-    .jam-btn .jam-label { flex:1; font-weight:600; color:var(--ink, #15243b); }
+    .jam-btn .jam-label { flex:1; font-weight:600; color:var(--ink); }
     .jam-btn.jam-kosong .jam-label { color:#8a97a5; font-weight:500; }
     .jam-btn .jam-caret { font-size:.7rem; color:#8a97a5; transition:transform .2s; }
-    .jampicker.buka .jam-btn { border-color:var(--primary, #176b87); box-shadow:0 0 0 .2rem rgba(23,107,135,.12); }
+    .jampicker.buka .jam-btn { border-color:var(--primary); box-shadow:0 0 0 .2rem rgba(14,107,125,.12); }
     .jampicker.buka .jam-caret { transform:rotate(180deg); }
 
     /* Panel SELALU membuka ke bawah */
@@ -57,8 +57,8 @@
     .jam-grid::-webkit-scrollbar { width:6px; } .jam-grid::-webkit-scrollbar-thumb { background:#cfdde8; border-radius:3px; }
     .jam-opt { border:1.5px solid #dbe6ee; background:#f8fbfd; border-radius:.6rem; padding:.42rem .25rem;
         font-weight:700; font-size:.85rem; color:#33475c; cursor:pointer; transition:all .12s; }
-    .jam-opt:hover { border-color:var(--teal, #24aa9a); background:#e9faf3; color:#0d8a5f; transform:translateY(-1px); }
-    .jam-opt.aktif { background:var(--primary, #176b87); border-color:var(--primary, #176b87); color:#fff; box-shadow:0 6px 14px rgba(23,107,135,.3); }
+    .jam-opt:hover { border-color:var(--teal); background:#e9faf3; color:#0d8a5f; transform:translateY(-1px); }
+    .jam-opt.aktif { background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 6px 14px rgba(14,107,125,.3); }
     .jam-opt:disabled { opacity:.4; cursor:not-allowed; background:#f1f4f7; }
     .jam-opt:disabled:hover { border-color:#dbe6ee; background:#f1f4f7; color:#33475c; transform:none; }
     .jam-opt.opt-terisi:disabled { background:repeating-linear-gradient(45deg, #f1f4f7, #f1f4f7 4px, #e7ebee 4px, #e7ebee 8px); }

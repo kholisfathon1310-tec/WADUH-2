@@ -9,7 +9,7 @@
       - warna       : hex warna aksen lantai (dipertahankan dari implementasi lama)
       - total, kosong, terisi : int
 --}}
-@props(['nomorLantai', 'kategori' => null, 'satuan' => null, 'warna' => '#0F766E', 'total' => 0, 'kosong' => 0, 'terisi' => 0])
+@props(['nomorLantai', 'kategori' => null, 'satuan' => null, 'warna' => '#176B87', 'total' => 0, 'kosong' => 0, 'terisi' => 0])
 
 <div class="dn-head" style="--dn-accent: {{ $warna }}">
     <div class="dn-head-glow"></div>
@@ -39,7 +39,7 @@
         .dn-head {
             position: relative; overflow:hidden; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1.25rem;
             padding: 1.6rem 1.75rem; border-radius: 1.5rem; margin-bottom: 1rem;
-            background: linear-gradient(120deg, var(--dn-accent), color-mix(in srgb, var(--dn-accent) 65%, #0F766E));
+            background: linear-gradient(120deg, var(--dn-accent), color-mix(in srgb, var(--dn-accent) 65%, #176B87));
             color: #fff; box-shadow: 0 18px 38px -12px color-mix(in srgb, var(--dn-accent) 55%, transparent);
         }
         .dn-head-glow { position:absolute; inset:0; background: radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,.16), transparent 55%); pointer-events:none; }

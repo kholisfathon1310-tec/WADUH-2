@@ -579,7 +579,7 @@
             <span class="fw-semibold small" data-count>0 fasilitas dipilih</span>
             <span class="dl-select-chips" data-chips></span>
             <a href="#" class="btn btn-brand btn-sm ms-auto disabled" data-go aria-disabled="true">
-                Isi Jadwal <i class="bi bi-arrow-right"></i>
+                Lihat Detail <i class="bi bi-arrow-right"></i>
             </a>
         </div>
     @endif
@@ -633,12 +633,12 @@
                     barGo.classList.remove('disabled');
                     barGo.removeAttribute('aria-disabled');
                     barGo.href = entries[0][1].href + (antrian.length ? '&antrian=' + antrian.join(',') : '');
-                    barGo.innerHTML = 'Isi Jadwal' + (dipilih.size > 1 ? ' (' + dipilih.size + ' ruangan)' : '') + ' <i class="bi bi-arrow-right"></i>';
+                    barGo.innerHTML = 'Lihat Detail' + (dipilih.size > 1 ? ' (' + dipilih.size + ' ruangan)' : '') + ' <i class="bi bi-arrow-right"></i>';
                 } else {
                     barGo.classList.add('disabled');
                     barGo.setAttribute('aria-disabled', 'true');
                     barGo.href = '#';
-                    barGo.innerHTML = 'Isi Jadwal <i class="bi bi-arrow-right"></i>';
+                    barGo.innerHTML = 'Lihat Detail <i class="bi bi-arrow-right"></i>';
                 }
             };
 

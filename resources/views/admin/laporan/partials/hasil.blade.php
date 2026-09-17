@@ -49,7 +49,7 @@
 
 {{-- Ekspor di bawah tabel, rata kanan --}}
 <div class="d-flex justify-content-end mt-3">
-    <a href="{{ route('admin.laporan.pdf', request()->query()) }}" class="btn btn-danger"
+    <a href="{{ route('admin.laporan.pdf', request()->query()) }}" class="btn btn-brand"
        data-confirm="Laporan PDF akan diunduh."
        data-confirm-title="Unduh laporan ini?" data-icon="warning" data-confirm-text="Ya, Unduh">
         <i class="bi bi-file-earmark-pdf me-1"></i>Unduh PDF

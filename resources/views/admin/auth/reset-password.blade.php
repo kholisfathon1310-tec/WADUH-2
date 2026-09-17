@@ -53,6 +53,8 @@
         .is-salah { border-color:#d95757 !important; background:#fffafa !important; animation:goyang .3s; }
         @keyframes goyang { 25% { transform:translateX(-4px); } 75% { transform:translateX(4px); } }
         .catatan-salah { display:flex; align-items:center; gap:.3rem; color:#c02929; font-size:.78rem; font-weight:600; margin-top:.3rem; }
+        /* SweetAlert2: matikan pointer-events overlay begitu animasi fade-out mulai, supaya klik berikutnya (mis. buka modal lagi) tidak tertelan. */
+        .swal2-backdrop-hide { pointer-events: none !important; }
 
         @media (max-width: 767.98px) {
             .login-visual { display:none; }

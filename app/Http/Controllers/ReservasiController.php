@@ -13,7 +13,6 @@ use App\Models\DokumenPersyaratan;
 use App\Models\Fasilitas;
 use App\Models\JenisSewa;
 use App\Models\Lantai;
-use App\Models\Pemesan;
 use App\Models\Reservasi;
 use App\Models\TarifSewa;
 use App\Services\AvailabilityService;
@@ -23,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -36,19 +36,40 @@ class ReservasiController extends Controller
     ) {
     }
 
-    /** Langkah 1 — pilih jenis fasilitas (kategori). */
+    /**
+     * Ringkasan Lantai — pengganti katalog "semua ruangan" lama. Menampilkan 5 lantai
+     * (mirror section "Fasilitas per Lantai" di homepage) yang mengarah ke Denah, supaya
+     * alur Pemesan konsisten: Fasilitas (ringkasan lantai) → Denah → Detail.
+     */
     public function index(): View
     {
-        $kategori = Fasilitas::query()
-            ->where('status_aktif', StatusAktif::Aktif->value)
-            ->select('kategori_fasilitas')
-            ->distinct()
-            ->orderBy('kategori_fasilitas')
-            ->pluck('kategori_fasilitas');
+        $lantai = Lantai::with('fasilitas')
+            ->orderBy('id_lantai')
+            ->get()
+            ->map(function (Lantai $l) {
+                $aktif = $l->fasilitas->where('status_aktif', StatusAktif::Aktif);
+
+                // Lantai bisa campur kategori (mis. 3A/3B) — pakai kategori dengan jumlah
+                // ruangan terbanyak, sama seperti HomeController.
+                $kategoriUtama = $l->fasilitas
+                    ->countBy('kategori_fasilitas')
+                    ->sortDesc()
+                    ->keys()
+                    ->first();
+
+                return [
+                    'id'       => $l->id_lantai,
+                    'nomor'    => $l->nomor_lantai,
+                    'kategori' => $kategoriUtama ?? '-',
+                    'total'    => $l->fasilitas->count(),
+                    'tersedia' => $aktif->count(),
+                    'kapasitas_maks' => $aktif->max('kapasitas'),
+                ];
+            });
 
         return view('reservasi.kategori', [
-            'kategori'   => $kategori,
-            'cartCount'  => $this->cart->count(),
+            'daftarLantai' => $lantai,
+            'cartCount'    => $this->cart->count(),
         ]);
     }
 
@@ -57,7 +78,15 @@ class ReservasiController extends Controller
     {
         $this->pastikanKategoriAda($kategori);
 
-        $jenis = JenisSewa::query()
+        $jenis = $this->jenisUntukKategori($kategori);
+
+        return view('reservasi.jenis-sewa', compact('kategori', 'jenis'));
+    }
+
+    /** Semua Jenis Sewa (Jam/Hari/Bulan) yang punya tarif aktif untuk kategori ini — dipakai switcher jenis sewa. */
+    private function jenisUntukKategori(string $kategori)
+    {
+        return JenisSewa::query()
             ->whereHas('tarifSewa', function ($q) use ($kategori) {
                 $q->where('status_aktif', StatusAktif::Aktif->value)
                     ->whereHas('fasilitas', fn ($f) => $f
@@ -66,8 +95,6 @@ class ReservasiController extends Controller
             })
             ->orderBy('id_jenis_sewa')
             ->get();
-
-        return view('reservasi.jenis-sewa', compact('kategori', 'jenis'));
     }
 
     /** Langkah 3 — pilih lantai yang punya fasilitas kategori+jenis ini. */
@@ -108,24 +135,44 @@ class ReservasiController extends Controller
             return view('reservasi.partials.denah-hasil', compact('kategori', 'jenis', 'lantai', 'fasilitas', 'status', 'slot'));
         }
 
-        return view('reservasi.denah', compact('kategori', 'jenis', 'lantai', 'fasilitas', 'status', 'slot'));
+        $semuaJenis = $this->jenisUntukKategori($kategori);
+
+        return view('reservasi.denah', compact('kategori', 'jenis', 'lantai', 'fasilitas', 'status', 'slot', 'semuaJenis'));
     }
 
-    /** Detail fasilitas + form jadwal. */
+    /**
+     * Detail fasilitas + pilih Jenis Sewa + form jadwal — satu halaman (sesuai revisi: Kategori
+     * & Jenis Sewa tampil sebagai bagian dari proses reservasi SETELAH fasilitas dipilih, bukan
+     * langkah/halaman tersendiri). Jenis sewa default ke opsi pertama yang tersedia (urutan
+     * Jam → Hari → Bulan), bisa diganti lewat pill switcher (?jenis=) tanpa reload penuh alur.
+     */
     public function fasilitas(Request $request, Fasilitas $fasilitas): View
     {
         abort_if($fasilitas->status_aktif !== StatusAktif::Aktif, 404);
-        $jenis = $this->jenisDipilih($request);
 
-        // Tarif aktif untuk fasilitas + jenis yang dipilih.
-        $tarif = TarifSewa::query()
+        $urutanSatuan = ['Jam', 'Hari', 'Bulan'];
+        $semuaTarif = TarifSewa::tersedia()
             ->where('id_fasilitas', $fasilitas->id_fasilitas)
-            ->where('status_aktif', StatusAktif::Aktif->value)
-            ->when($jenis, fn ($q) => $q->where('id_jenis_sewa', $jenis->id_jenis_sewa))
             ->with('jenisSewa')
-            ->first();
+            ->get()
+            ->sortBy(fn (TarifSewa $t) => array_search($t->jenisSewa->satuan->value, $urutanSatuan))
+            ->values();
 
-        abort_if($tarif === null, 404, 'Tarif untuk fasilitas & jenis sewa ini tidak tersedia.');
+        abort_if($semuaTarif->isEmpty(), 404, 'Belum ada tarif aktif untuk fasilitas ini.');
+
+        $jenisId = $request->integer('jenis');
+        $tarif = ($jenisId ? $semuaTarif->firstWhere('id_jenis_sewa', $jenisId) : null) ?? $semuaTarif->first();
+
+        // Mode "Ubah" (dari Keranjang): kalau item di index tsb memang ruangan ini, kirim
+        // datanya ke view untuk mengisi ulang form jadwal (lihat atur-jadwal-modal.blade.php).
+        $editIndex = $request->filled('edit_index') ? (int) $request->input('edit_index') : null;
+        $editItem = null;
+        if ($editIndex !== null) {
+            $item = $this->cart->get($editIndex);
+            if ($item && (int) $item['id_fasilitas'] === $fasilitas->id_fasilitas) {
+                $editItem = $item;
+            }
+        }
 
         // Rentang jam yang sudah terisi pada tanggal yang sedang ditampilkan (Per Jam saja) —
         // dipakai jam-picker supaya jam yang bentrok tidak bisa diklik & langsung kelihatan
@@ -133,15 +180,19 @@ class ReservasiController extends Controller
         // pemesan mengganti tanggal di form, tanpa reload halaman.
         $jamTerisi = [];
         if ($tarif->jenisSewa->satuan === SatuanSewa::Jam) {
-            $tanggalAwal = $request->input('tanggal_mulai', Carbon::today()->toDateString());
+            $tanggalAwal = $request->input('tanggal_mulai', $editItem['tanggal_mulai'] ?? Carbon::today()->toDateString());
             $jamTerisi = $this->hitungJamTerisi($fasilitas->id_fasilitas, $tanggalAwal);
         }
 
         return view('reservasi.fasilitas', [
-            'fasilitas' => $fasilitas->load('lantai'),
-            'tarif'     => $tarif,
-            'jenis'     => $tarif->jenisSewa,
-            'jamTerisi' => $jamTerisi,
+            'fasilitas'  => $fasilitas->load('lantai'),
+            'tarif'      => $tarif,
+            'jenis'      => $tarif->jenisSewa,
+            'semuaTarif' => $semuaTarif,
+            'jamTerisi'  => $jamTerisi,
+            'pemesan'    => Auth::guard('customer')->user(),
+            'editItem'   => $editItem,
+            'editIndex'  => $editIndex,
         ]);
     }
 
@@ -195,9 +246,20 @@ class ReservasiController extends Controller
         $tarifUtama = $request->tarif();
         $data = $request->validated();
         $sessionId = $request->session()->getId();
+        $editIndex = $request->filled('edit_index') ? (int) $request->input('edit_index') : null;
+
+        // Data diri Pemesan diisi di form yang sama (bukan lagi di checkout) — simpan ke akun
+        // begitu jadwal tervalidasi, supaya keranjang & checkout selalu memakai data terbaru.
+        Auth::guard('customer')->user()->update([
+            'nama_lengkap' => $data['nama_lengkap'],
+            'alamat'       => $data['alamat'],
+            'usia'         => $data['usia'],
+            'pekerjaan'    => $data['pekerjaan'],
+            'no_telepon'   => $data['no_telepon'],
+        ]);
 
         try {
-            return Cache::lock("keranjang-lock:{$sessionId}", 10)->block(5, function () use ($request, $tarifUtama, $data, $sessionId) {
+            return Cache::lock("keranjang-lock:{$sessionId}", 10)->block(5, function () use ($request, $tarifUtama, $data, $sessionId, $editIndex) {
                 // PENTING: session ini sudah dimuat ke memori SEBELUM request menunggu giliran
                 // lock di atas, jadi isinya bisa basi begitu giliran tiba — mis. keranjang baru
                 // saja ditulis oleh request lain untuk session yang sama, tepat sebelum lock ini
@@ -205,9 +267,28 @@ class ReservasiController extends Controller
                 // memakai isi keranjang yang benar-benar terbaru, bukan salinan basi.
                 $request->session()->start();
 
+                $idsLain = array_values(array_filter(explode(',', (string) $request->input('antrian'))));
+
+                // Mode "Ubah" (dari Keranjang): timpa 1 item yang sudah ada, tidak boleh
+                // dicampur dengan penambahan ruangan baru dari denah (antrian) — indeks
+                // keranjang bisa jadi tidak konsisten kalau keduanya digabung.
+                if ($editIndex !== null) {
+                    if ($idsLain !== []) {
+                        return back()->withInput()->withErrors([
+                            'edit_index' => 'Tidak bisa mengedit jadwal sambil menambah ruangan baru dari denah. Batalkan pilihan ruangan lain terlebih dahulu.',
+                        ]);
+                    }
+
+                    $existing = $this->cart->get($editIndex);
+                    if (! $existing || (int) $existing['id_fasilitas'] !== (int) $tarifUtama->id_fasilitas) {
+                        return back()->withInput()->withErrors([
+                            'edit_index' => 'Item yang ingin diubah tidak ditemukan, silakan coba lagi dari Keranjang.',
+                        ]);
+                    }
+                }
+
                 // Kumpulkan tarif semua ruangan: utama + antrian (jenis sewa sama dengan ruangan utama).
                 $daftarTarif = collect([$tarifUtama]);
-                $idsLain = array_values(array_filter(explode(',', (string) $request->input('antrian'))));
                 foreach ($idsLain as $idFasilitas) {
                     $t = TarifSewa::where('status_aktif', StatusAktif::Aktif->value)
                         ->where('id_fasilitas', $idFasilitas)
@@ -238,7 +319,7 @@ class ReservasiController extends Controller
 
                     if ((int) $data['jumlah_pengguna'] > $t->fasilitas->kapasitas) {
                         $galat[] = "{$t->fasilitas->nama_fasilitas}: kapasitas maksimal {$t->fasilitas->kapasitas} orang.";
-                    } elseif ($this->cart->hasConflict($item, $this->availability) || $this->bentrokDiBatch($items, $item)) {
+                    } elseif ($this->cart->hasConflict($item, $this->availability, $editIndex) || $this->bentrokDiBatch($items, $item)) {
                         $galat[] = "{$t->fasilitas->nama_fasilitas}: ruangan ini sudah ada di keranjang dengan jadwal yang bentrok.";
                     } elseif (! $this->availability->slotAvailable($item['id_fasilitas'], $slot, $sessionId)) {
                         $galat[] = "{$t->fasilitas->nama_fasilitas}: jadwal tersebut baru saja terisi, pilih jadwal lain.";
@@ -249,6 +330,17 @@ class ReservasiController extends Controller
 
                 if ($galat !== []) {
                     return back()->withInput()->withErrors($galat);
+                }
+
+                if ($editIndex !== null) {
+                    $oldItem = $this->cart->get($editIndex);
+                    $this->availability->releaseHold($oldItem);
+                    $this->availability->putHold($items[0], $sessionId);
+                    $this->cart->replace($editIndex, $items[0]);
+
+                    $request->session()->save();
+
+                    return redirect()->route('reservasi.checkout.form')->with('success', "Jadwal \"{$items[0]['nama_fasilitas']}\" berhasil diperbarui.");
                 }
 
                 foreach ($items as $item) {
@@ -297,47 +389,54 @@ class ReservasiController extends Controller
             $this->availability->releaseHold($removed);
         }
 
+        // Kalau ini item terakhir, back() akan mendarat di halaman checkout yang langsung
+        // redirect lagi (keranjang kosong) dan menimpa pesan sukses ini — jadi arahkan
+        // langsung ke katalog Fasilitas supaya pesan "item dihapus" benar-benar terlihat.
+        if ($this->cart->isEmpty()) {
+            return redirect()->route('reservasi.index')->with('success', 'Item dihapus, keranjang Anda sekarang kosong.');
+        }
+
         return back()->with('success', 'Item dihapus dari keranjang.');
     }
 
-    /** Form data diri + ringkasan keranjang. */
-    public function checkoutForm(): View|RedirectResponse
+    /** Kosongkan seluruh keranjang + lepas semua cache hold. */
+    public function kosongkanKeranjang(): RedirectResponse
     {
-        if ($this->cart->isEmpty()) {
-            return redirect()->route('reservasi.index')->with('error', 'Keranjang masih kosong.');
+        foreach ($this->cart->items() as $item) {
+            $this->availability->releaseHold($item);
         }
+        $this->cart->clear();
 
+        return redirect()->route('reservasi.checkout.form')->with('success', 'Keranjang berhasil dikosongkan.');
+    }
+
+    /** Halaman Keranjang: ringkasan keranjang + form data diri. Selalu tampil, termasuk saat kosong. */
+    public function checkoutForm(): View
+    {
         return view('reservasi.checkout', [
             'items'    => $this->cart->items(),
             'total'    => $this->cart->total(),
             'hasBulan' => $this->cart->hasBulan(),
+            'pemesan'  => Auth::guard('customer')->user(),
         ]);
     }
 
-    /** Proses submit checkout: buat Pemesan + Reservasi per item (+ dokumen untuk Bulan). */
+    /**
+     * Proses submit checkout: buat Reservasi per item (+ dokumen untuk Bulan). Data diri Pemesan
+     * sudah disimpan sebelumnya lewat form "Isi Jadwal" (lihat tambahKeranjang()), jadi di sini
+     * tinggal dipakai langsung, tidak perlu diminta/diperbarui lagi.
+     */
     public function checkout(CheckoutRequest $request): RedirectResponse
     {
         if ($this->cart->isEmpty()) {
             return redirect()->route('reservasi.index')->with('error', 'Keranjang masih kosong.');
         }
 
-        $data = $request->validated();
         $items = $this->cart->items();
+        $pemesan = Auth::guard('customer')->user();
 
-        $hasil = DB::transaction(function () use ($request, $data, $items) {
-            // 1. Cari/atau buat Pemesan berdasarkan email (UPDATE bila sudah ada, tidak duplikat).
-            $pemesan = Pemesan::updateOrCreate(
-                ['email' => $data['email']],
-                [
-                    'nama_lengkap' => $data['nama_lengkap'],
-                    'alamat'       => $data['alamat'],
-                    'usia'         => $data['usia'],
-                    'pekerjaan'    => $data['pekerjaan'],
-                    'no_telepon'   => $data['no_telepon'],
-                ],
-            );
-
-            // 2. SATU kode simpel per checkout (mis. RSV-7K3M) untuk seluruh ruangan.
+        $hasil = DB::transaction(function () use ($request, $items, $pemesan) {
+            // 1. SATU kode simpel per checkout (mis. RSV-7K3M) untuk seluruh ruangan.
             //    Baris ke-2 dst diberi suffix internal (-2, ...) karena kode_reservasi UNIQUE per baris,
             //    tapi kode yang ditampilkan ke pemesan tetap satu: kode dasar (= kode_transaksi).
             $kodeDasar = $this->generateKode();
@@ -387,8 +486,9 @@ class ReservasiController extends Controller
         }
         $this->cart->clear();
 
-        // 6. Tampilkan halaman notifikasi sukses.
-        return redirect()->route('reservasi.sukses')->with('checkout', $hasil);
+        // 6. Langsung ke Reservasi Saya — pop-up konfirmasi tampil di halaman itu (lihat
+        // session('checkout') di layouts.customer), bukan lewat halaman perantara lagi.
+        return redirect()->route('customer.reservasi-saya.index')->with('checkout', $hasil);
     }
 
     /** Halaman notifikasi sukses (kode_transaksi + daftar kode_reservasi). */
@@ -411,7 +511,13 @@ class ReservasiController extends Controller
     public function batalkan(Request $request, string $kode_reservasi): RedirectResponse
     {
         $reservasi = Reservasi::where('kode_reservasi', $kode_reservasi)->firstOrFail();
-        $kembaliKe = route('cek-status.hasil', ['kode' => $request->input('kode', $kode_reservasi)]);
+
+        // Dipanggil dari 2 tempat: Cek Status publik (default) dan "Reservasi Saya" (mengirim
+        // `kembali` berisi path lokal supaya kembali ke halamannya sendiri, bukan Cek Status).
+        $kembaliInput = $request->input('kembali');
+        $kembaliKe = (is_string($kembaliInput) && str_starts_with($kembaliInput, '/'))
+            ? $kembaliInput
+            : route('cek-status.hasil', ['kode' => $request->input('kode', $kode_reservasi)]);
 
         // Hanya boleh dibatalkan selama masih proses verifikasi (Menunggu) dan belum lewat tanggal.
         $bolehStatus = $reservasi->status_reservasi === StatusReservasi::Menunggu;

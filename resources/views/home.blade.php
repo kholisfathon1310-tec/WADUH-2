@@ -27,7 +27,7 @@
             --primary:      #0e6b7d;
             --primary-dark: #084b58;
             --primary-soft: #e6f2f4;    /* untuk pill/latar lembut */
-            --accent:       #14b8a6;    /* dipakai sangat terbatas */
+            --accent:       #24aa9a;    /* dipakai sangat terbatas */
 
             --success:      #0d8a5f;
             --success-soft: #e2f7ef;
@@ -224,17 +224,14 @@
            lewat NOMOR di badge + ICON kategori.
            ══════════════════════════════════════════════════════════════ */
         .lantai-card {
-            position:relative; overflow:hidden;
+            position:relative; overflow:hidden; cursor:default;
             border:1px solid var(--line); border-radius:var(--radius-lg);
             background:#fff; height:100%;
             display:flex; flex-direction:column;
-            transition:transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s ease, border-color .3s ease;
         }
-        .lantai-card:hover { transform:translateY(-6px); box-shadow:var(--shadow-lg); border-color:transparent; }
 
         .lantai-card .head { position:relative; height:200px; overflow:hidden; background-color:var(--surface); }
-        .lantai-card .head-bg { position:absolute; inset:0; background-size:cover; background-position:center; transition:transform .55s cubic-bezier(.2,.7,.3,1); }
-        .lantai-card:hover .head-bg { transform:scale(1.05); }
+        .lantai-card .head-bg { position:absolute; inset:0; background-size:cover; background-position:center; }
         /* Gradient bawah supaya nomor tetap punya kedalaman. */
         .lantai-card .head::after {
             content:''; position:absolute; inset:0; pointer-events:none;
@@ -271,17 +268,11 @@
         .lantai-card .body .desc { color:var(--muted); font-size:.9rem; line-height:1.55; margin-bottom:1.1rem; }
         .lantai-card .pills-row { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.15rem; }
 
-        .lantai-card .btn-lantai {
-            margin-top:auto; display:inline-flex; align-items:center; justify-content:space-between; gap:.5rem;
-            padding:.8rem 1.05rem; border-radius:.7rem; font-weight:700; font-size:.92rem;
-            color:#fff; text-decoration:none;
-            background:var(--primary);
-            box-shadow:0 10px 22px -10px rgba(14,107,125,.5);
-            transition:transform .15s ease, background .15s ease;
-        }
-        .lantai-card .btn-lantai:hover { background:var(--primary-dark); transform:translateY(-1px); }
-        .lantai-card .btn-lantai i { transition:transform .2s ease; }
-        .lantai-card .btn-lantai:hover i { transform:translateX(3px); }
+        .lantai-card .amenity-row { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:1.1rem; }
+        .lantai-card .amenity-chip { display:inline-flex; align-items:center; gap:.35rem;
+            background:var(--surface); border:1px solid var(--line); color:var(--muted);
+            font-size:.72rem; font-weight:600; padding:.3rem .6rem; border-radius:.5rem; }
+        .lantai-card .amenity-chip i { color:var(--primary); font-size:.8rem; }
 
         /* Pill — 3 varian: unit (netral), tersedia (hijau), habis (merah). */
         .pill { display:inline-flex; align-items:center; gap:.4rem; padding:.42rem .8rem; border-radius:2rem; font-size:.78rem; font-weight:600; line-height:1; }
@@ -326,7 +317,7 @@
         }
         .jam-panel::before {
             content:''; position:absolute; inset:0;
-            background:radial-gradient(30rem 16rem at -10% 110%, rgba(20,184,166,.28), transparent 60%);
+            background:radial-gradient(30rem 16rem at -10% 110%, rgba(36,170,154,.28), transparent 60%);
         }
         .jam-panel > * { position:relative; z-index:1; }
         .jam-panel h3 { color:#fff; margin-bottom:1rem; }
@@ -411,13 +402,13 @@
                 <li class="nav-item"><a class="nav-link active" href="#beranda">Beranda</a></li>
                 <li class="nav-item"><a class="nav-link" href="#tentang">Tentang BITC</a></li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="{{ route('fasilitas.index') }}" role="button" data-bs-toggle="dropdown">Fasilitas</a>
+                    <a class="nav-link dropdown-toggle" href="{{ route('reservasi.index') }}" role="button" data-bs-toggle="dropdown">Fasilitas</a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('fasilitas.index') }}"><i class="bi bi-grid-3x3-gap me-2"></i>Semua Lantai</a></li>
+                        <li><a class="dropdown-item" href="{{ route('reservasi.index') }}"><i class="bi bi-grid-3x3-gap me-2"></i>Semua Lantai</a></li>
                         <li><hr class="dropdown-divider"></li>
                         @foreach ($daftarLantai as $l)
                             <li>
-                                <a class="dropdown-item" href="{{ route('fasilitas.denah', ['kategori' => $l['kategori'], 'lantai' => $l['id']]) }}">
+                                <a class="dropdown-item" href="{{ route('reservasi.denah', ['kategori' => $l['kategori'], 'lantai' => $l['id']]) }}">
                                     <span class="dot"></span>
                                     Lantai {{ $l['nomor'] }} · {{ $l['kategori'] }}
                                 </a>
@@ -427,7 +418,11 @@
                 </li>
                 <li class="nav-item"><a class="nav-link" href="#kontak">Kontak</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('cek-status.form') }}">Cek Status</a></li>
-                <li class="nav-item ms-lg-2"><a class="btn btn-nav" href="{{ route('admin.login') }}"><i class="bi bi-box-arrow-in-right me-1"></i> Login</a></li>
+                @auth('customer')
+                    <li class="nav-item ms-lg-2"><a class="btn btn-nav" href="{{ route('customer.dashboard') }}"><i class="bi bi-box-arrow-in-right me-1"></i> Masuk</a></li>
+                @else
+                    <li class="nav-item ms-lg-2"><a class="btn btn-nav" href="{{ route('customer.login') }}"><i class="bi bi-box-arrow-in-right me-1"></i> Masuk</a></li>
+                @endauth
             </ul>
         </div>
         </div>
@@ -555,6 +550,11 @@
                     @php
                         $foto  = asset($fotoLantai[$l['nomor']] ?? 'images/lt1.png');
                         $habis = (int) $l['tersedia'] === 0;
+                        $meta  = \App\Support\KategoriMeta::get($l['kategori']);
+                        $amenities = collect($meta['dapat'] ?? [])->take(3);
+                        $sisaAmenity = max(0, count($meta['dapat'] ?? []) - $amenities->count());
+                        $kapMin = $l['kap_min'] ?? null;
+                        $kapMaks = $l['kap_maks'] ?? null;
                     @endphp
                     <div class="col-md-6 col-xl-4" data-reveal>
                         <div class="lantai-card">
@@ -574,18 +574,28 @@
                             {{-- BODY --}}
                             <div class="body">
                                 <h3>{{ $l['kategori'] }}</h3>
-                                <p class="desc">{{ $deskKategori[$l['kategori']] ?? '' }}</p>
+                                <p class="desc">{{ $meta['desk'] ?? ($deskKategori[$l['kategori']] ?? '') }}</p>
                                 <div class="pills-row">
                                     <span class="pill pill-unit"><i class="bi bi-door-open"></i> {{ $l['total'] }} unit</span>
                                     <span class="pill {{ $habis ? 'pill-habis' : 'pill-tersedia' }}">
                                         <i class="bi {{ $habis ? 'bi-slash-circle' : 'bi-check-circle' }}"></i>
                                         {{ $l['tersedia'] }} tersedia
                                     </span>
+                                    @if ($kapMaks)
+                                        <span class="pill pill-unit">
+                                            <i class="bi bi-people"></i>
+                                            Kapasitas {{ $kapMin && $kapMin !== $kapMaks ? "{$kapMin}–{$kapMaks}" : $kapMaks }} orang
+                                        </span>
+                                    @endif
                                 </div>
-                                <a href="{{ route('fasilitas.denah', ['kategori' => $l['kategori'], 'lantai' => $l['id']]) }}" class="btn-lantai">
-                                    <span>Lihat Denah Lantai {{ $l['nomor'] }}</span>
-                                    <i class="bi bi-arrow-right"></i>
-                                </a>
+                                <div class="amenity-row">
+                                    @foreach ($amenities as $a)
+                                        <span class="amenity-chip"><i class="bi bi-check-circle-fill"></i>{{ $a }}</span>
+                                    @endforeach
+                                    @if ($sisaAmenity > 0)
+                                        <span class="amenity-chip">+{{ $sisaAmenity }} lainnya</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -602,13 +612,14 @@
             <div class="section-head center mb-5" data-reveal>
                 <p class="eyebrow">Cara Kerja</p>
                 <h2>Reservasi dalam 4 langkah singkat.</h2>
+                <p class="text-muted mb-0">Masuk sebagai Pemesan untuk memulai — seluruh proses reservasi hanya butuh 4 langkah.</p>
             </div>
             <div class="row g-4">
                 <div class="col-md-6 col-lg-3" data-reveal>
                     <div class="step-card">
                         <span class="n">1</span>
                         <h3>Pilih Ruang</h3>
-                        <p>Telusuri kategori & denah per lantai, lihat ketersediaan real-time.</p>
+                        <p>Masuk atau daftar, lalu telusuri lantai & pilih ruang di denah interaktif.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3" data-reveal>

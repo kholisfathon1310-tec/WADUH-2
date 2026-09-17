@@ -1,5 +1,5 @@
 @php
-    $steps = [1 => 'Kategori', 2 => 'Jenis Sewa', 3 => 'Lantai', 4 => 'Fasilitas', 5 => 'Checkout'];
+    $steps = [1 => 'Pilih Fasilitas', 2 => 'Keranjang & Konfirmasi'];
 @endphp
 <div class="stepper">
     @foreach ($steps as $n => $label)

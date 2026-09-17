@@ -56,6 +56,14 @@ class TambahKeranjangRequest extends FormRequest
             'tanggal_mulai'   => ['required', 'date', 'after_or_equal:today'],
             'jumlah_pengguna' => ['required', 'integer', 'min:1'],
             'keperluan'       => ['required', 'string', 'max:1000'],
+            'edit_index'      => ['nullable', 'integer', 'min:0'],
+
+            // Data diri Pemesan — diisi di form yang sama supaya keranjang sudah "siap" sebelum checkout.
+            'nama_lengkap' => ['required', 'string', 'max:150'],
+            'alamat'       => ['required', 'string', 'max:500'],
+            'usia'         => ['required', 'integer', 'min:17', 'max:120'],
+            'pekerjaan'    => ['required', 'string', 'max:100'],
+            'no_telepon'   => ['required', 'string', 'regex:/^[0-9+\-\s()]{8,20}$/'],
         ];
 
         // Aturan jadwal tergantung satuan sewa.
@@ -156,6 +164,11 @@ class TambahKeranjangRequest extends FormRequest
             'jam_selesai'     => 'jam selesai',
             'jumlah_pengguna' => 'jumlah pengguna',
             'keperluan'       => 'keperluan',
+            'nama_lengkap'    => 'nama lengkap',
+            'alamat'          => 'alamat',
+            'usia'            => 'usia',
+            'pekerjaan'       => 'pekerjaan',
+            'no_telepon'      => 'nomor telepon',
         ];
     }
 
@@ -176,6 +189,14 @@ class TambahKeranjangRequest extends FormRequest
             'jumlah_pengguna.min'          => 'Jumlah pengguna minimal 1 orang.',
             'keperluan.required'           => 'Keperluan pemakaian ruangan wajib diisi, contoh rapat tim.',
             'keperluan.max'                => 'Keperluan terlalu panjang, maksimal 1000 karakter.',
+            'nama_lengkap.required'        => 'Nama lengkap wajib diisi sesuai identitas.',
+            'alamat.required'              => 'Alamat wajib diisi.',
+            'usia.required'                => 'Usia wajib diisi.',
+            'usia.min'                     => 'Pemesan minimal berusia 17 tahun.',
+            'usia.max'                     => 'Usia tidak valid.',
+            'pekerjaan.required'           => 'Pekerjaan wajib diisi.',
+            'no_telepon.required'          => 'Nomor telepon wajib diisi agar admin bisa menghubungi Anda.',
+            'no_telepon.regex'             => 'Format nomor telepon tidak valid, gunakan angka saja, contoh 0812xxxxxxx.',
         ];
     }
 }

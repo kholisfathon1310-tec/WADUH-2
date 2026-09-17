@@ -38,9 +38,9 @@
     // Reservasi per kategori — warna monokrom (shade teal berbeda) supaya konsisten palet.
     // Kategori tanpa reservasi tetap tampil (0), bukan hilang dari daftar.
     $kategoriMeta = [
-        'Working Space'    => ['ikon' => 'bi-briefcase', 'shade' => '#0e6b7d'],
-        'Co-Working Space' => ['ikon' => 'bi-people',    'shade' => '#14b8a6'],
-        'Convention Hall'  => ['ikon' => 'bi-bank',      'shade' => '#0891b2'],
+        'Working Space'    => ['ikon' => 'bi-briefcase', 'shade' => '#176b87'],
+        'Co-Working Space' => ['ikon' => 'bi-people',    'shade' => '#24aa9a'],
+        'Convention Hall'  => ['ikon' => 'bi-bank',      'shade' => '#178f87'],
     ];
     $reservasiPerKategoriLengkap = collect($kategoriMeta)->keys()
         ->mapWithKeys(fn ($k) => [$k => (int) ($reservasiPerKategori[$k] ?? 0)]);
@@ -309,9 +309,9 @@
    PALET LOKAL DASHBOARD — monokrom teal, konsisten homepage.
    ══════════════════════════════════════════════════════════════ */
 .dash {
-    --dash-primary:        #0e6b7d;
-    --dash-primary-dark:   #084b58;
-    --dash-primary-soft:   #e6f2f4;
+    --dash-primary:        #176b87;
+    --dash-primary-dark:   #0f526b;
+    --dash-primary-soft:   #eef7f8;
     --dash-primary-soft-2: #b8dde4;    /* untuk bar chart yang lebih pale */
     --dash-ink:            #0f172a;
     --dash-muted:          #64748b;

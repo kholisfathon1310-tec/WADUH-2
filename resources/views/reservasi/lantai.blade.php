@@ -1,19 +1,15 @@
-@extends('layouts.reservasi')
+@extends('layouts.customer')
 @section('title', 'Pilih Lantai')
-
-@section('stepper')
-    @include('reservasi.partials.stepper', ['step' => 3])
-@endsection
 
 @section('content')
     <nav aria-label="breadcrumb"><ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ route('reservasi.index') }}">Kategori</a></li>
-        <li class="breadcrumb-item"><a href="{{ route('reservasi.jenis-sewa', ['kategori' => $kategori]) }}">{{ $kategori }}</a></li>
-        <li class="breadcrumb-item active">Lantai</li>
+        <li class="breadcrumb-item"><a href="{{ route('reservasi.index') }}">Fasilitas</a></li>
+        <li class="breadcrumb-item"><a href="{{ route('reservasi.index', ['kategori' => $kategori]) }}">{{ $kategori }}</a></li>
+        <li class="breadcrumb-item active">Denah per Lantai</li>
     </ol></nav>
 
-    <div class="page-head mb-4 p-4 p-md-5 rounded-4 text-white" style="background:linear-gradient(115deg,#0d2a3a,#145f7c 55%,#168b88)" data-reveal>
-        <p class="eyebrow-sm mb-1" style="color:#a9e6dd">Langkah 3 dari 5 · {{ $kategori }} @if($jenis) · Per {{ $jenis->satuan->value }} @endif</p>
+    <div class="page-head mb-4 p-4 p-md-5 rounded-4 text-white" style="background:linear-gradient(115deg,var(--primary-dark),var(--primary) 60%,var(--teal) 130%)" data-reveal>
+        <p class="eyebrow-sm mb-1" style="color:#cdece6">{{ $kategori }} @if($jenis) · Per {{ $jenis->satuan->value }} @endif</p>
         <h1 class="h3 mb-1">Pilih Lantai</h1>
         <p class="mb-0" style="opacity:.85">Lantai berikut memiliki fasilitas yang cocok dengan pilihan Anda.</p>
     </div>

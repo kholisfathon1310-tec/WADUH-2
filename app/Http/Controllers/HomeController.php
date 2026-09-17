@@ -30,12 +30,20 @@ class HomeController extends Controller
                     ->keys()
                     ->first();
 
+                // Kapasitas yang ditampilkan mengikuti kategori utama saja (bukan seluruh
+                // ruangan di lantai itu) — kalau tidak, sisa ruangan kategori minoritas
+                // (mis. Working Space di lantai yang mayoritas Co-Working) ikut melebarkan
+                // rentang kapasitas jadi tidak mencerminkan kategori yang ditampilkan.
+                $aktifKategoriUtama = $aktif->where('kategori_fasilitas', $kategoriUtama);
+
                 return [
-                    'id'       => $l->id_lantai,
-                    'nomor'    => $l->nomor_lantai,
-                    'kategori' => $kategoriUtama ?? '-',
-                    'total'    => $l->fasilitas->count(),
-                    'tersedia' => $aktif->count(),
+                    'id'           => $l->id_lantai,
+                    'nomor'        => $l->nomor_lantai,
+                    'kategori'     => $kategoriUtama ?? '-',
+                    'total'        => $l->fasilitas->count(),
+                    'tersedia'     => $aktif->count(),
+                    'kap_min'      => $aktifKategoriUtama->min('kapasitas'),
+                    'kap_maks'     => $aktifKategoriUtama->max('kapasitas'),
                 ];
             });
 

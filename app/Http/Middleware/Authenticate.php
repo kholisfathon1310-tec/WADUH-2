@@ -16,7 +16,11 @@ class Authenticate extends Middleware
             return null;
         }
 
-        // Seluruh area terproteksi saat ini adalah /admin/*, arahkan ke login admin.
-        return route('admin.login');
+        // Dua area terproteksi: /admin/* (guard admin) dan sisanya untuk Pemesan (guard customer).
+        if ($request->is('admin') || $request->is('admin/*')) {
+            return route('admin.login');
+        }
+
+        return route('customer.login');
     }
 }
