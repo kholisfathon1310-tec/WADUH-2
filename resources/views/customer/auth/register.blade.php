@@ -8,16 +8,20 @@
     <link href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
     <style>
-        :root { --primary:#176b87; --primary-dark:#0f526b; --teal:#24aa9a; --ink:#15243b; --muted:#637189; --line:#e4ebf2; }
+        :root { --primary:#176b87; --primary-dark:#0f526b; --teal:#2f7fd1; --ink:#15243b; --muted:#637189; --line:#e4ebf2; }
         * { box-sizing:border-box; }
         body { font-family:'DM Sans',sans-serif; min-height:100vh; margin:0; display:grid; place-items:center;
                background:#f4f7fa; padding:1.5rem; }
         h1,h2,.brand { font-family:'Plus Jakarta Sans',sans-serif; letter-spacing:-.02em; }
         @keyframes cardIn { from { opacity:0; transform:translateY(18px) scale(.98); } to { opacity:1; transform:none; } }
 
+        /* Tinggi kartu SENGAJA dibatasi (bukan min-height saja) supaya panel form yang panjang
+           (banyak field) scroll DI DALAM panelnya sendiri — panel visual & badge peran di pojok
+           tetap diam di tempat. Tanpa batas ini, seluruh kartu (termasuk panel visual) ikut
+           tergulung saat body yang scroll, jadi terlihat terputus/berantakan. */
         .reg-shell { position:relative; z-index:1; width:min(1040px, 100%); background:#fff; border-radius:1.75rem;
             box-shadow:0 34px 76px -20px rgba(15,36,52,.28); overflow:hidden; animation:cardIn .5s cubic-bezier(.2,.7,.3,1) both;
-            display:flex; min-height:640px; }
+            display:flex; height:min(700px, calc(100vh - 3rem)); }
 
         .reg-visual { flex:1 1 40%; position:relative; overflow:hidden; padding:2.75rem 2.5rem; color:#fff;
             background:url('{{ asset('images/gedung_bitc.png') }}') center/cover no-repeat;
@@ -25,7 +29,7 @@
         .reg-visual::before { content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
             background:linear-gradient(180deg, rgba(9,23,36,.12) 0%, rgba(9,23,36,.28) 38%, rgba(9,23,36,.62) 72%, rgba(9,23,36,.82) 100%); }
         .reg-visual::after { content:''; position:absolute; z-index:0; pointer-events:none; border-radius:50%; filter:blur(6px); opacity:.22;
-            width:16rem; height:16rem; background:#24aa9a; bottom:-6rem; right:-5rem; }
+            width:16rem; height:16rem; background:#2f7fd1; bottom:-6rem; right:-5rem; }
         .rv-grid { position:absolute; inset:0; z-index:0; opacity:.05;
             background-image:linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px);
             background-size:32px 32px; mask-image:radial-gradient(60% 60% at 30% 30%, #000, transparent); }
@@ -36,7 +40,17 @@
         .rv-points li { display:flex; align-items:center; gap:.65rem; font-size:.85rem; color:#eef6f7; text-shadow:0 2px 8px rgba(0,0,0,.4); }
         .rv-points .ic { display:grid; place-items:center; width:1.9rem; height:1.9rem; border-radius:.6rem; background:rgba(255,255,255,.16); backdrop-filter:blur(2px); flex:none; font-size:.85rem; }
 
-        .reg-form-panel { flex:1 1 60%; padding:2.75rem 2.75rem 2rem; display:flex; flex-direction:column; justify-content:center; overflow-y:auto; }
+        /* justify-content SENGAJA flex-start, bukan center — form ini lebih panjang dari tinggi
+           kartu jadi ISI-nya pasti overflow (scroll). Kalau dipusatkan (center) pada container
+           yang overflow, browser mulai men-scroll dari TENGAH konten, judul di paling atas jadi
+           terpotong/tak terlihat sampai pengguna scroll ke atas sendiri — judul harus kelihatan
+           duluan (form dibaca dari atas ke bawah). */
+        .reg-form-panel { flex:1 1 60%; padding:2.75rem 2.75rem 2rem; display:flex; flex-direction:column; justify-content:flex-start;
+            overflow-y:auto; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+        .reg-form-panel::-webkit-scrollbar { width:8px; }
+        .reg-form-panel::-webkit-scrollbar-track { background:transparent; }
+        .reg-form-panel::-webkit-scrollbar-thumb { background:var(--line); border-radius:9999px; }
+        .reg-form-panel::-webkit-scrollbar-thumb:hover { background:#c7d3de; }
         .reg-head { margin-bottom:1.5rem; }
         .reg-head h2 { font-size:1.4rem; font-weight:800; margin:0 0 .35rem; color:var(--ink); }
         .reg-head p { color:var(--muted); font-size:.88rem; margin:0; }
@@ -55,6 +69,16 @@
         .is-salah { border-color:#d95757 !important; background:#fffafa !important; animation:goyang .3s; }
         @keyframes goyang { 25% { transform:translateX(-4px); } 75% { transform:translateX(4px); } }
         .catatan-salah { display:flex; align-items:center; gap:.3rem; color:#c02929; font-size:.78rem; font-weight:600; margin-top:.3rem; }
+
+        /* Ikon mata tampilkan/sembunyikan kata sandi — form ini pakai .form-control Bootstrap
+           polos (bukan floating-label .fl-field seperti halaman lain), jadi tombolnya diposisikan
+           relatif terhadap wrapper sendiri di sini. */
+        .pw-wrap { position:relative; }
+        .pw-wrap .form-control { padding-right:2.75rem; }
+        .pw-eye { position:absolute; right:.3rem; top:50%; transform:translateY(-50%); width:2.1rem; height:2.1rem;
+            display:grid; place-items:center; background:none; border:0; color:var(--muted); border-radius:50%;
+            cursor:pointer; transition:color .15s ease, background .15s ease; }
+        .pw-eye:hover { color:var(--primary-dark); background:var(--line); }
         /* SweetAlert2: matikan pointer-events overlay begitu animasi fade-out mulai, supaya klik berikutnya (mis. buka modal lagi) tidak tertelan. */
         .swal2-backdrop-hide { pointer-events: none !important; }
 
@@ -69,8 +93,8 @@
 
         @media (max-width: 767.98px) {
             .reg-visual { display:none; }
-            .reg-shell { min-height:0; }
-            .reg-form-panel { padding:2.25rem 1.75rem; }
+            .reg-shell { height:auto; }
+            .reg-form-panel { padding:2.25rem 1.75rem; overflow-y:visible; }
             .corner-toggle { position:static; margin:0 0 1rem; justify-content:flex-end; background:transparent; box-shadow:none; padding:0; }
         }
     </style>
@@ -112,15 +136,15 @@
                 <div class="row">
                     <div class="col-md-8 mb-3">
                         <label class="form-label">Nama lengkap</label>
-                        <input name="nama_lengkap" class="form-control" value="{{ old('nama_lengkap') }}" required>
+                        <input name="nama_lengkap" class="form-control" value="{{ old('nama_lengkap') }}" autocomplete="off" required>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Usia</label>
-                        <input type="number" name="usia" class="form-control" min="17" max="120" value="{{ old('usia') }}" required>
+                        <input type="number" name="usia" class="form-control" min="17" max="120" value="{{ old('usia') }}" autocomplete="off" required>
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label">Pekerjaan</label>
-                        <input name="pekerjaan" class="form-control" value="{{ old('pekerjaan') }}" required>
+                        <input name="pekerjaan" class="form-control" value="{{ old('pekerjaan') }}" autocomplete="off" required>
                     </div>
                 </div>
 
@@ -128,15 +152,15 @@
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" required>
+                        <input type="email" name="email" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" autocomplete="email" required>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="form-label">No. telepon</label>
-                        <input name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" required>
+                        <input name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" autocomplete="off" required>
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label">Alamat</label>
-                        <textarea name="alamat" class="form-control" rows="2" required>{{ old('alamat') }}</textarea>
+                        <textarea name="alamat" class="form-control" rows="2" autocomplete="off" required>{{ old('alamat') }}</textarea>
                     </div>
                 </div>
 
@@ -144,11 +168,17 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Kata sandi</label>
-                        <input type="password" name="password" class="form-control" minlength="8" required>
+                        <div class="pw-wrap">
+                            <input type="password" name="password" id="regPassword" class="form-control" minlength="8" autocomplete="new-password" required>
+                            <button type="button" class="pw-eye" data-pw-toggle-for="regPassword" aria-label="Tampilkan/sembunyikan kata sandi"><i class="bi bi-eye"></i></button>
+                        </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Konfirmasi kata sandi</label>
-                        <input type="password" name="password_confirmation" class="form-control" minlength="8" required>
+                        <div class="pw-wrap">
+                            <input type="password" name="password_confirmation" id="regPasswordConf" class="form-control" minlength="8" autocomplete="new-password" required>
+                            <button type="button" class="pw-eye" data-pw-toggle-for="regPasswordConf" aria-label="Tampilkan/sembunyikan kata sandi"><i class="bi bi-eye"></i></button>
+                        </div>
                     </div>
                 </div>
 
@@ -164,6 +194,20 @@
         @if (session('error'))
             Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke, Mengerti' });
         @endif
+
+        document.querySelectorAll('.pw-eye').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(btn.dataset.pwToggleFor);
+                const icon = btn.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.replace('bi-eye', 'bi-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.replace('bi-eye-slash', 'bi-eye');
+                }
+            });
+        });
 
         document.querySelectorAll('form').forEach(f => {
             f.setAttribute('novalidate', '');

@@ -8,7 +8,7 @@
     <link href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
     <style>
-        :root { --primary:#176b87; --primary-dark:#0f526b; --teal:#24aa9a; --ink:#15243b; --muted:#637189; --line:#e4ebf2; }
+        :root { --primary:#176b87; --primary-dark:#0f526b; --teal:#2f7fd1; --ink:#15243b; --muted:#637189; --line:#e4ebf2; }
         * { box-sizing:border-box; }
         body { font-family:'DM Sans',sans-serif; min-height:100vh; margin:0; display:grid; place-items:center;
                background:#f4f7fa; padding:1.5rem; }
@@ -27,7 +27,7 @@
         .login-visual::before { content:''; position:absolute; inset:0; z-index:0; pointer-events:none;
             background:linear-gradient(180deg, rgba(9,23,36,.12) 0%, rgba(9,23,36,.28) 38%, rgba(9,23,36,.62) 72%, rgba(9,23,36,.82) 100%); }
         .login-visual::after { content:''; position:absolute; z-index:0; pointer-events:none; border-radius:50%; filter:blur(6px); opacity:.22;
-            width:16rem; height:16rem; background:#24aa9a; bottom:-6rem; right:-5rem; }
+            width:16rem; height:16rem; background:#2f7fd1; bottom:-6rem; right:-5rem; }
         .lv-grid { position:absolute; inset:0; z-index:0; opacity:.05;
             background-image:linear-gradient(rgba(255,255,255,.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.6) 1px, transparent 1px);
             background-size:32px 32px; mask-image:radial-gradient(60% 60% at 30% 30%, #000, transparent); }
@@ -108,20 +108,31 @@
                 <div class="alert alert-danger py-2 small"><ul class="mb-0 ps-3">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
             @endif
 
-            <form method="POST" action="{{ route('admin.login.attempt') }}">
+            {{-- Nama field SENGAJA admin_email/admin_password (bukan email/password polos) —
+                 form login Pemesan di halaman lain memakai nama field yang sama persis, dan
+                 browser (Chrome dkk) menyimpan/menyarankan kredensial berdasarkan signature
+                 nama field di satu origin yang sama. Kalau namanya sama, browser bisa
+                 menyarankan/mengisi otomatis akun Pemesan ke form Admin ini (atau sebaliknya).
+                 Chrome/Edge SENGAJA MENGABAIKAN autocomplete="off" pada field login (username/
+                 password) sejak ~2014 — kebijakan browser, bukan bug kita. Trik yang benar-benar
+                 efektif: field dibuat readonly saat halaman dimuat (autofill browser melewati
+                 field readonly), lalu readonly-nya dilepas sendiri begitu field itu
+                 difokus/disentuh pengguna — hasilnya field selalu tampil kosong di layar, tapi
+                 tetap bisa diketik normal. --}}
+            <form method="POST" action="{{ route('admin.login.attempt') }}" autocomplete="off">
                 @csrf
                 <div class="mb-3">
                     <label class="form-label">Email</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                        <input type="email" name="email" class="form-control" placeholder="nama@waduh.test" value="{{ old('email') }}" required autofocus>
+                        <input type="email" name="admin_email" id="adminEmail" class="form-control" placeholder="nama@waduh.test" value="{{ old('admin_email') }}" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" required autofocus>
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Kata Sandi</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
-                        <input type="password" name="password" class="form-control" placeholder="Masukkan kata sandi" required>
+                        <input type="password" name="admin_password" id="adminPassword" class="form-control" placeholder="Masukkan kata sandi" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" required>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-3">

@@ -57,7 +57,7 @@
     .jam-grid::-webkit-scrollbar { width:6px; } .jam-grid::-webkit-scrollbar-thumb { background:#cfdde8; border-radius:3px; }
     .jam-opt { border:1.5px solid #dbe6ee; background:#f8fbfd; border-radius:.6rem; padding:.42rem .25rem;
         font-weight:700; font-size:.85rem; color:#33475c; cursor:pointer; transition:all .12s; }
-    .jam-opt:hover { border-color:var(--teal); background:#e9faf3; color:#0d8a5f; transform:translateY(-1px); }
+    .jam-opt:hover { border-color:var(--primary); background:var(--primary-soft); color:var(--primary-dark); transform:translateY(-1px); }
     .jam-opt.aktif { background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 6px 14px rgba(14,107,125,.3); }
     .jam-opt:disabled { opacity:.4; cursor:not-allowed; background:#f1f4f7; }
     .jam-opt:disabled:hover { border-color:#dbe6ee; background:#f1f4f7; color:#33475c; transform:none; }

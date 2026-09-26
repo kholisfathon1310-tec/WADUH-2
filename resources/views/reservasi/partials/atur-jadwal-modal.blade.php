@@ -65,7 +65,6 @@
         @if ($semuaTarif->count() > 1)
             <div class="aj-section-head">
                 <span class="aj-section-label"><i class="bi bi-tag-fill"></i>Jenis Sewa</span>
-                <span class="aj-section-hint">Pilih salah satu tarif</span>
             </div>
             <div class="aj-jenis-tabs">
                 @foreach ($semuaTarif as $t)
@@ -142,7 +141,6 @@
             {{-- ── KEPERLUAN ── --}}
             <div class="aj-section-head">
                 <span class="aj-section-label"><i class="bi bi-chat-square-text-fill"></i>Keperluan / Kegiatan</span>
-                <span class="aj-section-hint">Maksimal 200 karakter</span>
             </div>
             <textarea name="keperluan" class="aj-input @error('keperluan') is-invalid @enderror" rows="2"
                       placeholder="Contoh: Pengerjaan proyek pengembangan aplikasi mobile"
@@ -154,7 +152,6 @@
                 {{-- MODE PER JAM --}}
                 <div class="aj-section-head mt-3">
                     <span class="aj-section-label"><i class="bi bi-calendar-check-fill"></i>Tanggal Pemakaian</span>
-                    <span class="aj-section-hint">Layanan gedung 08:00 – 16:00 WIB</span>
                 </div>
                 <input type="date" name="tanggal_mulai" class="aj-input @error('tanggal_mulai') is-invalid @enderror" id="ajTanggal" required
                        min="{{ now()->toDateString() }}"
@@ -163,7 +160,6 @@
 
                 <div class="aj-section-head mt-3">
                     <span class="aj-section-label"><i class="bi bi-clock-fill"></i>Jam Pemakaian</span>
-                    <span class="aj-section-hint">Pilih jam mulai &amp; selesai</span>
                 </div>
                 <div class="row g-2">
                     <div class="col-md-6">
@@ -185,7 +181,6 @@
                 {{-- MODE BULANAN --}}
                 <div class="aj-section-head mt-3">
                     <span class="aj-section-label"><i class="bi bi-calendar3-range-fill"></i>Periode Sewa Bulanan</span>
-                    <span class="aj-section-hint">Minimal {{ $jenis->durasi_minimum ?? 1 }} bulan</span>
                 </div>
                 <div class="row g-2">
                     <div class="col-md-6">
@@ -196,31 +191,50 @@
                         @error('tanggal_mulai') <div class="aj-field-err">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="aj-sublabel">Tanggal Berakhir</label>
+                        <label class="aj-sublabel">Tanggal Berakhir <span class="text-muted fw-normal">(min. {{ $jenis->durasi_minimum ?? 1 }} bulan)</span></label>
                         <input type="date" name="tanggal_selesai" class="aj-input @error('tanggal_selesai') is-invalid @enderror" id="ajTanggalSelesai" required
                                value="{{ old('tanggal_selesai', $editItem['tanggal_selesai'] ?? request('tanggal_selesai')) }}">
                         @error('tanggal_selesai') <div class="aj-field-err">{{ $message }}</div> @enderror
                     </div>
                 </div>
 
-                {{-- ── UPLOAD DOKUMEN untuk BULANAN — satu unggahan, boleh pilih beberapa berkas
-                     sekaligus (Ctrl/Shift+klik), bukan slot terpisah per jenis dokumen ── --}}
+                {{-- ── DOKUMEN PERSYARATAN untuk BULANAN — satu daftar dokumen berlaku untuk
+                     SEMUA ruangan Bulan di keranjang ini (lihat CartService::dokumen()). Bisa
+                     ditambah beberapa kali (berkas baru menumpuk, tidak menggantikan yang lama)
+                     dan dihapus satu-satu, baik dokumen yang sudah tersimpan maupun yang baru
+                     saja dipilih tapi belum disubmit — bukan lagi satu input polos. ── --}}
+                @php $dokumenTersimpan = app(\App\Services\CartService::class)->dokumen(); @endphp
                 <div class="aj-section-head mt-3">
                     <span class="aj-section-label"><i class="bi bi-file-earmark-arrow-up-fill"></i>Dokumen Persyaratan</span>
-                    <span class="aj-section-hint">PDF/JPG/PNG · maks 5 MB per file</span>
                 </div>
-                <input type="file" name="dokumen[]" class="aj-input @error('dokumen') is-invalid @enderror"
-                       accept=".pdf,.jpg,.jpeg,.png" multiple required>
-                <div class="aj-upload-note"><i class="bi bi-info-circle"></i>Boleh pilih beberapa berkas sekaligus (mis. KTP, Proposal/NIB).</div>
+                <div class="aj-upload-note mb-2"><i class="bi bi-info-circle"></i>PDF/JPG/PNG, maks 5 MB per file. Berlaku untuk semua ruangan sewa bulanan di keranjang ini, cukup diunggah sekali.</div>
+
+                <div class="aj-dok-drop" id="ajDokDrop" tabindex="0" role="button" aria-label="Unggah dokumen persyaratan">
+                    <i class="bi bi-cloud-arrow-up-fill"></i>
+                    <p><b>Klik atau seret berkas ke sini</b><br>Boleh pilih beberapa sekaligus, dan masih bisa ditambah lagi nanti.</p>
+                </div>
+                <input type="file" name="dokumen[]" id="ajDokInput" class="d-none"
+                       accept=".pdf,.jpg,.jpeg,.png" multiple>
+
+                <div class="aj-dok-list" id="ajDokList">
+                    @foreach ($dokumenTersimpan as $d)
+                        <div class="aj-dok-item" data-existing="1">
+                            <i class="bi bi-file-earmark-check-fill"></i>
+                            <span class="aj-dok-nama">{{ $d['nama'] }}</span>
+                            <button type="button" class="aj-dok-remove" title="Hapus dokumen ini"><i class="bi bi-x-lg"></i></button>
+                            <input type="hidden" name="dokumen_pertahankan[]" value="{{ $d['path'] }}">
+                        </div>
+                    @endforeach
+                </div>
+                <p class="aj-dok-empty-hint" id="ajDokEmptyHint" @if (count($dokumenTersimpan)) style="display:none" @endif>
+                    Belum ada dokumen diunggah.
+                </p>
                 @error('dokumen') <div class="aj-field-err">{{ $message }}</div> @enderror
 
             @else
                 {{-- MODE HARIAN --}}
                 <div class="aj-section-head mt-3">
                     <span class="aj-section-label"><i class="bi bi-calendar-check-fill"></i>Tanggal Pemakaian</span>
-                    <span class="aj-section-hint">
-                        @if ($sehariSaja) 1 hari (08:00 – 16:00 WIB) @else Pilih tanggal mulai &amp; selesai @endif
-                    </span>
                 </div>
                 <div class="row g-2">
                     <div class="col-md-6">
@@ -250,7 +264,6 @@
             {{-- ══════ RINCIAN BIAYA ══════ --}}
             <div class="aj-section-head mt-3">
                 <span class="aj-section-label"><i class="bi bi-receipt-cutoff"></i>Rincian Biaya</span>
-                <span class="aj-section-hint">Diperbarui otomatis</span>
             </div>
 
             <div class="aj-rincian">
@@ -362,11 +375,16 @@
     /* ─── SECTION HEADERS ─── */
     .aj-section-head { display:flex; align-items:center; justify-content:space-between; gap:.5rem;
         padding:1rem 1.75rem .5rem; flex-wrap:wrap; }
+    /* .aj-form SUDAH punya padding kiri/kanan sendiri (lihat .aj-form di bawah) — section head
+       yang berada DI DALAM form (Keperluan, Tanggal/Jam Pemakaian, Rincian Biaya, dst) jangan
+       diberi padding kiri/kanan lagi, supaya sejajar persis dengan tepi kolom input di
+       bawahnya, bukan malah menjorok lebih ke dalam (dobel padding). "Jenis Sewa" di luar
+       form tetap pakai padding bawaan di atas karena tidak ada .aj-form yang menaunginya. */
+    .aj-form .aj-section-head { padding-left:0; padding-right:0; }
     .aj-section-label { display:inline-flex; align-items:center; gap:.4rem;
         font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
         color:var(--primary-dark); }
     .aj-section-label i { font-size:.9em; }
-    .aj-section-hint { font-size:.65rem; color:var(--soft); font-weight:600; }
 
     /* ─── JENIS SEWA TABS ─── */
     .aj-jenis-tabs { display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr));
@@ -403,10 +421,32 @@
         background:var(--surface); font-size:.82rem; color:var(--ink); font-weight:600; }
     .aj-info-slot i { color:var(--primary); }
 
-    /* ─── UPLOAD DOKUMEN — satu input, boleh pilih beberapa berkas sekaligus (bulanan) ─── */
+    /* ─── UPLOAD DOKUMEN — dropzone modern + daftar berkas (akumulasi, bisa hapus satu-satu) ─── */
     .aj-upload-note { display:flex; align-items:center; gap:.4rem; font-size:.7rem; font-weight:600;
         color:var(--muted); margin:.4rem 0 0; }
     .aj-upload-note i { color:var(--primary); }
+
+    .aj-dok-drop { display:flex; flex-direction:column; align-items:center; text-align:center;
+        gap:.4rem; padding:1.35rem 1rem; border:1.5px dashed var(--line); border-radius:.85rem;
+        background:var(--surface); cursor:pointer; transition:border-color .15s ease, background .15s ease; }
+    .aj-dok-drop:hover, .aj-dok-drop:focus-visible { border-color:var(--primary); background:var(--primary-soft); outline:none; }
+    .aj-dok-drop.dragover { border-color:var(--primary); background:var(--primary-soft); }
+    .aj-dok-drop i { font-size:1.5rem; color:var(--primary); }
+    .aj-dok-drop p { margin:0; font-size:.78rem; color:var(--muted); line-height:1.5; }
+    .aj-dok-drop p b { color:var(--ink); font-weight:700; }
+
+    .aj-dok-list { display:flex; flex-direction:column; gap:.45rem; margin-top:.65rem; }
+    .aj-dok-item { display:flex; align-items:center; gap:.55rem; padding:.55rem .7rem;
+        border:1px solid var(--line); border-radius:.65rem; background:#fff; }
+    .aj-dok-item i.bi-file-earmark-check-fill { color:#059669; font-size:1rem; flex:none; }
+    .aj-dok-item i.bi-file-earmark-arrow-up-fill { color:var(--primary); font-size:1rem; flex:none; }
+    .aj-dok-nama { flex:1; min-width:0; font-size:.8rem; font-weight:600; color:var(--ink);
+        overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .aj-dok-remove { flex:none; width:1.9rem; height:1.9rem; display:grid; place-items:center;
+        border:0; background:none; color:var(--muted); border-radius:50%; cursor:pointer;
+        transition:color .15s ease, background .15s ease; }
+    .aj-dok-remove:hover { color:var(--rose); background:var(--rose-tint); }
+    .aj-dok-empty-hint { font-size:.75rem; color:var(--soft); margin:.65rem 0 0; text-align:center; }
 
     /* ─── RINCIAN & TOTAL ─── */
     .aj-rincian { background:var(--surface); border:1px solid var(--line);
@@ -469,6 +509,23 @@
     // Update rincian + total real-time berdasarkan pilihan jadwal.
     const form = document.querySelector('.aj-form');
     if (!form) return;
+
+    // ═══ CEGAH SUBMIT GANDA — klik cepat berkali-kali (atau ganda karena keterlambatan
+    // jaringan) bisa mengirim 2 request; yang kedua bisa gagal (mis. jadwal keburu bentrok)
+    // dan responsnya menimpa redirect sukses dari request pertama, membuat pemesan seolah
+    // stuck di form padahal item sudah masuk keranjang. Kunci tombol begitu submit valid. ═══
+    form.addEventListener('submit', (e) => {
+        if (form.dataset.submitting === '1') {
+            e.preventDefault();
+            return;
+        }
+        form.dataset.submitting = '1';
+        const btn = form.querySelector('.aj-btn-submit');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Menyimpan…';
+        }
+    });
 
     const tarif = parseFloat(form.dataset.tarif) || 0;
     const jumlahRuangan = parseInt(form.dataset.jumlahRuangan) || 1;
@@ -570,19 +627,110 @@
         });
     }
 
-    // ═══ VALIDASI UKURAN FILE (dokumen bulanan, boleh pilih beberapa sekaligus) ═══
-    document.querySelectorAll('input[name="dokumen[]"]').forEach(input => {
-        input.addEventListener('change', () => {
-            const kebesaran = [...input.files].filter(f => f.size > 5 * 1024 * 1024);
+    // ═══ GEDUNG TUTUP SABTU & MINGGU — cegah pemilihan tanggal akhir pekan di semua
+    // input tanggal form ini (validasi ulang di server, ini cuma agar pemesan langsung
+    // tahu tanpa perlu submit dulu). ═══
+    const cekAkhirPekan = (input) => {
+        if (!input || !input.value) return;
+        const hari = new Date(input.value + 'T00:00:00').getDay(); // 0 = Minggu, 6 = Sabtu
+        if (hari === 0 || hari === 6) {
+            input.value = '';
+            Swal.fire({
+                icon: 'warning',
+                title: 'Gedung tutup akhir pekan',
+                text: 'Reservasi hanya melayani hari kerja (Senin–Jumat). Silakan pilih tanggal lain.',
+                confirmButtonColor: '#2563eb',
+            });
+            input.dispatchEvent(new Event('change'));
+        }
+    };
+    form.querySelectorAll('input[type="date"]').forEach((input) => {
+        input.addEventListener('change', () => cekAkhirPekan(input));
+    });
+
+    // ═══ UPLOAD DOKUMEN MODERN (bulanan) — akumulasi berkas lewat DataTransfer supaya
+    // memilih file lagi TIDAK menggantikan pilihan sebelumnya (perilaku default <input
+    // type=file> kalau dipilih ulang), bisa drag & drop, dan tiap berkas (baru maupun yang
+    // sudah tersimpan) punya tombol hapus sendiri. ═══
+    (function () {
+        const drop = document.getElementById('ajDokDrop');
+        const input = document.getElementById('ajDokInput');
+        const list = document.getElementById('ajDokList');
+        const emptyHint = document.getElementById('ajDokEmptyHint');
+        if (!drop || !input || !list) return;
+
+        let files = []; // File[] baru yang diakumulasi (belum termasuk dokumen lama/tersimpan)
+
+        const updateEmptyHint = () => {
+            emptyHint.style.display = list.children.length ? 'none' : '';
+        };
+
+        const syncInput = () => {
+            const dt = new DataTransfer();
+            files.forEach(f => dt.items.add(f));
+            input.files = dt.files;
+        };
+
+        const buatBarisBaru = (file) => {
+            const row = document.createElement('div');
+            row.className = 'aj-dok-item aj-dok-item-new';
+            row.innerHTML = '<i class="bi bi-file-earmark-arrow-up-fill"></i>'
+                + '<span class="aj-dok-nama"></span>'
+                + '<button type="button" class="aj-dok-remove" title="Batalkan berkas ini"><i class="bi bi-x-lg"></i></button>';
+            row.querySelector('.aj-dok-nama').textContent = file.name;
+            row.querySelector('.aj-dok-remove').addEventListener('click', () => {
+                const idx = files.indexOf(file);
+                if (idx > -1) files.splice(idx, 1);
+                syncInput();
+                row.remove();
+                updateEmptyHint();
+            });
+            return row;
+        };
+
+        const tambahFiles = (fileList) => {
+            const kebesaran = [];
+            [...fileList].forEach(file => {
+                if (file.size > 5 * 1024 * 1024) { kebesaran.push(file.name); return; }
+                files.push(file);
+                list.appendChild(buatBarisBaru(file));
+            });
+            syncInput();
+            updateEmptyHint();
             if (kebesaran.length) {
                 Swal.fire({
                     icon: 'warning', title: 'File terlalu besar',
-                    text: 'Ukuran maksimal 5 MB per file.',
+                    text: kebesaran.join(', ') + ' melebihi 5 MB, tidak ditambahkan.',
                     confirmButtonColor: '#176b87'
                 });
-                input.value = '';
             }
+        };
+
+        drop.addEventListener('click', () => input.click());
+        drop.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
         });
-    });
+        input.addEventListener('change', () => tambahFiles(input.files));
+
+        ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, (e) => {
+            e.preventDefault(); drop.classList.add('dragover');
+        }));
+        ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, (e) => {
+            e.preventDefault(); drop.classList.remove('dragover');
+        }));
+        drop.addEventListener('drop', (e) => {
+            if (e.dataTransfer?.files?.length) tambahFiles(e.dataTransfer.files);
+        });
+
+        // Dokumen yang SUDAH tersimpan (dari keranjang) — hapus baris + hidden input
+        // "dokumen_pertahankan[]"-nya; controller akan menganggapnya dihapus karena pathnya
+        // tidak lagi ikut terkirim di daftar yang dipertahankan.
+        list.querySelectorAll('.aj-dok-item[data-existing="1"]').forEach((row) => {
+            row.querySelector('.aj-dok-remove').addEventListener('click', () => {
+                row.remove();
+                updateEmptyHint();
+            });
+        });
+    })();
 })();
 </script>

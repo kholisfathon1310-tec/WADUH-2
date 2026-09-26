@@ -28,8 +28,10 @@ class ProfilController extends Controller
         $data = $request->validate([
             'nama_admin'  => ['required', 'string', 'max:255'],
             'email'       => ['required', 'email', Rule::unique('admin', 'email')->ignore($admin->id_admin, 'id_admin')],
-            'no_whatsapp' => ['required', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{8,20}$/'],
+            'no_whatsapp' => ['required', 'string', 'max:20', 'regex:/^\+?[0-9]{8,20}$/'],
             'alamat'      => ['required', 'string', 'max:500'],
+        ], [
+            'no_whatsapp.regex' => 'No. WhatsApp wajib angka, boleh diawali tanda +.',
         ]);
 
         $admin->nama_admin = $data['nama_admin'];
@@ -52,7 +54,16 @@ class ProfilController extends Controller
             'password_baru' => ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()],
         ]);
 
-        if (! Hash::check($data['password_lama'], $admin->password)) {
+        // Hash::check() MELEMPAR RuntimeException (bukan sekadar false) kalau hash tersimpan
+        // tidak berformat bcrypt yang valid (mis. baris pernah tersentuh langsung lewat
+        // database). Ditangani di sini supaya tidak jadi error 500 — cukup anggap kata sandi
+        // lama tidak cocok, seperti kondisi salah kata sandi biasa.
+        try {
+            $lamaCocok = Hash::check($data['password_lama'], $admin->password);
+        } catch (\RuntimeException $e) {
+            $lamaCocok = false;
+        }
+        if (! $lamaCocok) {
             return back()->with('error', 'Kata sandi lama salah, kata sandi tidak diubah.');
         }
 

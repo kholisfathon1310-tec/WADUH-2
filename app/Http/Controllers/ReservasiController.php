@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -332,6 +333,13 @@ class ReservasiController extends Controller
                     return back()->withInput()->withErrors($galat);
                 }
 
+                // Dokumen persyaratan Bulan — satu lampiran untuk seluruh keranjang, diproses
+                // begitu validasi jadwal & ketersediaan lolos (bukan sebelumnya, supaya tidak
+                // menyimpan berkas untuk request yang ujung-ujungnya gagal karena bentrok dll).
+                if ($tarifUtama->jenisSewa->satuan === SatuanSewa::Bulan) {
+                    $this->prosesDokumen($request);
+                }
+
                 if ($editIndex !== null) {
                     $oldItem = $this->cart->get($editIndex);
                     $this->availability->releaseHold($oldItem);
@@ -389,6 +397,12 @@ class ReservasiController extends Controller
             $this->availability->releaseHold($removed);
         }
 
+        // Kalau item Bulan terakhir baru saja dihapus, dokumen persyaratan yang tadi
+        // tersimpan jadi yatim (tidak dipakai ruangan Bulan mana pun lagi) — bersihkan.
+        if (! $this->cart->hasBulan()) {
+            $this->cart->clearDokumen(true);
+        }
+
         // Kalau ini item terakhir, back() akan mendarat di halaman checkout yang langsung
         // redirect lagi (keranjang kosong) dan menimpa pesan sukses ini — jadi arahkan
         // langsung ke katalog Fasilitas supaya pesan "item dihapus" benar-benar terlihat.
@@ -405,6 +419,7 @@ class ReservasiController extends Controller
         foreach ($this->cart->items() as $item) {
             $this->availability->releaseHold($item);
         }
+        $this->cart->clearDokumen(true);
         $this->cart->clear();
 
         return redirect()->route('reservasi.checkout.form')->with('success', 'Keranjang berhasil dikosongkan.');
@@ -414,10 +429,11 @@ class ReservasiController extends Controller
     public function checkoutForm(): View
     {
         return view('reservasi.checkout', [
-            'items'    => $this->cart->items(),
-            'total'    => $this->cart->total(),
-            'hasBulan' => $this->cart->hasBulan(),
-            'pemesan'  => Auth::guard('customer')->user(),
+            'items'        => $this->cart->items(),
+            'total'        => $this->cart->total(),
+            'hasBulan'     => $this->cart->hasBulan(),
+            'dokumenBulan' => $this->cart->dokumen(),
+            'pemesan'      => Auth::guard('customer')->user(),
         ]);
     }
 
@@ -435,7 +451,7 @@ class ReservasiController extends Controller
         $items = $this->cart->items();
         $pemesan = Auth::guard('customer')->user();
 
-        $hasil = DB::transaction(function () use ($request, $items, $pemesan) {
+        $hasil = DB::transaction(function () use ($items, $pemesan) {
             // 1. SATU kode simpel per checkout (mis. RSV-7K3M) untuk seluruh ruangan.
             //    Baris ke-2 dst diberi suffix internal (-2, ...) karena kode_reservasi UNIQUE per baris,
             //    tapi kode yang ditampilkan ke pemesan tetap satu: kode dasar (= kode_transaksi).
@@ -467,11 +483,12 @@ class ReservasiController extends Controller
                     'tanggal_diproses' => null,
                 ]);
 
-                // 3. Item Bulan wajib punya dokumen persyaratan (sudah divalidasi CheckoutRequest).
-                //    Satu lampiran (dokumen[]) berlaku untuk SEMUA ruangan Bulan pada transaksi ini,
-                //    jadi disalin ke tiap baris Reservasi Bulan (skema id_reservasi tetap per-baris).
+                // 3. Item Bulan wajib punya dokumen persyaratan — sudah diunggah & tervalidasi
+                //    sejak langkah "Isi Jadwal" (lihat CartService::dokumen()), bukan lagi di sini.
+                //    Satu lampiran berlaku untuk SEMUA ruangan Bulan pada transaksi ini, jadi
+                //    disalin ke tiap baris Reservasi Bulan (skema id_reservasi tetap per-baris).
                 if ($item['satuan'] === SatuanSewa::Bulan->value) {
-                    $this->simpanDokumen($request, $reservasi);
+                    $this->simpanDokumen($reservasi);
                 }
 
                 $kodeReservasi[] = $reservasi->kode_reservasi;
@@ -480,10 +497,13 @@ class ReservasiController extends Controller
             return ['kode_transaksi' => $kodeDasar, 'kode_reservasi' => $kodeReservasi];
         });
 
-        // 4 & 5. Setelah commit: lepas semua cache hold, kosongkan keranjang.
+        // 4 & 5. Setelah commit: lepas semua cache hold, kosongkan keranjang. Dokumen TIDAK
+        // dihapus dari storage (hapusFile=false) — path filenya sekarang jadi lokasi_file
+        // milik baris DokumenPersyaratan yang baru dibuat, masih dipakai.
         foreach ($items as $item) {
             $this->availability->releaseHold($item);
         }
+        $this->cart->clearDokumen(false);
         $this->cart->clear();
 
         // 6. Langsung ke Reservasi Saya — pop-up konfirmasi tampil di halaman itu (lihat
@@ -611,21 +631,48 @@ class ReservasiController extends Controller
         return $kode;
     }
 
-    private function simpanDokumen(Request $request, Reservasi $reservasi): void
+    /** Salin daftar dokumen keranjang (CartService::dokumen(), sudah tersimpan di disk publik) ke baris Reservasi ini. */
+    private function simpanDokumen(Reservasi $reservasi): void
     {
-        $files = $request->file('dokumen', []);
-        $files = is_array($files) ? $files : [$files];
-
-        foreach (array_filter($files) as $file) {
-            $path = $file->store('dokumen', 'public');
+        foreach ($this->cart->dokumen() as $dok) {
             DokumenPersyaratan::create([
                 'id_reservasi'      => $reservasi->id_reservasi,
                 'jenis_dokumen'     => 'Persyaratan Sewa Bulanan',
-                'nama_file'         => $file->getClientOriginalName(),
-                'lokasi_file'       => $path,
+                'nama_file'         => $dok['nama'],
+                'lokasi_file'       => $dok['path'],
                 'tanggal_upload'    => now(),
                 'status_verifikasi' => StatusVerifikasi::Menunggu,
             ]);
         }
+    }
+
+    /**
+     * Perbarui daftar dokumen persyaratan Bulan di keranjang (CartService::dokumen()) dari
+     * form "Isi Jadwal": simpan berkas baru (dokumen[]) ke disk, buang dokumen lama yang
+     * TIDAK ada lagi di dokumen_pertahankan[] (dihapus pemesan lewat tombol "x" di form).
+     */
+    private function prosesDokumen(Request $request): void
+    {
+        $dipertahankan = array_map('strval', $request->input('dokumen_pertahankan', []));
+
+        $daftar = [];
+        foreach ($this->cart->dokumen() as $dok) {
+            if (in_array($dok['path'], $dipertahankan, true)) {
+                $daftar[] = $dok;
+            } else {
+                Storage::disk('public')->delete($dok['path']);
+            }
+        }
+
+        $filesBaru = $request->file('dokumen', []);
+        $filesBaru = is_array($filesBaru) ? $filesBaru : [$filesBaru];
+        foreach (array_filter($filesBaru) as $file) {
+            $daftar[] = [
+                'path' => $file->store('dokumen', 'public'),
+                'nama' => $file->getClientOriginalName(),
+            ];
+        }
+
+        $this->cart->simpanDokumen($daftar);
     }
 }

@@ -27,11 +27,11 @@ class AkunController extends Controller
             'alamat'       => ['required', 'string', 'max:500'],
             'usia'         => ['required', 'integer', 'min:17', 'max:120'],
             'pekerjaan'    => ['required', 'string', 'max:100'],
-            'no_telepon'   => ['required', 'string', 'regex:/^[0-9+\-\s()]{8,20}$/'],
+            'no_telepon'   => ['required', 'string', 'regex:/^\+?[0-9]{8,20}$/'],
             'email'        => ['required', 'email', 'max:150', Rule::unique('pemesan', 'email')->ignore($pemesan->id_pemesan, 'id_pemesan')],
         ], [
             'nama_lengkap.regex' => 'Nama hanya boleh berisi huruf dan tanda baca umum (spasi, titik, apostrof, strip).',
-            'no_telepon.regex'   => 'Format nomor telepon tidak valid, gunakan angka saja, contoh 0812xxxxxxx.',
+            'no_telepon.regex'   => 'No. Telepon wajib angka, boleh diawali tanda +, contoh 0812xxxxxxx.',
         ]);
 
         $pemesan->update($data);
@@ -53,7 +53,16 @@ class AkunController extends Controller
             'password'      => ['required', 'string', 'confirmed', Password::min(8)->letters()->numbers()],
         ]);
 
-        if (! Hash::check($data['password_lama'], $pemesan->password)) {
+        // Hash::check() MELEMPAR RuntimeException (bukan sekadar false) kalau hash tersimpan
+        // tidak berformat bcrypt yang valid (mis. baris pernah tersentuh langsung lewat
+        // database). Ditangani di sini supaya tidak jadi error 500 — cukup anggap kata sandi
+        // lama tidak cocok, seperti kondisi salah kata sandi biasa.
+        try {
+            $lamaCocok = Hash::check($data['password_lama'], $pemesan->password);
+        } catch (\RuntimeException $e) {
+            $lamaCocok = false;
+        }
+        if (! $lamaCocok) {
             return back()->withErrors(['password_lama' => 'Kata sandi lama salah.']);
         }
 

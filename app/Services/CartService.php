@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\SatuanSewa;
 use App\Models\TarifSewa;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Keranjang reservasi pra-checkout — disimpan di Laravel session (BUKAN database),
@@ -13,6 +14,13 @@ use Illuminate\Support\Carbon;
 class CartService
 {
     private const SESSION_KEY = 'reservasi_cart';
+
+    /**
+     * Dokumen persyaratan sewa bulanan — satu lampiran berlaku untuk SEMUA ruangan Bulan
+     * dalam keranjang ini (bukan per ruangan), diisi lewat form "Isi Jadwal" begitu ada
+     * ruangan Bulan, cukup sekali walau menambah beberapa ruangan Bulan.
+     */
+    private const DOKUMEN_SESSION_KEY = 'reservasi_cart_dokumen';
 
     public function __construct(private FasilitasBawaanService $bawaan)
     {
@@ -80,9 +88,40 @@ class CartService
         return true;
     }
 
+    /** Kosongkan daftar item keranjang. Dokumen (lihat clearDokumen()) sengaja TIDAK ikut
+     *  dihapus di sini — pemanggil yang menentukan apakah dokumennya masih relevan (mis.
+     *  checkout sukses: file sudah "dipindah-tangan" ke DokumenPersyaratan, jangan dihapus). */
     public function clear(): void
     {
         session()->forget(self::SESSION_KEY);
+    }
+
+    /** @return array<int, array{path: string, nama: string}> */
+    public function dokumen(): array
+    {
+        return array_values(session()->get(self::DOKUMEN_SESSION_KEY, []));
+    }
+
+    /** @param  array<int, array{path: string, nama: string}>  $daftar */
+    public function simpanDokumen(array $daftar): void
+    {
+        session()->put(self::DOKUMEN_SESSION_KEY, array_values($daftar));
+    }
+
+    /**
+     * Lupakan daftar dokumen dari session. $hapusFile=true juga menghapus file fisiknya
+     * dari storage (dipakai saat keranjang benar-benar dikosongkan/item Bulan terakhir
+     * dihapus — filenya jadi yatim). Saat checkout SUKSES, panggil dengan false karena
+     * path filenya sudah dipakai sebagai lokasi_file di baris DokumenPersyaratan.
+     */
+    public function clearDokumen(bool $hapusFile): void
+    {
+        if ($hapusFile) {
+            foreach ($this->dokumen() as $d) {
+                Storage::disk('public')->delete($d['path']);
+            }
+        }
+        session()->forget(self::DOKUMEN_SESSION_KEY);
     }
 
     public function hasBulan(): bool

@@ -27,7 +27,7 @@
             --primary:      #0e6b7d;
             --primary-dark: #084b58;
             --primary-soft: #e6f2f4;    /* untuk pill/latar lembut */
-            --accent:       #24aa9a;    /* dipakai sangat terbatas */
+            --accent:       #2f7fd1;    /* dipakai sangat terbatas */
 
             --success:      #0d8a5f;
             --success-soft: #e2f7ef;

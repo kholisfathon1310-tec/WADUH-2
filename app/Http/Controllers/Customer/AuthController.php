@@ -23,7 +23,18 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::guard('customer')->attempt($credentials, $request->boolean('remember'))) {
+        // Auth::attempt() memanggil Hash::check() di baliknya, yang MELEMPAR RuntimeException
+        // (bukan sekadar false) kalau hash di kolom password tidak berformat bcrypt yang valid —
+        // mis. baris itu pernah tersentuh langsung lewat database, bukan lewat aplikasi. Tanpa
+        // try/catch ini, kondisi itu bikin login gagal dengan error 500 terus-menerus alih-alih
+        // pesan "email atau kata sandi salah" yang wajar.
+        try {
+            $berhasil = Auth::guard('customer')->attempt($credentials, $request->boolean('remember'));
+        } catch (\RuntimeException $e) {
+            $berhasil = false;
+        }
+
+        if (! $berhasil) {
             return back()
                 ->withInput($request->only('email'))
                 ->with('error', 'Email atau kata sandi salah.');
@@ -33,7 +44,10 @@ class AuthController extends Controller
 
         $nama = Auth::guard('customer')->user()?->nama_lengkap;
 
-        return redirect()->intended(route('customer.dashboard'))
+        // Selalu ke dashboard, BUKAN redirect()->intended() — kalau sebelumnya ada percobaan
+        // akses halaman lain saat belum login (mis. link lama/tab lain), pemesan bisa
+        // "terlempar" ke halaman itu alih-alih dashboard begitu berhasil login, membingungkan.
+        return redirect()->route('customer.dashboard')
             ->with('success', "Selamat datang, {$nama}!");
     }
 
@@ -79,10 +93,11 @@ class AuthController extends Controller
             ],
         );
 
-        Auth::guard('customer')->login($pemesan);
-        $request->session()->regenerate();
-
-        return redirect()->route('customer.dashboard')->with('success', "Selamat datang, {$pemesan->nama_lengkap}!");
+        // Sengaja TIDAK langsung login otomatis setelah daftar — pemesan diarahkan kembali ke
+        // halaman masuk supaya jelas bahwa akunnya sudah dibuat dan perlu login sendiri (bukan
+        // seolah "menyelinap" masuk tanpa memasukkan kata sandi yang baru saja mereka buat).
+        return redirect()->route('customer.login')
+            ->with('success', "Akun \"{$pemesan->nama_lengkap}\" berhasil dibuat. Silakan masuk dengan email dan kata sandi Anda.");
     }
 
     public function logout(Request $request): RedirectResponse

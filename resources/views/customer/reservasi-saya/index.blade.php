@@ -28,23 +28,65 @@
 @section('content')
     <style>
         /* Toolbar filter */
-        .rs-toolbar { display:flex; align-items:stretch; gap:.75rem; flex-wrap:wrap; padding:1rem 1.15rem; }
-        .rs-filter-box, .rs-search { display:flex; align-items:center; gap:.55rem;
+        /* position:relative + z-index SENGAJA dipasang di sini — animasi "muncul saat scroll"
+           (atribut data-reveal, dipakai layout) memberi elemen ini transform, dan transform apa
+           pun (walau cuma identity/selesai animasi) otomatis membuat stacking context baru.
+           Tanpa z-index eksplisit, seluruh kartu toolbar (termasuk dropdown filter di dalamnya)
+           ikut tertata berdasarkan urutan DOM biasa, jadi kalah tumpuk oleh daftar reservasi
+           (#rsList) yang letaknya SETELAH toolbar ini — dropdown pun tampak "tumpang tindih"
+           dengan kartu di belakangnya alih-alih tampil bersih di atasnya. */
+        .rs-toolbar { display:flex; align-items:stretch; gap:.75rem; flex-wrap:wrap; padding:1rem 1.15rem;
+            position:relative; z-index:5; }
+        .rs-search { display:flex; align-items:center; gap:.55rem;
             border:1px solid var(--line); border-radius:.85rem; background:var(--surface);
             padding:0 .95rem; transition:border-color .15s ease, box-shadow .15s ease; }
-        .rs-filter-box:focus-within, .rs-search:focus-within { border-color:var(--primary); background:#fff;
+        .rs-search:focus-within { border-color:var(--primary); background:#fff;
             box-shadow:0 0 0 3px rgba(23,107,135,.1); }
-        .rs-filter-box i, .rs-search i { color:var(--primary); font-size:.9rem; flex:none; }
-        .rs-filter-box select { border:0; background:transparent; outline:none; font-size:.82rem;
-            font-weight:700; color:var(--ink); padding:.6rem 0; }
+        .rs-search i { color:var(--primary); font-size:.9rem; flex:none; }
         .rs-search { flex:1 1 18rem; min-width:14rem; }
         .rs-search input { flex:1; min-width:0; border:0; background:transparent; outline:none;
             font-size:.82rem; color:var(--ink); padding:.6rem 0; }
         .rs-search input::placeholder { color:var(--soft); }
+
+        /* ─── FILTER STATUS — dropdown kustom (bukan <select> polos) ─── */
+        .rs-filter-box { position:relative; flex:none; }
+        .rs-filter-btn { display:flex; align-items:center; gap:.55rem; height:100%;
+            border:1px solid var(--line); border-radius:.85rem; background:var(--surface);
+            padding:0 .95rem; font-size:.82rem; font-weight:700; color:var(--ink); cursor:pointer;
+            transition:border-color .15s ease, box-shadow .15s ease, background .15s ease; min-width:11rem; }
+        .rs-filter-btn i.bi-funnel-fill { color:var(--primary); font-size:.9rem; flex:none; }
+        .rs-filter-btn .lbl { flex:1; text-align:left; white-space:nowrap; }
+        .rs-filter-btn .rs-filter-caret { font-size:.7rem; color:var(--soft); transition:transform .18s ease; flex:none; }
+        .rs-filter-box.buka .rs-filter-btn { border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(23,107,135,.1); }
+        .rs-filter-box.buka .rs-filter-caret { transform:rotate(180deg); }
+        .rs-filter-menu { display:none; position:absolute; top:calc(100% + 8px); left:0; z-index:1040; min-width:15rem;
+            background:#fff; border:1px solid var(--line); border-radius:1rem;
+            box-shadow:0 18px 40px -12px rgba(15,23,42,.18); padding:.5rem; }
+        .rs-filter-box.buka .rs-filter-menu { display:block; animation:rsFilterPop .15s ease; }
+        @keyframes rsFilterPop { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+        .rs-filter-opt { display:flex; align-items:center; gap:.6rem; width:100%; border:0; background:none;
+            border-radius:.65rem; padding:.55rem .65rem; font-size:.8rem; font-weight:600; color:var(--muted);
+            cursor:pointer; transition:background .12s ease, color .12s ease; text-align:left; }
+        .rs-filter-opt:hover { background:var(--surface-2); color:var(--ink); }
+        .rs-filter-opt.active { background:var(--primary-soft); color:var(--primary-dark); font-weight:800; }
+        .rs-filter-opt .dot { width:.55rem; height:.55rem; border-radius:50%; flex:none; }
+        .rs-filter-opt .dot.semua { background:var(--primary); }
+        .rs-filter-opt .dot.menunggu { background:#f59e0b; }
+        .rs-filter-opt .dot.disetujui { background:var(--emerald); }
+        .rs-filter-opt .dot.ditolak { background:var(--rose); }
+        .rs-filter-opt .dot.dibatalkan { background:#94a3b8; }
+        .rs-filter-opt .dot.selesai { background:#3b82f6; }
+        .rs-filter-opt .dot.kadaluwarsa { background:#8b5cf6; }
+        .rs-filter-opt .lbl { flex:1; }
+        .rs-filter-opt .cnt { font-size:.68rem; font-weight:800; color:var(--soft); background:var(--surface-2);
+            border-radius:9999px; padding:.1rem .5rem; }
+        .rs-filter-opt.active .cnt { background:#fff; color:var(--primary-dark); }
+
         @media (max-width: 575.98px) {
             .rs-toolbar { flex-direction:column; align-items:stretch; }
             .rs-filter-box { width:100%; }
-            .rs-filter-box select { flex:1; }
+            .rs-filter-btn { width:100%; }
+            .rs-filter-menu { left:0; right:0; min-width:0; }
         }
 
         /* Section heading antar Terbaru/Sebelumnya */
@@ -99,14 +141,22 @@
         </div>
     @else
         <div class="xcard mb-3 rs-toolbar" data-reveal>
-            <div class="rs-filter-box">
-                <i class="bi bi-funnel-fill"></i>
-                <select id="rsFilterSelect">
+            <div class="rs-filter-box" id="rsFilterBox">
+                <button type="button" class="rs-filter-btn" id="rsFilterBtn" aria-haspopup="listbox" aria-expanded="false">
+                    <i class="bi bi-funnel-fill"></i>
+                    <span class="lbl" id="rsFilterBtnLabel">Semua ({{ $total }})</span>
+                    <i class="bi bi-chevron-down rs-filter-caret"></i>
+                </button>
+                <div class="rs-filter-menu" role="listbox" id="rsFilterMenu">
                     @foreach ($filterList as $key => $label)
                         @php $n = $key === 'semua' ? $total : ($jumlahPerFilter[$key] ?? 0); @endphp
-                        <option value="{{ $key }}">{{ $label }} ({{ $n }})</option>
+                        <button type="button" class="rs-filter-opt {{ $key === 'semua' ? 'active' : '' }}" data-value="{{ $key }}" role="option" aria-selected="{{ $key === 'semua' ? 'true' : 'false' }}">
+                            <span class="dot {{ $key === 'semua' ? 'semua' : ($chipClass[$key] ?? '') }}"></span>
+                            <span class="lbl">{{ $label }}</span>
+                            <span class="cnt">{{ $n }}</span>
+                        </button>
                     @endforeach
-                </select>
+                </div>
             </div>
             <div class="rs-search">
                 <i class="bi bi-search"></i>
@@ -154,13 +204,17 @@
 
         <script>
             (function () {
-                const select = document.getElementById('rsFilterSelect');
+                const box = document.getElementById('rsFilterBox');
+                const btn = document.getElementById('rsFilterBtn');
+                const btnLabel = document.getElementById('rsFilterBtnLabel');
+                const menu = document.getElementById('rsFilterMenu');
+                const opts = menu.querySelectorAll('.rs-filter-opt');
                 const cards = document.querySelectorAll('#rsList [data-rs-status]');
                 const search = document.getElementById('rsSearch');
                 const empty = document.getElementById('rsEmptyFilter');
+                let statusAktif = 'semua';
 
                 const terapkan = () => {
-                    const statusAktif = select.value;
                     const kw = search.value.trim().toLowerCase();
                     let terlihat = 0;
                     cards.forEach((c) => {
@@ -173,7 +227,26 @@
                     empty.style.display = terlihat === 0 ? 'block' : 'none';
                 };
 
-                select.addEventListener('change', terapkan);
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    box.classList.toggle('buka');
+                    btn.setAttribute('aria-expanded', box.classList.contains('buka') ? 'true' : 'false');
+                });
+                document.addEventListener('click', () => box.classList.remove('buka'));
+                menu.addEventListener('click', (e) => e.stopPropagation());
+
+                opts.forEach((opt) => {
+                    opt.addEventListener('click', () => {
+                        statusAktif = opt.dataset.value;
+                        opts.forEach((o) => { o.classList.remove('active'); o.setAttribute('aria-selected', 'false'); });
+                        opt.classList.add('active');
+                        opt.setAttribute('aria-selected', 'true');
+                        btnLabel.textContent = opt.querySelector('.lbl').textContent + ' (' + opt.querySelector('.cnt').textContent + ')';
+                        box.classList.remove('buka');
+                        terapkan();
+                    });
+                });
+
                 search.addEventListener('input', terapkan);
             })();
         </script>

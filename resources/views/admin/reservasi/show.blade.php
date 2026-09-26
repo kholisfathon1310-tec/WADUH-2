@@ -9,14 +9,6 @@
 
 @section('actions')
     <a href="{{ route('admin.reservasi.index') }}" class="btn btn-brand-outline btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
-    <form method="POST" action="{{ route('admin.reservasi.hapus', $reservasi->kode_reservasi) }}" class="d-inline-flex"
-          data-confirm="Seluruh data pemesanan {{ $reservasi->kode_transaksi }} ({{ $items->count() }} ruangan, dokumen, riwayat, dan faktur) akan dihapus permanen dan tidak bisa dikembalikan."
-          data-confirm-title="Hapus pemesanan ini?" data-icon="warning"
-          data-confirm-text="Ya, hapus" data-confirm-color="#e11d48">
-        @csrf
-        @method('DELETE')
-        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3 me-1"></i>Hapus Data</button>
-    </form>
 @endsection
 
 @section('content')

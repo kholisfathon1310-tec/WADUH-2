@@ -16,6 +16,9 @@ use Illuminate\View\View;
  */
 class FasilitasController extends Controller
 {
+    /** Urutan tetap kategori fasilitas (bukan alfabetis) — dipakai di semua listing kategori. */
+    public const URUTAN_KATEGORI = ['Working Space', 'Co-Working Space', 'Convention Hall'];
+
     /** Pilih kategori fasilitas. */
     public function index(): View
     {
@@ -23,8 +26,9 @@ class FasilitasController extends Controller
             ->where('status_aktif', StatusAktif::Aktif->value)
             ->select('kategori_fasilitas')
             ->distinct()
-            ->orderBy('kategori_fasilitas')
-            ->pluck('kategori_fasilitas');
+            ->pluck('kategori_fasilitas')
+            ->sortBy(fn ($k) => array_search($k, self::URUTAN_KATEGORI))
+            ->values();
 
         return view('fasilitas.kategori', ['kategori' => $kategori]);
     }

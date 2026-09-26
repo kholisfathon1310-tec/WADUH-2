@@ -20,7 +20,7 @@
             --ink:#0f172a; --muted:#64748b; --soft:#94a3b8;
             --primary:#176b87; --primary-dark:#0f526b; --primary-darker:#0c3648;
             --primary-soft:#e6f2f4; --primary-softer:#c9e6ea; --primary-tint:#eef7f8;
-            --accent:#178f87; --accent-light:#24aa9a; --teal:#24aa9a;
+            --accent:#1a5f8f; --accent-light:#2f7fd1; --teal:#2f7fd1;
             --amber-soft:#fef3c7; --amber:#d97706; --amber-tint:#fef9e7;
             --rose:#e11d48; --rose-soft:#fff1f2; --rose-tint:#fef2f4;
             --emerald:#059669; --emerald-soft:#d1fae5;
@@ -86,8 +86,23 @@
             background:linear-gradient(135deg, rgba(240,253,250,.6), rgba(255,255,255,0)); }
         .side-brand { display:flex; align-items:center; justify-content:center; gap:.6rem; min-width:0; border:none; background:none; padding:.4rem .5rem; border-radius:.85rem; cursor:pointer; transition:background .15s ease; width:100%; }
         .side-brand:hover { background:var(--primary-soft); }
-        .side-brand .brand-mark { display:block; max-width:100%; }
-        .side-brand .brand-mark img { height:auto; width:100%; max-width:4.4rem; display:block; }
+        .side-brand .brand-mark { position:relative; display:block; max-width:100%; }
+        .side-brand .brand-mark img { height:auto; width:100%; max-width:4.4rem; display:block; transition:opacity .15s ease; }
+        /* Ganti logo jadi ikon ciutkan/lebarkan saat kursor mengarah ke logo. */
+        .side-brand .brand-ic { position:absolute; inset:0; display:grid; place-items:center;
+            color:var(--primary-dark); font-size:1.5rem; opacity:0; transition:opacity .15s ease; }
+        .side-brand:hover .brand-mark img { opacity:0; }
+        body:not(.sidebar-collapsed) .side-brand:hover .brand-ic.ic-collapse { opacity:1; }
+        body.sidebar-collapsed .side-brand:hover .brand-ic.ic-expand { opacity:1; }
+        /* Tooltip kecil "Tutup/Buka sidebar" — posisi dihitung via JS (fixed) supaya tidak
+           terpotong overflow sidebar saat ciut. */
+        .side-tip { position:fixed; transform:translateX(-50%); background:var(--ink); color:#fff;
+            font-size:.68rem; font-weight:700; padding:.32rem .65rem; border-radius:.45rem; white-space:nowrap;
+            pointer-events:none; opacity:0; transition:opacity .12s ease, transform .12s ease; z-index:2000;
+            box-shadow:0 8px 18px -4px rgba(0,0,0,.28); }
+        .side-tip.show { opacity:1; transform:translateX(-50%) translateY(2px); }
+        .side-tip::before { content:''; position:absolute; bottom:100%; left:50%; transform:translateX(-50%);
+            border:5px solid transparent; border-bottom-color:var(--ink); }
         /* Sidebar ciut — logo mengecil & tetap terpusat, tetap bisa dipencet untuk melebarkan
            lagi (satu-satunya cara membuka lagi saat sudah ciut di desktop). */
         body.sidebar-collapsed .side-brand-row { padding:1.15rem .5rem; justify-content:center; }
@@ -199,7 +214,81 @@
         .btn { border-radius:.85rem; font-weight:700; }
         .btn-sm { border-radius:.7rem; font-weight:700; }
         .form-control,.form-select { border-radius:.75rem; border-color:var(--line); padding:.6rem .9rem; font-size:.88rem; background:#fff; }
+        /* Dropdown filter — chevron custom warna primary + hover/focus lebih hidup, supaya
+           terasa lebih "hidup" dibanding select browser polos. */
+        .form-select { cursor:pointer; font-weight:600; color:var(--ink);
+            background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23176b87' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat:no-repeat; background-position:right .9rem center; background-size:13px 13px;
+            transition:border-color .15s ease, box-shadow .15s ease, background-color .15s ease; }
+        .form-select:hover { border-color:var(--primary-softer); background-color:var(--primary-tint); }
+        .form-select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(23,107,135,.12); background-color:#fff; }
+        .form-select-sm { background-position:right .75rem center; background-size:12px 12px; }
         .form-control-sm,.form-select-sm { border-radius:.65rem; padding:.4rem .65rem; font-size:.82rem; }
+
+        /* ══════ FLOATING LABEL FIELD — dipakai form Edit Profil & Ubah Kata Sandi ══════
+           Sama persis dengan Area Pemesan (lihat layouts/customer.blade.php), supaya kedua
+           sisi konsisten. Butuh placeholder=" " (satu spasi) di tiap input/textarea supaya
+           :not(:placeholder-shown) aktif ketika field sudah terisi (termasuk saat load awal).
+           Label & ikon info SATU elemen flex (bukan dua elemen absolute terpisah) supaya tidak
+           pernah tumpang tindih — ikon ikut bergerak & mengecil bersama label saat float. */
+        .fl-field { position:relative; }
+        .fl-field .fl-input { width:100%; display:block; padding:1.15rem .95rem .45rem;
+            border:1px solid var(--line); border-radius:.75rem; background:#fff;
+            font-size:.87rem; font-weight:600; color:var(--ink); outline:none; resize:vertical;
+            transition:border-color .15s ease, box-shadow .15s ease; }
+        .fl-field textarea.fl-input { min-height:3.4rem; padding-top:1.25rem; }
+        .fl-field .fl-input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(23,107,135,.12); }
+        .fl-field.is-invalid .fl-input { border-color:var(--rose); }
+        .fl-field label { position:absolute; left:.95rem; top:.85rem; margin:0;
+            display:flex; align-items:center; gap:.3rem; min-width:0;
+            font-size:.87rem; font-weight:600; color:var(--soft); pointer-events:none;
+            background:transparent; padding:0 .3rem; transform-origin:left top;
+            max-width:calc(100% - 1.9rem);
+            transition:top .15s ease, font-size .15s ease, color .15s ease, max-width .15s ease; }
+        .fl-field-pw label { max-width:calc(100% - 4.6rem); } /* sisakan ruang tombol mata di kanan saat label masih besar */
+        .fl-field label .fl-label-txt { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+        /* .fl-info — ikon info kecil ber-tooltip, dipakai di dalam floating label MAUPUN berdiri
+           sendiri (mis. judul kartu dashboard) — tidak digantungkan ke induk tertentu. */
+        .fl-info { display:inline-flex; align-items:center; pointer-events:auto; flex:none;
+            font-size:.95em; color:var(--soft); cursor:help; vertical-align:middle;
+            transition:color .15s ease; }
+        .fl-info:hover, .fl-info:focus-visible { color:var(--primary); outline:none; }
+        .fl-field .fl-input:focus + label,
+        .fl-field .fl-input:not(:placeholder-shown) + label { top:-.55rem; left:.75rem; max-width:calc(100% - 1.5rem);
+            font-size:.63rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+            color:var(--primary-dark); background:#fff; }
+        .fl-field.is-invalid .fl-input:focus + label,
+        .fl-field.is-invalid .fl-input:not(:placeholder-shown) + label { color:var(--rose); }
+        .fl-err { font-size:.75rem; font-weight:600; color:var(--rose); margin-top:.35rem; }
+        .fl-field-pw .fl-input { padding-right:2.75rem; }
+        /* Selector gabungan (.fl-field-pw .fl-eye-btn) SENGAJA dipakai, bukan .fl-eye-btn saja —
+           tombol ini juga punya [data-tip] utk tooltip, dan [data-tip] { position:relative }
+           (di bawah) sama spesifisitasnya (satu class = satu attribute selector); tanpa ini,
+           urutan deklarasi bikin [data-tip] menang dan tombol mata jatuh ke bawah field. */
+        .fl-field-pw .fl-eye-btn { position:absolute; right:.4rem; top:.4rem; width:2.2rem; height:2.2rem;
+            display:grid; place-items:center; background:none; border:0; color:var(--muted);
+            cursor:pointer; border-radius:50%; transition:color .15s ease, background .15s ease; z-index:2; }
+        .fl-field-pw .fl-eye-btn:hover { color:var(--primary-dark); background:var(--surface); }
+
+        /* ══════ TOOLTIP — [data-tip="..."] di elemen mana pun, muncul saat hover/focus ══════
+           Panah (::before) SENGAJA dikecualikan untuk elemen ikon Bootstrap Icons ([class*="bi-"],
+           mis. .fl-info) — ikon itu sendiri sudah pakai ::before untuk glyph-nya, dua-duanya
+           rebutan ::before yang sama akan membuat glyph ikonnya hilang (jadi kotak kosong). */
+        [data-tip] { position:relative; }
+        [data-tip]::after { content:attr(data-tip); position:absolute; bottom:calc(100% + .5rem);
+            left:50%; transform:translateX(-50%) translateY(4px); background:var(--ink); color:#fff;
+            font-size:.7rem; font-weight:600; line-height:1.45; padding:.45rem .65rem; border-radius:.5rem;
+            white-space:normal; width:max-content; max-width:14rem; text-align:center;
+            opacity:0; visibility:hidden; pointer-events:none; z-index:80;
+            box-shadow:0 10px 22px -6px rgba(15,23,42,.35);
+            transition:opacity .15s ease, transform .15s ease, visibility .15s ease; }
+        [data-tip]:not([class*="bi-"])::before { content:''; position:absolute; bottom:100%; left:50%;
+            transform:translateX(-50%) translateY(2px); border:5px solid transparent;
+            border-top-color:var(--ink); opacity:0; visibility:hidden;
+            transition:opacity .15s ease, visibility .15s ease; pointer-events:none; z-index:80; }
+        [data-tip]:hover::after, [data-tip]:focus-visible::after,
+        [data-tip]:not([class*="bi-"]):hover::before,
+        [data-tip]:not([class*="bi-"]):focus-visible::before { opacity:1; visibility:visible; transform:translateX(-50%) translateY(0); }
         .form-control:focus,.form-select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(23,107,135,.12); }
         .form-label { font-weight:700; font-size:.78rem; color:#334155; text-transform:uppercase; letter-spacing:.06em; }
         .input-group-text { background:var(--primary-soft); border-color:var(--line); color:var(--primary); border-radius:.75rem 0 0 .75rem; }
@@ -255,8 +344,12 @@
 <div class="frame">
     <aside class="sidebar" id="sidebar">
         <div class="side-brand-row">
-            <button type="button" class="side-brand" id="collapseBtn" title="Ciutkan/lebarkan sidebar">
-                <span class="brand-mark"><img src="{{ asset('images/logo_bitc_crop.png') }}" alt="Logo BITC"></span>
+            <button type="button" class="side-brand" id="collapseBtn" aria-label="Ciutkan/lebarkan sidebar">
+                <span class="brand-mark">
+                    <img src="{{ asset('images/logo_bitc_crop.png') }}" alt="Logo BITC">
+                    <span class="brand-ic ic-collapse"><i class="bi bi-layout-sidebar"></i></span>
+                    <span class="brand-ic ic-expand"><i class="bi bi-layout-sidebar"></i></span>
+                </span>
             </button>
         </div>
 
@@ -264,14 +357,14 @@
         <ul class="side-nav">
             <li>
                 <a class="side-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}" title="Dashboard">
-                    <span class="mic"><i class="bi bi-speedometer2"></i></span> <span class="lbl">Dashboard</span>
+                    <span class="mic"><i class="bi bi-grid-1x2"></i></span> <span class="lbl">Dashboard</span>
                 </a>
             </li>
 
             <li>
                 <a class="side-link {{ request()->routeIs('admin.monitoring*') ? 'active' : '' }}" data-bs-toggle="collapse" href="#subMonitoring"
                    aria-expanded="{{ request()->routeIs('admin.monitoring*') ? 'true' : 'false' }}" title="Monitoring">
-                    <span class="mic"><i class="bi bi-grid-3x3-gap"></i></span>
+                    <span class="mic"><i class="bi bi-building"></i></span>
                     <span class="lbl">Monitoring</span> <i class="bi bi-chevron-right caret"></i>
                 </a>
                 <ul class="side-sub collapse {{ request()->routeIs('admin.monitoring*') ? 'show' : '' }}" id="subMonitoring">
@@ -284,7 +377,7 @@
 
             <li>
                 <a class="side-link {{ request()->routeIs('admin.reservasi*') ? 'active' : '' }}" href="{{ route('admin.reservasi.index') }}" title="Data Reservasi">
-                    <span class="mic"><i class="bi bi-journal-check"></i></span>
+                    <span class="mic"><i class="bi bi-calendar2-check"></i></span>
                     <span class="lbl">Data Reservasi</span>
                     @if ($menungguN > 0)<span class="badge rounded-pill text-bg-warning ms-auto">{{ $menungguN }}</span>@endif
                 </a>
@@ -299,7 +392,7 @@
 
             <li>
                 <a class="side-link {{ request()->routeIs('admin.profil*') ? 'active' : '' }}" href="{{ route('admin.profil') }}" title="Profil">
-                    <span class="mic"><i class="bi bi-person-circle"></i></span>
+                    <span class="mic"><i class="bi bi-person"></i></span>
                     <span class="lbl">Profil</span>
                 </a>
             </li>
@@ -321,7 +414,7 @@
     <div class="content">
         <div class="topbar">
             <button class="burger d-lg-none" id="burgerBtn"><i class="bi bi-list"></i></button>
-            <button class="burger" onclick="history.back()" title="Kembali ke halaman sebelumnya"><i class="bi bi-arrow-left"></i></button>
+            <button class="burger" id="btnKembali" title="Kembali ke halaman sebelumnya"><i class="bi bi-arrow-left"></i></button>
             <div>
                 <div class="crumb">WADUH Admin</div>
                 <h1>@yield('title', 'Admin')</h1>
@@ -335,13 +428,10 @@
                     @if ($menungguN > 0)<span class="dot">{{ $menungguN > 99 ? '99+' : $menungguN }}</span>@endif
                 </a>
 
-                @php $fotoAdmin = $me?->fotoUrl(); @endphp
+                {{-- Belum ada fitur unggah foto — avatar selalu memakai inisial nama. --}}
                 <div class="dropdown">
                     <button class="profile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span class="avatar">
-                            @if ($fotoAdmin)<img src="{{ $fotoAdmin }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">
-                            @else{{ strtoupper(substr($me?->nama_admin ?? 'A', 0, 1)) }}@endif
-                        </span>
+                        <span class="avatar">{{ strtoupper(substr($me?->nama_admin ?? 'A', 0, 1)) }}</span>
                         <span class="who d-none d-md-block">
                             <div class="nm">{{ $me?->nama_admin }}</div>
                             <div class="rl">Administrator</div>
@@ -350,10 +440,7 @@
                     </button>
                     <div class="dropdown-menu dropdown-menu-end profile-menu">
                         <div class="pm-head">
-                            <span class="avatar">
-                                @if ($fotoAdmin)<img src="{{ $fotoAdmin }}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">
-                                @else{{ strtoupper(substr($me?->nama_admin ?? 'A', 0, 1)) }}@endif
-                            </span>
+                            <span class="avatar">{{ strtoupper(substr($me?->nama_admin ?? 'A', 0, 1)) }}</span>
                             <div><div class="nm">{{ $me?->nama_admin }}</div><div class="em">{{ $me?->email }}</div></div>
                         </div>
                         <a href="{{ route('admin.profil') }}" class="dropdown-item w-100 text-start"><i class="bi bi-person-circle me-2"></i>Lihat Profil</a>
@@ -404,22 +491,60 @@
         sidebar.querySelectorAll('a:not([data-bs-toggle])').forEach(a => a.addEventListener('click', tutup));
     })();
 
+    (() => {
+        // Tombol "Kembali" SENGAJA tidak langsung history.back() — kalau halaman ini dibuka
+        // sebagai halaman PERTAMA di tab (mis. lewat redirect setelah login, buka tab baru dari
+        // bookmark, atau referrer dari luar situs), history.back() melempar admin keluar dari
+        // aplikasi (ke halaman asing/kosong) yang membingungkan. Baru pakai history.back() kalau
+        // benar-benar ada halaman SATU ORIGIN sebelumnya di riwayat tab ini; selain itu arahkan
+        // ke Dashboard sebagai tujuan yang selalu masuk akal.
+        const btnKembali = document.getElementById('btnKembali');
+        btnKembali?.addEventListener('click', () => {
+            let referrerSamaOrigin = false;
+            try { referrerSamaOrigin = !!document.referrer && new URL(document.referrer).origin === window.location.origin; } catch (e) {}
+            if (referrerSamaOrigin && window.history.length > 1) {
+                history.back();
+            } else {
+                window.location.href = '{{ route('admin.dashboard') }}';
+            }
+        });
+    })();
+
     // Sidebar desktop: ciutkan/lebarkan, status disimpan supaya tetap sama di halaman berikutnya.
     (() => {
         const collapseBtn = document.getElementById('collapseBtn');
+        const isCollapsed = () => document.body.classList.contains('sidebar-collapsed');
         const setCollapsed = (on) => {
             document.body.classList.toggle('sidebar-collapsed', on);
             localStorage.setItem('adminSidebarCollapsed', on ? '1' : '0');
         };
-        collapseBtn.addEventListener('click', () => setCollapsed(! document.body.classList.contains('sidebar-collapsed')));
+        collapseBtn.addEventListener('click', () => setCollapsed(! isCollapsed()));
 
         // Kalau sidebar sedang ciut, klik menu yang punya submenu (mis. Monitoring) akan
         // melebarkan sidebar dulu supaya submenu-nya kelihatan, bukan cuma toggle tak terlihat.
         document.querySelectorAll('#sidebar [data-bs-toggle="collapse"]').forEach(a => {
             a.addEventListener('click', () => {
-                if (document.body.classList.contains('sidebar-collapsed')) setCollapsed(false);
+                if (isCollapsed()) setCollapsed(false);
             });
         });
+
+        // Tooltip kecil "Tutup sidebar" / "Buka sidebar" saat kursor mengarah ke logo — dipasang
+        // fixed & posisinya dihitung lewat JS (bukan CSS absolute) supaya tidak terpotong saat
+        // sidebar sedang ciut (overflow-y:auto pada .sidebar membuat overflow-x ikut kepotong).
+        const tip = document.createElement('div');
+        tip.className = 'side-tip';
+        document.body.appendChild(tip);
+        const showTip = () => {
+            tip.textContent = isCollapsed() ? 'Buka sidebar' : 'Tutup sidebar';
+            const r = collapseBtn.getBoundingClientRect();
+            tip.style.left = `${r.left + r.width / 2}px`;
+            tip.style.top = `${r.bottom + 10}px`;
+            tip.classList.add('show');
+        };
+        const hideTip = () => tip.classList.remove('show');
+        collapseBtn.addEventListener('mouseenter', showTip);
+        collapseBtn.addEventListener('mouseleave', hideTip);
+        collapseBtn.addEventListener('click', hideTip);
     })();
 
     // Pop-up flash message — semua pakai modal penuh (bukan toast kecil di pojok).
@@ -483,6 +608,16 @@
         }, true);
         f.addEventListener('input', e => bersihkan(e.target), true);
         f.addEventListener('change', e => bersihkan(e.target), true);
+    });
+
+    // Field nomor telepon/WhatsApp (input[type=tel]) — saring karakter selain angka & tanda "+"
+    // di depan SAAT MENGETIK, bukan cuma divalidasi setelah submit, supaya tidak bisa kepencet
+    // huruf sama sekali (lebih jelas daripada baru dikasih tahu "wajib angka" belakangan).
+    document.addEventListener('input', (e) => {
+        if (e.target.tagName !== 'INPUT' || e.target.type !== 'tel') return;
+        const plus = e.target.value.startsWith('+') ? '+' : '';
+        const angka = e.target.value.replace(/[^0-9]/g, '');
+        e.target.value = plus + angka;
     });
 
     // Dialog konfirmasi untuk form/tautan ber-atribut data-confirm — didelegasikan ke document

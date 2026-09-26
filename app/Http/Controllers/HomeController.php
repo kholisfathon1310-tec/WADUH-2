@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\StatusAktif;
+use App\Enums\StatusReservasi;
 use App\Models\Admin;
 use App\Models\Lantai;
+use App\Models\Reservasi;
 use Illuminate\View\View;
 
 class HomeController extends Controller
@@ -15,10 +17,25 @@ class HomeController extends Controller
      */
     public function __invoke(): View
     {
+        // "Tersedia" HARUS mencerminkan kondisi HARI INI (bukan sekadar aktif/tidaknya
+        // fasilitas) — fasilitas dengan reservasi Menunggu/Disetujui yang mencakup tanggal
+        // hari ini dianggap sedang terpakai, jadi tidak dihitung sebagai "tersedia".
+        $hariIni = now()->toDateString();
+        $idFasilitasTerisiHariIni = Reservasi::whereIn('status_reservasi', [
+                StatusReservasi::Menunggu->value,
+                StatusReservasi::Disetujui->value,
+            ])
+            ->whereDate('tanggal_mulai', '<=', $hariIni)
+            ->whereDate('tanggal_selesai', '>=', $hariIni)
+            ->with('tarifSewa:id_tarif_sewa,id_fasilitas')
+            ->get()
+            ->pluck('tarifSewa.id_fasilitas')
+            ->unique();
+
         $lantai = Lantai::with('fasilitas')
             ->orderBy('id_lantai')
             ->get()
-            ->map(function (Lantai $l) {
+            ->map(function (Lantai $l) use ($idFasilitasTerisiHariIni) {
                 $aktif = $l->fasilitas->where('status_aktif', StatusAktif::Aktif);
 
                 // Lantai bisa campur kategori (mis. 3A/3B: mayoritas Co-Working + beberapa
@@ -41,7 +58,7 @@ class HomeController extends Controller
                     'nomor'        => $l->nomor_lantai,
                     'kategori'     => $kategoriUtama ?? '-',
                     'total'        => $l->fasilitas->count(),
-                    'tersedia'     => $aktif->count(),
+                    'tersedia'     => $aktif->whereNotIn('id_fasilitas', $idFasilitasTerisiHariIni)->count(),
                     'kap_min'      => $aktifKategoriUtama->min('kapasitas'),
                     'kap_maks'     => $aktifKategoriUtama->max('kapasitas'),
                 ];

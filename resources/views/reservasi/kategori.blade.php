@@ -30,7 +30,6 @@
     </style>
 
     <div class="page-head mb-4 p-4 p-md-5 rounded-4 text-white" style="background:linear-gradient(115deg,var(--primary-dark),var(--primary) 60%,var(--teal) 130%)" data-reveal>
-        <p class="eyebrow-sm mb-1" style="color:#cdece6">Fasilitas</p>
         <h1 class="h3 mb-1">Pilih Lantai</h1>
         <p class="mb-0" style="opacity:.85">Lima lantai, tiga jenis ruang — pilih lantai untuk melihat denah &amp; detail tiap ruangannya.</p>
     </div>

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Fasilitas extends Model
 {
@@ -41,6 +42,16 @@ class Fasilitas extends Model
     public function tarifSewa(): HasMany
     {
         return $this->hasMany(TarifSewa::class, 'id_fasilitas', 'id_fasilitas');
+    }
+
+    /** Seluruh reservasi ruangan ini (lewat tarif sewa) — dipakai utk hitung fasilitas populer. */
+    public function reservasi(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Reservasi::class,
+            TarifSewa::class,
+            'id_fasilitas', 'id_tarif_sewa', 'id_fasilitas', 'id_tarif_sewa',
+        );
     }
 
     /** URL foto ruangan (public/images/*); jatuh ke gambar stok kategori kalau belum ada foto. */

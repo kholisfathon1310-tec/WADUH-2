@@ -55,16 +55,40 @@
 
         .ck-facilities-line { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem;
             margin-top:1rem; padding-top:.85rem; border-top:1px dashed var(--line); }
+        .ck-facilities-line:empty { display:none; }
         .ck-fac-chip { display:inline-flex; align-items:center; gap:.35rem; font-size:.7rem; font-weight:600;
             color:#475569; background:#fff; padding:.32rem .65rem; border-radius:.55rem;
             border:1px solid var(--line); }
-        .ck-link-btn { display:inline-flex; align-items:center; gap:.3rem; background:none; border:0;
-            font-size:.72rem; font-weight:700; color:var(--muted); padding:0; cursor:pointer;
-            transition:color .15s ease; margin-left:auto; }
-        .ck-link-btn:hover { color:var(--primary-dark); }
-        .ck-link-btn.danger { color:var(--rose); margin-left:0; }
-        .ck-link-btn.danger:hover { color:#be123c; }
-        .ck-link-btn i { font-size:.8em; }
+
+        /* ─── AKSI ITEM: Ubah / Hapus — dua tombol pill sejajar, tinggi & padding sama ─── */
+        .ck-item-actions { display:flex; align-items:center; gap:.5rem; margin-top:.85rem;
+            padding-top:.85rem; border-top:1px dashed var(--line); }
+        .ck-act-btn { display:inline-flex; align-items:center; gap:.35rem; font-size:.75rem; font-weight:700;
+            padding:.45rem .85rem; border-radius:.6rem; border:1px solid var(--line); background:#fff;
+            color:var(--muted); cursor:pointer; line-height:1.1; transition:all .15s ease; }
+        .ck-act-btn:hover { border-color:var(--primary-softer); color:var(--primary-dark); background:var(--primary-soft); }
+        .ck-act-btn.danger { color:var(--rose); margin-left:auto; }
+        .ck-act-btn.danger:hover { border-color:#fecdd3; background:#fff1f2; color:#be123c; }
+        .ck-act-btn i { font-size:.85em; }
+
+        /* ─── PANEL UBAH JADWAL — inline, langsung di kartu item, tanpa pindah halaman ─── */
+        .ck-edit-panel { margin-top:.85rem; padding:1.1rem 1.15rem; border-radius:.9rem;
+            background:var(--surface); border:1px solid var(--line); }
+        .ck-edit-panel[hidden] { display:none; }
+        .ck-edit-label { display:block; font-size:.66rem; font-weight:800; letter-spacing:.05em;
+            text-transform:uppercase; color:var(--soft); margin-bottom:.3rem; }
+        .ck-edit-input { width:100%; border:1px solid var(--line); border-radius:.6rem;
+            padding:.55rem .75rem; font-size:.85rem; color:var(--ink); background:#fff; }
+        .ck-edit-input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 .15rem var(--primary-soft); }
+        .ck-edit-err { font-size:.7rem; color:#e11d48; font-weight:600; margin-top:.3rem; }
+        .ck-edit-actions { display:flex; justify-content:flex-end; align-items:center; gap:.6rem; margin-top:1.1rem; }
+        .ck-edit-cancel { padding:.55rem 1rem; border-radius:.6rem; border:1px solid var(--line);
+            background:#fff; color:var(--muted); font-weight:700; font-size:.78rem; }
+        .ck-edit-cancel:hover { background:var(--surface-2); }
+        .ck-edit-save { display:inline-flex; align-items:center; gap:.4rem; padding:.6rem 1.25rem;
+            border-radius:.6rem; border:0; background:var(--primary); color:#fff; font-weight:800; font-size:.78rem; }
+        .ck-edit-save:hover { background:var(--primary-dark); }
+        .ck-edit-save:disabled { opacity:.7; cursor:not-allowed; }
 
         /* ══════════════ RINGKASAN BIAYA (KANAN) ══════════════ */
         .ck-summary-card { padding:1.5rem; }
@@ -98,25 +122,12 @@
         .ck-submit-btn i { transition:transform .2s ease; }
         .ck-submit-btn:hover i.arrow { transform:translateX(3px); }
 
-        /* DATA DIRI */
+        /* DOKUMEN PERSYARATAN — header baris (dipakai juga oleh kartu ringkasan dokumen di bawah) */
         .ck-personal-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem;
             padding-bottom:.85rem; border-bottom:1px solid var(--line-soft); margin-bottom:1rem; }
         .ck-personal-head h3 { font-size:.95rem; font-weight:800; margin:0; color:var(--ink);
             display:flex; align-items:center; gap:.5rem; }
         .ck-personal-head h3 i { color:var(--primary); }
-        .ck-personal-head .edit-link { font-size:.72rem; font-weight:700; color:var(--primary-dark);
-            text-decoration:none; }
-        .ck-personal-head .edit-link:hover { text-decoration:underline; }
-
-        .ck-pd-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(11rem, 1fr));
-            gap:1rem 1.5rem; }
-        .ck-pd-item { display:flex; align-items:flex-start; gap:.7rem; }
-        .ck-pd-item .ic { display:grid; place-items:center; width:2.35rem; height:2.35rem; border-radius:.7rem;
-            background:var(--primary-soft); color:var(--primary-dark); font-size:.9rem; flex:none;
-            border:1px solid var(--primary-softer); }
-        .ck-pd-item small { display:block; color:var(--soft); font-size:.62rem; font-weight:800;
-            letter-spacing:.08em; text-transform:uppercase; margin-bottom:.15rem; }
-        .ck-pd-item .val { font-size:.82rem; font-weight:700; color:var(--ink); word-break:break-word; }
 
         .ck-dok-notice { background:linear-gradient(135deg, var(--amber-tint), #fff8e1);
             border:1px solid #fde68a; border-radius:1rem; padding:1rem 1.15rem;
@@ -125,6 +136,12 @@
             border-radius:.7rem; background:#fde68a; color:#78350f; font-size:1rem; flex:none; }
         .ck-dok-notice p { font-size:.75rem; color:#78350f; margin:0; line-height:1.55; }
         .ck-dok-notice b { color:#5a2b0d; }
+        .ck-dok-notice p a { color:#5a2b0d; font-weight:700; text-decoration:underline; }
+        .ck-dok-notice.ck-dok-ok { background:linear-gradient(135deg, var(--emerald-soft), #ecfdf5); border-color:#a7f3d0; }
+        .ck-dok-notice.ck-dok-ok .ic { background:#a7f3d0; color:#047857; }
+        .ck-dok-notice.ck-dok-ok p { color:#065f46; }
+        .ck-dok-notice.ck-dok-ok b { color:#047857; }
+        .ck-dok-notice.ck-dok-ok p a { color:#047857; }
 
         /* EMPTY STATE */
         .ck-empty { padding:4rem 2rem; text-align:center; }
@@ -167,6 +184,8 @@
                     @php
                         $meta = \App\Support\KategoriMeta::get($item['kategori']);
                         $lantaiNomor = $item['lantai_nomor'] ?? null;
+                        $sedangDiedit = old('edit_index') !== null && (int) old('edit_index') === $index;
+                        $sehariSaja = $item['satuan'] === 'Hari' && $item['kategori'] === 'Convention Hall';
                     @endphp
                     <div class="xcard ck-item-wrap">
                         <div class="head">
@@ -223,104 +242,159 @@
                                 </div>
                             </div>
 
-                            {{-- Fasilitas bawaan chip + tombol aksi (1 baris) --}}
+                            {{-- Fasilitas bawaan chip (baris tersendiri) --}}
                             <div class="ck-facilities-line">
                                 @foreach ($item['fasilitas_bawaan'] ?? [] as $fasilitas)
                                     <span class="ck-fac-chip">{{ $fasilitas }}</span>
                                 @endforeach
-                                <a href="{{ route('reservasi.fasilitas.show', ['fasilitas' => $item['id_fasilitas'], 'jenis' => $item['id_jenis_sewa'], 'edit_index' => $index]) }}" class="ck-link-btn">
+                            </div>
+
+                            {{-- Tombol aksi: Ubah membuka panel jadwal INLINE (tetap di Keranjang, bukan pindah halaman) --}}
+                            <div class="ck-item-actions">
+                                <button type="button" class="ck-act-btn" data-ck-edit-toggle="{{ $index }}" aria-expanded="{{ $sedangDiedit ? 'true' : 'false' }}">
                                     <i class="bi bi-pencil-square"></i>Ubah
-                                </a>
+                                </button>
                                 <form method="POST" action="{{ route('reservasi.keranjang.hapus', $index) }}"
                                       data-confirm="{{ $item['nama_fasilitas'] }} akan dikeluarkan dari keranjang."
                                       data-confirm-title="Hapus item ini?" data-icon="warning"
                                       data-confirm-text="Ya, hapus" data-confirm-color="#e11d48" class="d-inline">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="ck-link-btn danger">
+                                    <button type="submit" class="ck-act-btn danger">
                                         <i class="bi bi-trash3"></i>Hapus
                                     </button>
+                                </form>
+                            </div>
+
+                            {{-- ═══ PANEL UBAH JADWAL — inline, per item, tanpa pindah ke halaman detail fasilitas ═══ --}}
+                            <div class="ck-edit-panel" id="ckEditPanel{{ $index }}" @if (! $sedangDiedit) hidden @endif>
+                                <form method="POST" action="{{ route('reservasi.keranjang.tambah') }}" enctype="multipart/form-data" class="ck-edit-form" data-ck-edit-form>
+                                    @csrf
+                                    <input type="hidden" name="id_fasilitas" value="{{ $item['id_fasilitas'] }}">
+                                    <input type="hidden" name="id_tarif_sewa" value="{{ $item['id_tarif_sewa'] }}">
+                                    <input type="hidden" name="edit_index" value="{{ $index }}">
+                                    <input type="hidden" name="jumlah_pengguna" value="{{ $item['jumlah_pengguna'] }}">
+                                    <input type="hidden" name="nama_lengkap" value="{{ $pemesan->nama_lengkap }}">
+                                    <input type="hidden" name="alamat" value="{{ $pemesan->alamat }}">
+                                    <input type="hidden" name="usia" value="{{ $pemesan->usia }}">
+                                    <input type="hidden" name="pekerjaan" value="{{ $pemesan->pekerjaan }}">
+                                    <input type="hidden" name="no_telepon" value="{{ $pemesan->no_telepon }}">
+                                    @if ($item['satuan'] === 'Bulan')
+                                        @foreach (app(\App\Services\CartService::class)->dokumen() as $d)
+                                            <input type="hidden" name="dokumen_pertahankan[]" value="{{ $d['path'] }}">
+                                        @endforeach
+                                    @endif
+
+                                    <label class="ck-edit-label">Keperluan / Kegiatan</label>
+                                    <textarea name="keperluan" class="ck-edit-input" rows="2" maxlength="1000" required>{{ $sedangDiedit ? old('keperluan', $item['keperluan']) : $item['keperluan'] }}</textarea>
+                                    @if ($sedangDiedit) @error('keperluan') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
+
+                                    @if ($item['satuan'] === 'Jam')
+                                        <div class="row g-2 mt-1">
+                                            <div class="col-md-6">
+                                                <label class="ck-edit-label">Tanggal Pemakaian</label>
+                                                <input type="date" name="tanggal_mulai" class="ck-edit-input" required
+                                                       min="{{ now()->toDateString() }}"
+                                                       value="{{ $sedangDiedit ? old('tanggal_mulai', $item['tanggal_mulai']) : $item['tanggal_mulai'] }}">
+                                                @if ($sedangDiedit) @error('tanggal_mulai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="ck-edit-label">Jam Mulai</label>
+                                                @include('reservasi.partials.pilih-jam', [
+                                                    'name' => 'jam_mulai',
+                                                    'value' => $sedangDiedit ? old('jam_mulai', $item['jam_mulai']) : $item['jam_mulai'],
+                                                    'fasilitasId' => $item['id_fasilitas'], 'kecil' => true,
+                                                ])
+                                                @if ($sedangDiedit) @error('jam_mulai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="ck-edit-label">Jam Selesai</label>
+                                                @include('reservasi.partials.pilih-jam', [
+                                                    'name' => 'jam_selesai',
+                                                    'value' => $sedangDiedit ? old('jam_selesai', $item['jam_selesai']) : $item['jam_selesai'],
+                                                    'kecil' => true,
+                                                ])
+                                                @if ($sedangDiedit) @error('jam_selesai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
+                                            </div>
+                                        </div>
+                                    @elseif ($item['satuan'] === 'Bulan')
+                                        <div class="row g-2 mt-1">
+                                            <div class="col-md-6">
+                                                <label class="ck-edit-label">Tanggal Mulai</label>
+                                                <input type="date" name="tanggal_mulai" class="ck-edit-input" required
+                                                       min="{{ now()->toDateString() }}"
+                                                       value="{{ $sedangDiedit ? old('tanggal_mulai', $item['tanggal_mulai']) : $item['tanggal_mulai'] }}">
+                                                @if ($sedangDiedit) @error('tanggal_mulai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="ck-edit-label">Tanggal Berakhir</label>
+                                                <input type="date" name="tanggal_selesai" class="ck-edit-input" required
+                                                       value="{{ $sedangDiedit ? old('tanggal_selesai', $item['tanggal_selesai']) : $item['tanggal_selesai'] }}">
+                                                @if ($sedangDiedit) @error('tanggal_selesai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="row g-2 mt-1">
+                                            <div class="col-md-{{ $sehariSaja ? 12 : 6 }}">
+                                                <label class="ck-edit-label">{{ $sehariSaja ? 'Tanggal Pemakaian' : 'Tanggal Mulai' }}</label>
+                                                <input type="date" name="tanggal_mulai" class="ck-edit-input" required
+                                                       min="{{ now()->toDateString() }}"
+                                                       value="{{ $sedangDiedit ? old('tanggal_mulai', $item['tanggal_mulai']) : $item['tanggal_mulai'] }}">
+                                                @if ($sedangDiedit) @error('tanggal_mulai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
+                                            </div>
+                                            @if (! $sehariSaja)
+                                                <div class="col-md-6">
+                                                    <label class="ck-edit-label">Tanggal Selesai</label>
+                                                    <input type="date" name="tanggal_selesai" class="ck-edit-input" required
+                                                           value="{{ $sedangDiedit ? old('tanggal_selesai', $item['tanggal_selesai']) : $item['tanggal_selesai'] }}">
+                                                    @if ($sedangDiedit) @error('tanggal_selesai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
+
+                                    <div class="ck-edit-actions">
+                                        <button type="button" class="ck-edit-cancel" data-ck-edit-toggle="{{ $index }}">Batal</button>
+                                        <button type="submit" class="ck-edit-save"><i class="bi bi-check2"></i>Simpan Perubahan</button>
+                                    </div>
                                 </form>
                             </div>
                         </div>
                     </div>
                 @endforeach
 
-                {{-- Data Pemesan (compact) --}}
-                <div class="xcard p-4 mt-3">
-                    <div class="ck-personal-head">
-                        <h3><i class="bi bi-person-vcard-fill"></i>Data Pemesan &amp; Kontak</h3>
-                        <a href="{{ route('customer.akun.profil') }}" class="edit-link">
-                            <i class="bi bi-pencil me-1"></i>Ubah di Profil
-                        </a>
-                    </div>
-                    <div class="ck-pd-grid">
-                        <div class="ck-pd-item">
-                            <span class="ic"><i class="bi bi-person"></i></span>
-                            <div><small>Nama</small><div class="val">{{ $pemesan->nama_lengkap }}</div></div>
-                        </div>
-                        <div class="ck-pd-item">
-                            <span class="ic"><i class="bi bi-envelope"></i></span>
-                            <div><small>Email</small><div class="val">{{ $pemesan->email }}</div></div>
-                        </div>
-                        <div class="ck-pd-item">
-                            <span class="ic"><i class="bi bi-telephone"></i></span>
-                            <div><small>Telepon</small><div class="val">{{ $pemesan->no_telepon }}</div></div>
-                        </div>
-                        <div class="ck-pd-item">
-                            <span class="ic"><i class="bi bi-briefcase"></i></span>
-                            <div><small>Pekerjaan</small><div class="val">{{ $pemesan->pekerjaan }}</div></div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Dokumen persyaratan (bulanan only) --}}
+                {{-- Dokumen persyaratan (bulanan only) — RINGKASAN saja, tidak ada unggah di
+                     sini. Keranjang cuma untuk mengirim reservasi; unggah/ubah dokumen dilakukan
+                     lewat "Ubah" pada item bulanan (form "Isi Jadwal"), lihat atur-jadwal-modal. --}}
                 @if ($hasBulan)
-                    @php $ruangBulan = collect($items)->where('satuan', 'Bulan')->pluck('nama_fasilitas'); @endphp
-                    <form method="POST" action="{{ route('reservasi.checkout') }}" enctype="multipart/form-data" id="formCheckout"
-                          data-confirm="Reservasi akan dikirim untuk diverifikasi admin. Pastikan data & jadwal sudah benar."
-                          data-confirm-title="Kirim reservasi ini?" data-icon="question" data-confirm-text="Ya, kirim">
-                        @csrf
-                        <div class="xcard p-4 mt-3">
-                            <div class="ck-personal-head">
-                                <h3><i class="bi bi-paperclip"></i>Dokumen Persyaratan <span class="text-muted fw-normal ms-1" style="font-size:.75rem;">(Wajib untuk sewa bulanan)</span></h3>
-                            </div>
-                            <div class="ck-dok-notice">
-                                <span class="ic"><i class="bi bi-info-circle-fill"></i></span>
-                                <p><b>Company Profile / Legalitas / KTP Penanggung Jawab</b><br>
-                                    PDF, JPG, atau PNG, maksimal 5 MB per file. Berlaku untuk
-                                    {{ $ruangBulan->count() > 1 ? 'semua ruangan bulanan (' . $ruangBulan->implode(', ') . ')' : $ruangBulan->first() }},
-                                    cukup diunggah sekali.
+                    @php
+                        $ruangBulan = collect($items)->where('satuan', 'Bulan')->pluck('nama_fasilitas');
+                        $itemBulanPertama = collect($items)->search(fn ($i) => $i['satuan'] === 'Bulan');
+                    @endphp
+                    <div class="xcard p-4 mt-3">
+                        <div class="ck-personal-head">
+                            <h3><i class="bi bi-paperclip"></i>Dokumen Persyaratan <span class="text-muted fw-normal ms-1" style="font-size:.75rem;">(Wajib untuk sewa bulanan)</span></h3>
+                        </div>
+                        @if (count($dokumenBulan) > 0)
+                            <div class="ck-dok-notice ck-dok-ok">
+                                <span class="ic"><i class="bi bi-check-circle-fill"></i></span>
+                                <p><b>{{ count($dokumenBulan) }} dokumen sudah terlampir</b><br>
+                                    Berlaku untuk {{ $ruangBulan->count() > 1 ? 'semua ruangan bulanan (' . $ruangBulan->implode(', ') . ')' : $ruangBulan->first() }}.
+                                    Ingin menambah atau mengganti berkas? Buka
+                                    <a href="{{ route('reservasi.fasilitas.show', ['fasilitas' => $items[$itemBulanPertama]['id_fasilitas'], 'jenis' => $items[$itemBulanPertama]['id_jenis_sewa'], 'edit_index' => $itemBulanPertama]) }}">"Ubah"</a>
+                                    pada item bulanan di atas.
                                 </p>
                             </div>
-                            <div data-dok-group>
-                                <div class="d-flex gap-2 align-items-center mb-2">
-                                    <input type="file" name="dokumen[]" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png" multiple required>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-brand-outline" onclick="tambahFile()">
-                                    <i class="bi bi-plus-lg me-1"></i>Tambah file lain
-                                </button>
+                        @else
+                            <div class="ck-dok-notice">
+                                <span class="ic"><i class="bi bi-exclamation-triangle-fill"></i></span>
+                                <p><b>Dokumen belum dilampirkan</b><br>
+                                    Buka
+                                    <a href="{{ route('reservasi.fasilitas.show', ['fasilitas' => $items[$itemBulanPertama]['id_fasilitas'], 'jenis' => $items[$itemBulanPertama]['id_jenis_sewa'], 'edit_index' => $itemBulanPertama]) }}">"Ubah"</a>
+                                    pada item bulanan di atas untuk melampirkan Company Profile / Legalitas / KTP Penanggung Jawab sebelum mengirim reservasi.
+                                </p>
                             </div>
-                            <script>
-                                function tambahFile() {
-                                    const group = document.querySelector('[data-dok-group]');
-                                    const baris = document.createElement('div');
-                                    baris.className = 'd-flex gap-2 align-items-center mb-2';
-                                    const input = document.createElement('input');
-                                    input.type = 'file'; input.name = 'dokumen[]';
-                                    input.className = 'form-control form-control-sm';
-                                    input.accept = '.pdf,.jpg,.jpeg,.png'; input.multiple = true;
-                                    const hapus = document.createElement('button');
-                                    hapus.type = 'button';
-                                    hapus.className = 'btn btn-sm btn-outline-danger flex-shrink-0';
-                                    hapus.title = 'Batalkan file ini';
-                                    hapus.innerHTML = '<i class="bi bi-x-lg"></i>';
-                                    hapus.onclick = () => baris.remove();
-                                    baris.append(input, hapus);
-                                    group.insertBefore(baris, group.lastElementChild);
-                                }
-                            </script>
-                        </div>
-                    </form>
+                        @endif
+                    </div>
                 @endif
             </div>
 
@@ -350,25 +424,76 @@
                     </div>
 
                     <div class="ck-actions">
-                        @if ($hasBulan)
-                            <button type="submit" form="formCheckout" class="btn btn-brand ck-submit-btn">
+                        <form method="POST" action="{{ route('reservasi.checkout') }}"
+                              data-confirm="Reservasi akan dikirim untuk diverifikasi admin. Pastikan data & jadwal sudah benar."
+                              data-confirm-title="Kirim reservasi ini?" data-icon="question" data-confirm-text="Ya, kirim">
+                            @csrf
+                            <button type="submit" class="btn btn-brand ck-submit-btn w-100">
                                 <span>Ajukan Verifikasi Sekarang</span>
                                 <i class="bi bi-arrow-right arrow"></i>
                             </button>
-                        @else
-                            <form method="POST" action="{{ route('reservasi.checkout') }}"
-                                  data-confirm="Reservasi akan dikirim untuk diverifikasi admin."
-                                  data-confirm-title="Kirim reservasi ini?" data-icon="question" data-confirm-text="Ya, kirim">
-                                @csrf
-                                <button type="submit" class="btn btn-brand ck-submit-btn w-100">
-                                    <span>Ajukan Verifikasi Sekarang</span>
-                                    <i class="bi bi-arrow-right arrow"></i>
-                                </button>
-                            </form>
-                        @endif
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
+
+        @php
+            // Error umum (bukan milik field jadwal di panel Ubah, mis. kapasitas/jadwal bentrok/
+            // item tidak ditemukan) ditampilkan lewat pop-up, sama seperti di form "Isi Jadwal".
+            $medanDikenalCk = ['keperluan', 'tanggal_mulai', 'tanggal_selesai', 'jam_mulai', 'jam_selesai'];
+            $errUmumCk = collect($errors->getMessages())
+                ->filter(fn ($pesan, $kunci) => ! collect($medanDikenalCk)->contains(fn ($m) => $kunci === $m || str_starts_with((string) $kunci, $m.'.')))
+                ->flatten();
+        @endphp
+        @if ($errUmumCk->isNotEmpty())
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tidak bisa disimpan',
+                        html: @json($errUmumCk->map(fn ($p) => e($p))->implode('<br>')),
+                        confirmButtonColor: '#176b87',
+                        confirmButtonText: 'Oke, mengerti',
+                    });
+                });
+            </script>
+        @endif
+
+        <script>
+        (function() {
+            // Buka/tutup panel Ubah jadwal per item (tombol "Ubah" & "Batal" di dalam panel
+            // sama-sama pakai data-ck-edit-toggle dengan index item yang sama).
+            document.querySelectorAll('[data-ck-edit-toggle]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const idx = btn.dataset.ckEditToggle;
+                    const panel = document.getElementById('ckEditPanel' + idx);
+                    if (!panel) return;
+                    const akanTerbuka = panel.hasAttribute('hidden');
+                    panel.toggleAttribute('hidden', !akanTerbuka);
+                    document.querySelectorAll('[data-ck-edit-toggle="' + idx + '"]').forEach((b) => {
+                        b.setAttribute('aria-expanded', akanTerbuka ? 'true' : 'false');
+                    });
+                    if (akanTerbuka) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+            });
+
+            // Cegah submit ganda saat menyimpan perubahan jadwal (sama seperti form "Isi Jadwal").
+            document.querySelectorAll('[data-ck-edit-form]').forEach((form) => {
+                form.addEventListener('submit', (e) => {
+                    if (form.dataset.submitting === '1') {
+                        e.preventDefault();
+                        return;
+                    }
+                    form.dataset.submitting = '1';
+                    const btn = form.querySelector('.ck-edit-save');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Menyimpan…';
+                    }
+                });
+            });
+        })();
+        </script>
     @endif
 @endsection

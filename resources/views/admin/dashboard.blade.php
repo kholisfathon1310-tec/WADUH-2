@@ -35,12 +35,12 @@
         $accPanjang += $panjang;
     }
 
-    // Reservasi per kategori — warna monokrom (shade teal berbeda) supaya konsisten palet.
+    // Reservasi per kategori — warna monokrom biru (shade berbeda) supaya konsisten palet.
     // Kategori tanpa reservasi tetap tampil (0), bukan hilang dari daftar.
     $kategoriMeta = [
         'Working Space'    => ['ikon' => 'bi-briefcase', 'shade' => '#176b87'],
-        'Co-Working Space' => ['ikon' => 'bi-people',    'shade' => '#24aa9a'],
-        'Convention Hall'  => ['ikon' => 'bi-bank',      'shade' => '#178f87'],
+        'Co-Working Space' => ['ikon' => 'bi-people',    'shade' => '#2f7fd1'],
+        'Convention Hall'  => ['ikon' => 'bi-bank',      'shade' => '#0f526b'],
     ];
     $reservasiPerKategoriLengkap = collect($kategoriMeta)->keys()
         ->mapWithKeys(fn ($k) => [$k => (int) ($reservasiPerKategori[$k] ?? 0)]);
@@ -68,8 +68,8 @@
                 <span class="dash-hero-eyebrow"><i class="bi bi-calendar3 me-1"></i>{{ now()->translatedFormat('l, d F Y') }}</span>
                 <h2 class="dash-hero-title">Selamat datang, {{ $me?->nama_admin }}</h2>
                 <p class="dash-hero-sub">
-                    @if ($statistik['menunggu'] > 0)
-                        Ada <strong>{{ $statistik['menunggu'] }} reservasi menunggu</strong> persetujuan Anda hari ini.
+                    @if ($menungguSekarang > 0)
+                        Ada <strong>{{ $menungguSekarang }} reservasi menunggu</strong> persetujuan Anda.
                     @else
                         Tidak ada antrean persetujuan — semua reservasi sudah ditangani.
                     @endif
@@ -83,8 +83,16 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════════════════
-         STAT TILES — 4 KPI ringkas
+         STAT TILES — 6 status ringkas, per bulan (angka reset tiap ganti bulan)
          ═══════════════════════════════════════════════════════════ --}}
+    <div class="dash-tiles-head">
+        <span class="dash-tiles-head-lbl"><i class="bi bi-calendar-month"></i> Ringkasan Bulan</span>
+        <div class="dash-month-nav">
+            <a href="{{ route('admin.dashboard', array_merge(request()->except('status_bulan'), ['status_bulan' => $statBulanNav['prev']])) }}" class="dash-cal-nav-btn" data-tip="Bulan sebelumnya"><i class="bi bi-chevron-left"></i></a>
+            <span class="dash-month-lbl">{{ $statBulanNav['label'] }}</span>
+            <a href="{{ route('admin.dashboard', array_merge(request()->except('status_bulan'), ['status_bulan' => $statBulanNav['next']])) }}" class="dash-cal-nav-btn" data-tip="Bulan berikutnya"><i class="bi bi-chevron-right"></i></a>
+        </div>
+    </div>
     <div class="dash-tiles">
         @foreach ($statusMeta as $key => $m)
             <div class="dash-tile" data-reveal>
@@ -95,17 +103,25 @@
                 <div class="dash-tile-v">{{ $statistik[$key] }}</div>
                 <div class="dash-tile-foot">
                     @if ($statistik['total'] > 0)
-                        <span class="dash-tile-pct" style="color:{{ $m['ic'] }}">
-                            {{ round($statistik[$key] / $statistik['total'] * 100) }}%
-                        </span>
+                        <span class="dash-tile-pct" style="color:{{ $m['ic'] }}">{{ round($statistik[$key] / $statistik['total'] * 100) }}%</span>
                         <span class="dash-tile-frac">dari {{ $statistik['total'] }} reservasi</span>
                     @else
-                        <span class="dash-tile-frac">Belum ada reservasi</span>
+                        <span class="dash-tile-frac">Belum ada reservasi bulan ini</span>
                     @endif
                 </div>
             </div>
         @endforeach
     </div>
+
+    {{-- ═══════════════════════════════════════════════════════════
+         KALENDER RESERVASI — partial bersama Admin & Pemesan, hanya yang Disetujui.
+         ═══════════════════════════════════════════════════════════ --}}
+    @include('partials.kalender-reservasi', [
+        ...$rangeKalender,
+        'reservasiKalender' => $reservasiKalender,
+        'routeDashboard' => 'admin.dashboard',
+        'routeDetail' => 'admin.reservasi.show',
+    ])
 
     {{-- ═══════════════════════════════════════════════════════════
          ROW 1 — Distribusi Status (donut) + Tren 7 Hari (bar chart BARU)
@@ -166,9 +182,9 @@
                 <div class="d-flex align-items-center gap-2">
                     <span class="dash-pill">{{ collect($trendChart)->sum('jumlah') }} reservasi</span>
                     <div class="dash-toggle" role="group" aria-label="Pilih periode tren">
-                        <a href="{{ route('admin.dashboard', ['periode' => 'harian']) }}"
+                        <a href="{{ route('admin.dashboard', array_merge(request()->except('periode'), ['periode' => 'harian'])) }}"
                            class="dash-toggle-opt {{ $periode === 'harian' ? 'active' : '' }}">Harian</a>
-                        <a href="{{ route('admin.dashboard', ['periode' => 'bulanan']) }}"
+                        <a href="{{ route('admin.dashboard', array_merge(request()->except('periode'), ['periode' => 'bulanan'])) }}"
                            class="dash-toggle-opt {{ $periode === 'bulanan' ? 'active' : '' }}">Bulanan</a>
                     </div>
                 </div>
@@ -379,8 +395,21 @@
 .dash-btn-sm { padding:.4rem .8rem; font-size:.78rem; }
 
 /* ══════════════════════════════════════════════════════════════
-   STAT TILES — 4 KPI card putih dengan icon soft.
+   STAT TILES — 6 status card putih dengan icon soft, di-scope per bulan.
    ══════════════════════════════════════════════════════════════ */
+.dash-tiles-head { display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:.75rem; margin-bottom:.85rem; }
+.dash-tiles-head-lbl { font-size:.8rem; font-weight:800; color:var(--dash-muted);
+    display:inline-flex; align-items:center; gap:.4rem; text-transform:uppercase; letter-spacing:.04em; }
+.dash-tiles-head-lbl i { color:var(--dash-primary); }
+.dash-month-nav { display:inline-flex; align-items:center; gap:.35rem;
+    background:#fff; border:1px solid var(--dash-line); border-radius:.7rem; padding:.3rem .5rem; }
+.dash-month-lbl { font-size:.85rem; font-weight:800; color:var(--dash-ink); min-width:7rem; text-align:center; }
+.dash-cal-nav-btn { display:grid; place-items:center; width:1.9rem; height:1.9rem;
+    border-radius:.5rem; background:transparent; border:0; color:var(--dash-muted);
+    text-decoration:none; font-size:.85rem; transition:all .15s ease; flex:none; }
+.dash-cal-nav-btn:hover { background:var(--dash-primary-soft); color:var(--dash-primary-dark); }
+
 .dash-tiles { display:grid; grid-template-columns:repeat(6, 1fr); gap:1rem; margin-bottom:1.5rem; }
 .dash-tile {
     background:#fff; border:1px solid var(--dash-line);
@@ -402,7 +431,7 @@
     font-size:2.1rem; line-height:1.05; color:var(--dash-ink); letter-spacing:-.025em;
     margin-bottom:.5rem;
 }
-.dash-tile-foot { display:flex; align-items:baseline; gap:.5rem; font-size:.78rem; }
+.dash-tile-foot { display:flex; align-items:baseline; gap:.5rem; font-size:.78rem; flex-wrap:wrap; }
 .dash-tile-pct { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.85rem; }
 .dash-tile-frac { color:var(--dash-muted); font-weight:500; }
 

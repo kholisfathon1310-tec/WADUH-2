@@ -20,6 +20,14 @@
                     <span class="fw-bold ms-1" style="color:var(--primary)">Rp {{ number_format($baris->sum('total_biaya'), 0, ',', '.') }}</span>
                 </div>
                 <a href="{{ route('admin.reservasi.show', $first->kode_reservasi) }}" class="btn btn-sm btn-brand"><i class="bi bi-eye me-1"></i>Detail</a>
+                <form method="POST" action="{{ route('admin.reservasi.hapus', $first->kode_reservasi) }}" class="d-inline-flex"
+                      data-confirm="Seluruh data pemesanan {{ $kodeTransaksi }} ({{ $baris->count() }} ruangan, dokumen, riwayat, dan faktur) akan dihapus permanen dan tidak bisa dikembalikan."
+                      data-confirm-title="Hapus pemesanan ini?" data-icon="warning"
+                      data-confirm-text="Ya, hapus" data-confirm-color="#e11d48">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-sm btn-outline-danger" data-tip="Hapus pemesanan"><i class="bi bi-trash3"></i></button>
+                </form>
             </div>
         </div>
         <div class="table-responsive">

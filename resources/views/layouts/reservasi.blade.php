@@ -11,7 +11,7 @@
         :root {
             --ink:#0f172a; --muted:#64748b; --soft:#94a3b8;
             --primary:#0e6b7d; --primary-dark:#084b58; --primary-soft:#e6f2f4;
-            --teal:#24aa9a;
+            --teal:#2f7fd1;
             --surface:#f7f9fc; --line:#e5e9ef;
         }
         * { scrollbar-color: #c3d5de transparent; }

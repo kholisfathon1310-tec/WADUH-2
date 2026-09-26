@@ -9,7 +9,7 @@
     </ol></nav>
 
     <div class="page-head mb-4 p-4 p-md-5 rounded-4 text-white" style="background:linear-gradient(115deg,var(--primary-dark),var(--primary) 60%,var(--teal) 130%)" data-reveal>
-        <p class="eyebrow-sm mb-1" style="color:#cdece6">{{ $kategori }} @if($jenis) · Per {{ $jenis->satuan->value }} @endif</p>
+        <p class="eyebrow-sm-dark mb-1">{{ $kategori }} @if($jenis) · Per {{ $jenis->satuan->value }} @endif</p>
         <h1 class="h3 mb-1">Pilih Lantai</h1>
         <p class="mb-0" style="opacity:.85">Lantai berikut memiliki fasilitas yang cocok dengan pilihan Anda.</p>
     </div>

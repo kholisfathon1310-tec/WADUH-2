@@ -340,9 +340,11 @@
 
                 {{-- Aksi bawah --}}
                 <div class="rs-actions">
-                    <a href="{{ route('cek-status.bukti-reservasi', $r->kode_reservasi) }}" class="btn btn-brand">
-                        <i class="bi bi-file-earmark-arrow-down me-1"></i>Unduh Bukti Reservasi
-                    </a>
+                    @if ($status !== 'Dibatalkan')
+                        <a href="{{ route('cek-status.bukti-reservasi', $r->kode_reservasi) }}" class="btn btn-brand">
+                            <i class="bi bi-file-earmark-arrow-down me-1"></i>Unduh Bukti Reservasi
+                        </a>
+                    @endif
                     @if ($bolehBatal)
                         <form method="POST" action="{{ route('reservasi.batalkan', $r->kode_reservasi) }}"
                               data-confirm="Reservasi {{ $r->kode_reservasi }} akan dibatalkan dan tidak dapat dikembalikan."

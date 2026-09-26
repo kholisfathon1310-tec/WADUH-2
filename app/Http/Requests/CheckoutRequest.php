@@ -7,9 +7,14 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 /**
- * Data diri Pemesan sudah dikumpulkan & disimpan sebelumnya lewat form "Isi Jadwal"
- * (TambahKeranjangRequest) saat item ditambahkan ke keranjang — checkout jadi murni
- * konfirmasi + (kalau ada item Bulan) upload dokumen persyaratan.
+ * Data diri Pemesan & dokumen persyaratan Bulan (kalau ada) sudah dikumpulkan & disimpan
+ * sebelumnya lewat form "Isi Jadwal" (TambahKeranjangRequest, lihat CartService::dokumen())
+ * begitu ruangan Bulan ditambahkan ke keranjang — checkout jadi murni konfirmasi kirim,
+ * tanpa input apa pun lagi (keranjang HANYA untuk mengirim reservasi).
+ *
+ * Pengecekan dokumen di sini murni jaring pengaman (seharusnya tidak pernah kena, karena
+ * sudah diwajibkan di langkah jadwal) — mis. kalau item Bulan sempat masuk keranjang lewat
+ * jalur lain tanpa dokumen.
  */
 class CheckoutRequest extends FormRequest
 {
@@ -20,12 +25,7 @@ class CheckoutRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            // File dokumen (kalau ada): satu lampiran multi-file untuk seluruh transaksi
-            // (berlaku untuk semua ruangan Bulan sekaligus, bukan per ruangan).
-            'dokumen'   => ['array'],
-            'dokumen.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-        ];
+        return [];
     }
 
     public function withValidator(Validator $validator): void
@@ -34,33 +34,12 @@ class CheckoutRequest extends FormRequest
             /** @var CartService $cart */
             $cart = app(CartService::class);
 
-            // Kalau ada minimal 1 item Bulan di keranjang, wajib minimal 1 dokumen terupload
-            // (satu lampiran berlaku untuk semua ruangan Bulan pada transaksi ini).
-            if ($cart->hasBulan()) {
-                $files = $this->file('dokumen', []);
-                $files = array_filter(is_array($files) ? $files : [$files]);
-                if ($files === []) {
-                    $v->errors()->add(
-                        'dokumen',
-                        'Wajib melampirkan minimal 1 dokumen persyaratan (Company Profile / legalitas / KTP penanggung jawab) untuk sewa bulanan.'
-                    );
-                }
+            if ($cart->hasBulan() && $cart->dokumen() === []) {
+                $v->errors()->add(
+                    'dokumen',
+                    'Dokumen persyaratan sewa bulanan belum lengkap. Buka "Ubah" pada item bulanan di keranjang untuk melengkapinya.'
+                );
             }
         });
-    }
-
-    public function attributes(): array
-    {
-        return [
-            'dokumen.*' => 'dokumen',
-        ];
-    }
-
-    public function messages(): array
-    {
-        return [
-            'dokumen.*.mimes' => 'Dokumen harus berformat PDF, JPG, atau PNG.',
-            'dokumen.*.max'   => 'Ukuran tiap dokumen maksimal 5 MB.',
-        ];
     }
 }

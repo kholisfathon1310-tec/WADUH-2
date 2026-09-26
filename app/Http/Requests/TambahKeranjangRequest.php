@@ -63,7 +63,7 @@ class TambahKeranjangRequest extends FormRequest
             'alamat'       => ['required', 'string', 'max:500'],
             'usia'         => ['required', 'integer', 'min:17', 'max:120'],
             'pekerjaan'    => ['required', 'string', 'max:100'],
-            'no_telepon'   => ['required', 'string', 'regex:/^[0-9+\-\s()]{8,20}$/'],
+            'no_telepon'   => ['required', 'string', 'regex:/^\+?[0-9]{8,20}$/'],
         ];
 
         // Aturan jadwal tergantung satuan sewa.
@@ -74,6 +74,15 @@ class TambahKeranjangRequest extends FormRequest
             $rules['tanggal_selesai'] = ['required', 'date', 'after_or_equal:tanggal_mulai'];
         } elseif ($satuan === SatuanSewa::Bulan) {
             $rules['tanggal_selesai'] = ['required', 'date', 'after:tanggal_mulai'];
+
+            // Dokumen persyaratan — satu lampiran berlaku untuk semua ruangan Bulan di
+            // keranjang (lihat CartService::dokumen()). dokumen[] = berkas baru yang
+            // diunggah sekarang, dokumen_pertahankan[] = path dokumen lama (yang sudah
+            // tersimpan) yang TIDAK dihapus pemesan di form "modern" ini.
+            $rules['dokumen']                = ['array'];
+            $rules['dokumen.*']              = ['file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'];
+            $rules['dokumen_pertahankan']    = ['array'];
+            $rules['dokumen_pertahankan.*']  = ['string'];
         }
 
         return $rules;
@@ -124,6 +133,33 @@ class TambahKeranjangRequest extends FormRequest
                 $v->errors()->add('tanggal_mulai', 'Gedung sudah tutup untuk hari ini (jam operasional berakhir 16.00), pilih tanggal mulai berikutnya.');
             }
 
+            // Gedung tidak beroperasi Sabtu & Minggu — berlaku untuk Sewa Jam & Hari (pemakaian
+            // ruangan pada tanggal itu sendiri). Sewa Bulan dikecualikan dari cek "seluruh
+            // rentang" karena masa sewa memang wajar melewati akhir pekan, tapi tanggal
+            // mulainya tetap tidak boleh jatuh di akhir pekan.
+            if ($tarif->jenisSewa?->satuan === SatuanSewa::Jam && $this->filled('tanggal_mulai') && Carbon::parse($this->input('tanggal_mulai'))->isWeekend()) {
+                $v->errors()->add('tanggal_mulai', 'Gedung tidak melayani reservasi pada hari Sabtu & Minggu, pilih hari kerja (Senin–Jumat).');
+            }
+
+            if ($tarif->jenisSewa?->satuan === SatuanSewa::Hari && $this->filled('tanggal_mulai') && $this->filled('tanggal_selesai')) {
+                $adaAkhirPekan = false;
+                $d = Carbon::parse($this->input('tanggal_mulai'));
+                $batas = Carbon::parse($this->input('tanggal_selesai'));
+                for ($i = 0; $i <= 400 && $d->lte($batas); $i++, $d->addDay()) {
+                    if ($d->isWeekend()) {
+                        $adaAkhirPekan = true;
+                        break;
+                    }
+                }
+                if ($adaAkhirPekan) {
+                    $v->errors()->add('tanggal_mulai', 'Gedung tidak melayani reservasi pada hari Sabtu & Minggu, pilih rentang tanggal yang hanya mencakup hari kerja (Senin–Jumat).');
+                }
+            }
+
+            if ($tarif->jenisSewa?->satuan === SatuanSewa::Bulan && $this->filled('tanggal_mulai') && Carbon::parse($this->input('tanggal_mulai'))->isWeekend()) {
+                $v->errors()->add('tanggal_mulai', 'Tanggal mulai sewa tidak boleh jatuh di hari Sabtu & Minggu, pilih hari kerja (Senin–Jumat).');
+            }
+
             // Jumlah pengguna tidak boleh melebihi kapasitas.
             $fasilitas = $tarif->fasilitas;
             if ($fasilitas && $this->filled('jumlah_pengguna') && (int) $this->input('jumlah_pengguna') > $fasilitas->kapasitas) {
@@ -136,6 +172,18 @@ class TambahKeranjangRequest extends FormRequest
                 $min = (int) $tarif->jenisSewa->durasi_minimum;
                 if ($bulan < $min) {
                     $v->errors()->add('tanggal_selesai', "Sewa bulanan minimal {$min} bulan.");
+                }
+            }
+
+            // Sewa Bulan: minimal 1 dokumen tersisa (gabungan dokumen lama yang dipertahankan
+            // + berkas baru yang baru diunggah) — dihitung di sini (bukan cuma cek array
+            // 'dokumen' langsung) karena dokumen boleh sudah ada dari item Bulan lain di
+            // keranjang, jadi tidak wajib upload ulang tiap kali menambah ruangan Bulan.
+            if ($tarif->jenisSewa?->satuan === SatuanSewa::Bulan) {
+                $dipertahankan = count($this->input('dokumen_pertahankan', []));
+                $baru = count(array_filter(is_array($this->file('dokumen', [])) ? $this->file('dokumen', []) : [$this->file('dokumen')]));
+                if ($dipertahankan + $baru < 1) {
+                    $v->errors()->add('dokumen', 'Wajib melampirkan minimal 1 dokumen persyaratan (Company Profile / legalitas / KTP penanggung jawab) untuk sewa bulanan.');
                 }
             }
         });
@@ -196,7 +244,9 @@ class TambahKeranjangRequest extends FormRequest
             'usia.max'                     => 'Usia tidak valid.',
             'pekerjaan.required'           => 'Pekerjaan wajib diisi.',
             'no_telepon.required'          => 'Nomor telepon wajib diisi agar admin bisa menghubungi Anda.',
-            'no_telepon.regex'             => 'Format nomor telepon tidak valid, gunakan angka saja, contoh 0812xxxxxxx.',
+            'dokumen.*.mimes'              => 'Dokumen harus berformat PDF, JPG, atau PNG.',
+            'dokumen.*.max'                => 'Ukuran tiap dokumen maksimal 5 MB.',
+            'no_telepon.regex'             => 'Nomor telepon wajib angka, boleh diawali tanda +, contoh 0812xxxxxxx.',
         ];
     }
 }

@@ -17,7 +17,16 @@ class DashboardController extends Controller
         $periode = request('periode', 'harian');
         $periode = in_array($periode, ['harian', 'bulanan'], true) ? $periode : 'harian';
 
+        // ══════════════ 6 CARD STATUS — di-scope PER BULAN (?status_bulan=Y-m, default bulan
+        //    berjalan), supaya angka & persentasenya mulai dari 0 lagi tiap ganti bulan. ══════════════
+        $statBulanInput = request('status_bulan');
+        $statBulan = $statBulanInput
+            ? Carbon::createFromFormat('Y-m', $statBulanInput)->startOfMonth()
+            : now()->startOfMonth();
+
         $perStatus = Reservasi::query()
+            ->whereYear('created_at', $statBulan->year)
+            ->whereMonth('created_at', $statBulan->month)
             ->selectRaw('status_reservasi, COUNT(*) as jumlah')
             ->groupBy('status_reservasi')
             ->pluck('jumlah', 'status_reservasi');
@@ -31,6 +40,17 @@ class DashboardController extends Controller
             'dibatalkan' => (int) $perStatus->get(StatusReservasi::Dibatalkan->value, 0),
             'kadaluwarsa' => (int) $perStatus->get(StatusReservasi::Kadaluwarsa->value, 0),
         ];
+
+        $statBulanNav = [
+            'label'     => $statBulan->translatedFormat('F Y'),
+            'prev'      => $statBulan->copy()->subMonth()->format('Y-m'),
+            'next'      => $statBulan->copy()->addMonth()->format('Y-m'),
+            'isCurrent' => $statBulan->isSameMonth(now()),
+        ];
+
+        // Antrian di hero SELALU seluruh waktu (bukan ikut ter-scope bulan seperti $statistik
+        // di atas) — ini working queue admin sekarang, bukan riwayat bulan yang sedang dilihat.
+        $menungguSekarang = (int) Reservasi::where('status_reservasi', StatusReservasi::Menunggu->value)->count();
 
         // Jumlah RESERVASI per kategori fasilitas — snapshot yang SEDANG BERLANGSUNG (Disetujui
         // saja). Begitu selesai dipakai (status Selesai), reservasinya lepas dari hitungan ini
@@ -104,6 +124,23 @@ class DashboardController extends Controller
             })->all();
         }
 
-        return view('admin.dashboard', compact('statistik', 'reservasiPerKategori', 'terbaru', 'trendChart', 'periode'));
+        // ══════════════ KALENDER RESERVASI — sama seperti dashboard Pemesan, hanya
+        //    yang berstatus Disetujui, tapi lintas semua pemesan (lihat partials.kalender-reservasi). ══════════════
+        $rangeKalender = \App\Support\KalenderReservasi::range(request('view'), request('tanggal'), request('bulan'));
+        $reservasiKalender = Reservasi::query()
+            ->with('tarifSewa.fasilitas.lantai', 'tarifSewa.jenisSewa')
+            ->where('status_reservasi', StatusReservasi::Disetujui->value)
+            ->whereBetween('tanggal_mulai', [
+                $rangeKalender['rentangAwal']->toDateString(),
+                $rangeKalender['rentangAkhir']->toDateString(),
+            ])
+            ->orderBy('tanggal_mulai')
+            ->orderBy('jam_mulai')
+            ->get();
+
+        return view('admin.dashboard', compact(
+            'statistik', 'statBulanNav', 'menungguSekarang', 'reservasiPerKategori', 'terbaru', 'trendChart', 'periode',
+            'rangeKalender', 'reservasiKalender',
+        ));
     }
 }

@@ -21,7 +21,26 @@
     $isMulti       = $jumlahRuangan > 1;
     $kapMin        = $semuaRuangan->min('kapasitas');
     $bawaan        = app(\App\Services\FasilitasBawaanService::class)->untuk($fasilitas, $satuan);
-    $totalTarif    = $tarif->harga * $jumlahRuangan;
+
+    // Tarif & fasilitas bawaan DIHITUNG PER RUANGAN (bukan disamakan dengan ruangan utama) —
+    // supaya kalau harga antar ruangan berbeda (baris tarif_sewa masing-masing), tiap kartu
+    // ruangan tetap menampilkan harga & fasilitasnya sendiri, tidak digabung jadi satu angka.
+    $bawaanService = app(\App\Services\FasilitasBawaanService::class);
+    $ruanganDetail = $semuaRuangan->map(function (\App\Models\Fasilitas $f) use ($jenis, $fasilitas, $tarif, $satuan, $bawaanService) {
+        $tarifRuangan = $f->id_fasilitas === $fasilitas->id_fasilitas
+            ? $tarif
+            : \App\Models\TarifSewa::tersedia()
+                ->where('id_fasilitas', $f->id_fasilitas)
+                ->where('id_jenis_sewa', $jenis->id_jenis_sewa)
+                ->first();
+
+        return [
+            'fasilitas' => $f,
+            'tarif'     => $tarifRuangan,
+            'bawaan'    => $bawaanService->untuk($f, $satuan),
+        ];
+    });
+    $totalTarif = $ruanganDetail->sum(fn ($r) => $r['tarif']?->harga ?? 0);
 @endphp
 
 @section('content')
@@ -41,38 +60,51 @@
         .fp-head .cnt { background:var(--fp-soft); color:var(--primary); font-size:.72rem; font-weight:700;
             padding:.32rem .75rem; border-radius:2rem; display:inline-flex; align-items:center; gap:.3rem; }
 
-        /* Mini-card per ruangan (mode multi) */
-        .fp-mini { display:flex; gap:1rem; background:#fff; border:1px solid var(--line);
-            border-radius:var(--fp-radius); padding:.9rem; margin-bottom:.75rem;
-            transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
-        .fp-mini:hover { border-color:transparent; box-shadow:0 12px 28px -14px rgba(15,23,42,.16); transform:translateY(-2px); }
-        .fp-mini .thumb { width:6.5rem; height:6.5rem; border-radius:.7rem;
-            background-size:cover; background-position:center; background-color:#f7f9fc; flex:none; }
-        .fp-mini .info { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; }
-        .fp-mini .eyebrow { font-size:.66rem; font-weight:700; letter-spacing:.14em;
-            color:var(--primary); text-transform:uppercase; margin-bottom:.15rem; }
-        .fp-mini h3 { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800;
+        /* Kartu MANDIRI per ruangan (mode multi) — foto + harga + fasilitas termasuk
+           masing-masing, bukan digabung jadi satu ringkasan. */
+        .fp-room-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(19rem, 1fr)); gap:1rem; }
+        .fp-room-card { background:#fff; border:1px solid var(--line); border-radius:var(--fp-radius);
+            overflow:hidden; transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+        .fp-room-card:hover { border-color:transparent; box-shadow:0 14px 30px -16px rgba(15,23,42,.18); transform:translateY(-2px); }
+        .fp-room-card .thumb { width:100%; height:9rem;
+            background-size:contain; background-repeat:no-repeat; background-position:center; background-color:#f7f9fc; }
+        .fp-room-body { padding:1.1rem 1.2rem 1.25rem; }
+        .fp-room-body .eyebrow { font-size:.66rem; font-weight:700; letter-spacing:.14em;
+            color:var(--primary); text-transform:uppercase; margin-bottom:.15rem; display:block; }
+        .fp-room-body h3 { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800;
             font-size:1rem; color:var(--ink); margin:0 0 .5rem; }
-        .fp-mini .meta { display:flex; flex-wrap:wrap; gap:.35rem; }
+        .fp-room-body .meta { display:flex; flex-wrap:wrap; gap:.35rem; }
         .fp-chip { display:inline-flex; align-items:center; gap:.3rem;
             background:#f7f9fc; color:var(--ink); font-size:.72rem; font-weight:600;
             padding:.28rem .6rem; border-radius:2rem; border:1px solid var(--line); }
         .fp-chip i { color:var(--muted); }
+        .fp-room-unavailable { display:flex; align-items:center; gap:.4rem; background:var(--rose-tint);
+            color:#be123c; border:1px solid #fecdd3; border-radius:.65rem; padding:.6rem .8rem;
+            font-size:.78rem; font-weight:700; margin-bottom:.75rem; }
+        .fp-includes-room { border:1px dashed var(--line); box-shadow:none; padding:.9rem 1rem; }
+        .fp-includes-room ul { gap:.4rem; }
+        .fp-includes-room li { font-size:.74rem; padding:.32rem .6rem; }
+        .fp-room-total-bar { display:flex; align-items:center; justify-content:space-between;
+            gap:1rem; background:linear-gradient(120deg, var(--primary-darker), var(--primary)); color:#fff;
+            border-radius:var(--fp-radius); padding:1.1rem 1.35rem;
+            box-shadow:0 10px 24px -10px rgba(23,107,135,.45); }
+        .fp-room-total-bar span { font-weight:700; font-size:.85rem; opacity:.9; }
+        .fp-room-total-bar span small { opacity:.75; font-weight:600; }
+        .fp-room-total-bar b { font-family:'Plus Jakarta Sans',sans-serif; font-size:1.4rem; font-weight:800; }
 
-        /* Card tarif ringkas — .fp-summary-tarif (dipakai dalam kartu gabungan mode multi)
-           berbagi styling teks yang sama, hanya beda wrapper (lihat .fp-summary-card). */
+        /* Card tarif ringkas (dipakai mode single & tiap kartu ruangan mode multi) */
         .fp-tarif { background:linear-gradient(120deg, var(--fp-soft) 0%, #f0f9fa 100%);
             border:1px solid rgba(14,107,125,.15); border-radius:var(--fp-radius);
             padding:1.15rem 1.35rem; margin-bottom:.75rem;
             box-shadow:0 4px 14px -6px rgba(15,23,42,.06); }
-        .fp-tarif small.lbl, .fp-summary-tarif small.lbl { display:block; color:var(--muted); font-size:.72rem; font-weight:600;
+        .fp-tarif small.lbl { display:block; color:var(--muted); font-size:.72rem; font-weight:600;
             margin-bottom:.4rem; letter-spacing:.02em; }
-        .fp-tarif .row-t, .fp-summary-tarif .row-t { display:flex; justify-content:space-between; align-items:baseline;
+        .fp-tarif .row-t { display:flex; justify-content:space-between; align-items:baseline;
             font-size:.85rem; color:var(--muted); }
-        .fp-tarif .row-t + .row-t, .fp-summary-tarif .row-t + .row-t { margin-top:.6rem; padding-top:.6rem;
+        .fp-tarif .row-t + .row-t { margin-top:.6rem; padding-top:.6rem;
             border-top:1px dashed rgba(14,107,125,.2); }
-        .fp-tarif .row-t b, .fp-summary-tarif .row-t b { font-family:'Plus Jakarta Sans',sans-serif; color:var(--ink); font-weight:700; }
-        .fp-tarif .total, .fp-summary-tarif .total { font-family:'Plus Jakarta Sans',sans-serif;
+        .fp-tarif .row-t b { font-family:'Plus Jakarta Sans',sans-serif; color:var(--ink); font-weight:700; }
+        .fp-tarif .total { font-family:'Plus Jakarta Sans',sans-serif;
             font-size:1.4rem; font-weight:800; color:var(--primary); }
 
         /* Card fasilitas termasuk */
@@ -93,23 +125,30 @@
         .fp-includes .note { font-size:.75rem; color:var(--muted);
             margin:.85rem 0 0; font-style:italic; }
 
-        /* Kartu ringkasan gabungan (mode multi): Tarif + Fasilitas Termasuk ditumpuk dalam
-           SATU kartu, bukan 2 kotak berdampingan — menghindari 2 kotak yang tinggi tidak sama. */
-        .fp-summary-card { background:#fff; border:1px solid var(--line);
-            border-radius:var(--fp-radius); overflow:hidden;
-            box-shadow:0 4px 14px -6px rgba(15,23,42,.06); }
-        .fp-summary-card .fp-summary-tarif { background:linear-gradient(120deg, var(--fp-soft) 0%, #f0f9fa 100%);
-            padding:1.15rem 1.35rem; border-bottom:1px solid rgba(14,107,125,.15); }
-        .fp-summary-card .fp-includes { border:0; border-radius:0; box-shadow:none; }
-
         /* Hero card (mode single ruangan) — foto+info dan "Fasilitas termasuk" digabung
            jadi SATU kartu (bukan 2 kotak terpisah), .fp-hero-card yang jadi kartunya,
            .fp-hero sendiri cuma baris flex foto+body di dalamnya. */
         .fp-hero-card { background:#fff; border:1px solid var(--line);
             border-radius:var(--fp-radius); overflow:hidden;
             box-shadow:0 4px 14px -6px rgba(15,23,42,.06); }
-        .fp-hero-card .fp-includes { border:0; border-radius:0; box-shadow:none;
-            border-top:1px solid var(--line); }
+        /* .fp-includes sekarang jadi KOLOM SAMPING di dalam .fp-hero (flex row bersama foto &
+           body), bukan baris penuh di bawahnya — daftarnya jadi list vertikal ringkas, tidak
+           menyisakan area kosong lebar di kanan kalau isinya sedikit. */
+        /* List disusun 2 kolom (bukan 1 kolom memanjang) — daftar fasilitas biasanya cukup
+           banyak (8-10 item), kalau ditumpuk 1 kolom jadi jauh lebih tinggi dari foto/info di
+           sebelahnya, memaksa seluruh kartu ikut setinggi itu (align-items:stretch) dan
+           menyisakan banyak ruang kosong di kolom info yang isinya sedikit. 2 kolom membuat
+           tingginya kira-kira setengahnya, jadi proporsi ketiga kolom lebih seimbang. */
+        .fp-hero .fp-includes { border:0; border-radius:0; box-shadow:none;
+            border-left:1px solid var(--line); flex:1 1 17rem; max-width:19rem; padding:1.8rem 1.5rem; }
+        .fp-hero .fp-includes ul { display:grid; grid-template-columns:1fr 1fr; align-items:stretch; }
+        .fp-hero .fp-includes li { justify-content:flex-start; }
+        @media (max-width: 767.98px) {
+            .fp-hero .fp-includes { border-left:0; border-top:1px solid var(--line);
+                max-width:none; flex-basis:100%; padding:1.4rem 1.4rem 1.5rem; }
+            .fp-hero .fp-includes ul { grid-template-columns:1fr 1fr; }
+        }
+        @media (max-width: 420px) { .fp-hero .fp-includes ul { grid-template-columns:1fr; } }
         .fp-hero .foto-wrap { position:relative; }
         .fp-hero .foto { width:100%; height:220px; object-fit:cover; display:block; background:#f7f9fc; }
         .fp-carousel .carousel-item .foto { border-radius:0; }
@@ -141,7 +180,12 @@
             padding:.35rem .8rem; border-radius:2rem;
             box-shadow:0 4px 12px rgba(15,23,42,.1);
             display:inline-flex; align-items:center; gap:.4rem; }
-        .fp-hero .body { padding:1.4rem 1.4rem 1.5rem; }
+        /* display:flex + justify-content:center SENGAJA — kolom info ini pasti lebih pendek
+           dari foto & daftar fasilitas di sampingnya (isinya cuma nama, chip, tarif, deskripsi
+           singkat), tapi tetap ikut setinggi kolom tertinggi (align-items:stretch pada .fp-hero).
+           Tanpa ini, isinya nempel di atas dan menyisakan area kosong lebar di bawahnya —
+           dipusatkan supaya ruang lebih itu terbagi rapi, terasa disengaja bukan bug. */
+        .fp-hero .body { padding:1.4rem 1.4rem 1.5rem; display:flex; flex-direction:column; justify-content:center; }
         .fp-hero .body .eyebrow { font-size:.68rem; font-weight:700; letter-spacing:.14em;
             color:var(--primary); text-transform:uppercase; margin-bottom:.35rem; }
         .fp-hero .body h1 { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800;
@@ -160,9 +204,6 @@
         }
         .fp-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start; }
         @media (max-width: 767.98px) { .fp-detail-grid { grid-template-columns:1fr; } }
-        .fp-mini-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(15.5rem, 1fr)); gap:.9rem; }
-
-        @media (max-width: 991.98px) { .fp-mini .thumb { width:5.5rem; height:5.5rem; } }
         @media (max-width: 575.98px) { .fp-includes ul { grid-template-columns:1fr; } }
     </style>
 
@@ -211,55 +252,60 @@
         <div data-reveal>
 
             @if ($isMulti)
-                {{-- MODE MULTI: header + mini-card per ruangan (grid) + tarif + fasilitas --}}
+                {{-- MODE MULTI: satu kartu MANDIRI per ruangan — foto, harga, dan fasilitas
+                     termasuk masing-masing ditampilkan sendiri-sendiri (tidak digabung jadi
+                     satu angka/daftar), supaya jelas apa yang didapat & berapa harga tiap unit. --}}
                 <div class="fp-head">
                     <b>{{ $jumlahRuangan }} Ruangan Terpilih</b>
                     <span class="cnt"><i class="bi bi-collection"></i>{{ $jumlahRuangan }} unit</span>
                 </div>
 
-                <div class="fp-mini-grid mb-4">
-                    @foreach ($semuaRuangan as $f)
-                        @php $fFoto = $f->fotoUrls()[0]; @endphp
-                        <div class="fp-mini">
+                <div class="fp-room-grid mb-3">
+                    @foreach ($ruanganDetail as $rd)
+                        @php $f = $rd['fasilitas']; $t = $rd['tarif']; $fFoto = $f->fotoUrls()[0]; @endphp
+                        <div class="fp-room-card">
                             <div class="thumb fp-zoomable" data-zoom-src="{{ $fFoto }}" style="background-image:url('{{ $fFoto }}')" role="button" tabindex="0" aria-label="Perbesar foto {{ $f->nama_fasilitas }}"></div>
-                            <div class="info">
+                            <div class="fp-room-body">
                                 <span class="eyebrow">Lantai {{ $f->lantai->nomor_lantai }} · {{ $f->kode_fasilitas }}</span>
                                 <h3>{{ $f->nama_fasilitas }}</h3>
-                                <div class="meta">
+                                <div class="meta mb-2">
                                     <span class="fp-chip"><i class="bi bi-people"></i>{{ $f->kapasitas }} orang</span>
                                     <span class="fp-chip"><i class="bi bi-aspect-ratio"></i>{{ $f->luas }} m²</span>
+                                </div>
+
+                                @if ($t)
+                                    <div class="fp-tarif">
+                                        <small class="lbl">
+                                            Tarif per {{ $satuan }}@if($satuan === 'Hari' || $satuan === 'Jam') · 8 jam/hari @endif
+                                        </small>
+                                        <span class="total">Rp {{ number_format($t->harga, 0, ',', '.') }}</span>
+                                    </div>
+                                @else
+                                    <div class="fp-room-unavailable">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>Tidak tersedia untuk jenis sewa ini
+                                    </div>
+                                @endif
+
+                                <div class="fp-includes fp-includes-room">
+                                    <h4><i class="bi bi-gift"></i>Fasilitas termasuk</h4>
+                                    <ul>
+                                        @foreach ($rd['bawaan'] as $d)
+                                            <li><i class="bi bi-check-circle-fill"></i>{{ $d }}</li>
+                                        @endforeach
+                                    </ul>
                                 </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
 
-                <div class="fp-summary-card">
-                    <div class="fp-summary-tarif">
-                        <small class="lbl">
-                            Tarif per {{ $satuan }}@if($satuan === 'Hari' || $satuan === 'Jam') · 8 jam/hari @endif
-                        </small>
-                        <div class="row-t">
-                            <span>Rp {{ number_format($tarif->harga, 0, ',', '.') }} × {{ $jumlahRuangan }} ruangan</span>
-                            <b>Rp {{ number_format($totalTarif, 0, ',', '.') }}</b>
-                        </div>
-                        <div class="row-t">
-                            <span>Total tarif dasar</span>
-                            <span class="total">Rp {{ number_format($totalTarif, 0, ',', '.') }}</span>
-                        </div>
-                    </div>
+                @if ($fasilitas->kategori_fasilitas === 'Working Space' && $satuan === 'Bulan')
+                    <p class="note mb-3"><i class="bi bi-info-circle me-1"></i>Sewa bulanan Working Space diserahkan kosong (tanpa meja &amp; kursi).</p>
+                @endif
 
-                    <div class="fp-includes">
-                        <h4><i class="bi bi-gift"></i>Fasilitas termasuk</h4>
-                        <ul>
-                            @foreach ($bawaan as $d)
-                                <li><i class="bi bi-check-circle-fill"></i>{{ $d }}</li>
-                            @endforeach
-                        </ul>
-                        @if ($fasilitas->kategori_fasilitas === 'Working Space' && $satuan === 'Bulan')
-                            <p class="note"><i class="bi bi-info-circle me-1"></i>Sewa bulanan Working Space diserahkan kosong (tanpa meja &amp; kursi).</p>
-                        @endif
-                    </div>
+                <div class="fp-room-total-bar mb-4">
+                    <span>Total Keseluruhan <small>({{ $jumlahRuangan }} ruangan)</small></span>
+                    <b>Rp {{ number_format($totalTarif, 0, ',', '.') }}</b>
                 </div>
 
             @else
@@ -316,18 +362,21 @@
                             <p class="text-muted small mb-0">{{ $fasilitas->deskripsi }}</p>
                         @endif
                     </div>
-                </div>
 
-                <div class="fp-includes">
-                    <h4><i class="bi bi-gift"></i>Fasilitas termasuk</h4>
-                    <ul>
-                        @foreach ($bawaan as $d)
-                            <li><i class="bi bi-check-circle-fill"></i>{{ $d }}</li>
-                        @endforeach
-                    </ul>
-                    @if ($fasilitas->kategori_fasilitas === 'Working Space' && $satuan === 'Bulan')
-                        <p class="note"><i class="bi bi-info-circle me-1"></i>Sewa bulanan Working Space diserahkan kosong (tanpa meja &amp; kursi).</p>
-                    @endif
+                    {{-- Ruangan tunggal: "Fasilitas termasuk" jadi kolom SAMPING (bukan baris
+                         penuh di bawah) — daftarnya sedikit & memanjang ke bawah kalau lebar
+                         penuh cuma menyisakan ruang kosong lebar di kanannya. --}}
+                    <div class="fp-includes">
+                        <h4><i class="bi bi-gift"></i>Fasilitas termasuk</h4>
+                        <ul>
+                            @foreach ($bawaan as $d)
+                                <li><i class="bi bi-check-circle-fill"></i>{{ $d }}</li>
+                            @endforeach
+                        </ul>
+                        @if ($fasilitas->kategori_fasilitas === 'Working Space' && $satuan === 'Bulan')
+                            <p class="note"><i class="bi bi-info-circle me-1"></i>Sewa bulanan Working Space diserahkan kosong (tanpa meja &amp; kursi).</p>
+                        @endif
+                    </div>
                 </div>
                 </div>
             @endif
