@@ -9,6 +9,7 @@ use App\Services\AvailabilityService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Tests\Concerns\BantuPemesan;
 use Tests\TestCase;
 
 /**
@@ -17,7 +18,13 @@ use Tests\TestCase;
  */
 class AlurPemesanTest extends TestCase
 {
-    use DatabaseTransactions;
+    use BantuPemesan, DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->loginPemesan();
+    }
 
     /**
      * Buat fasilitas + tarif KHUSUS test (bukan ambil data seeded) supaya tidak
@@ -27,7 +34,7 @@ class AlurPemesanTest extends TestCase
     private function tarifSatuan(string $satuan): TarifSewa
     {
         $jenis = \App\Models\JenisSewa::where('satuan', $satuan)->firstOrFail();
-        $fasilitas = \App\Models\Fasilitas::factory()->create(['status_aktif' => 'Aktif']);
+        $fasilitas = \App\Models\Fasilitas::factory()->create(['status_aktif' => 'Aktif', 'kapasitas' => 20]);
 
         return TarifSewa::factory()
             ->create([
@@ -55,7 +62,7 @@ class AlurPemesanTest extends TestCase
     {
         $tarif = $this->tarifSatuan('Jam');
         $fas = $tarif->fasilitas;
-        $tgl = Carbon::today()->addDays(20)->toDateString();
+        $tgl = $this->hariKerja(20);
 
         Reservasi::create([
             'id_pemesan' => Pemesan::factory()->create()->id_pemesan, 'id_tarif_sewa' => $tarif->id_tarif_sewa,
@@ -75,7 +82,7 @@ class AlurPemesanTest extends TestCase
             ->assertSee('data-terisi-awal="[{&quot;mulai&quot;:&quot;10:00&quot;,&quot;selesai&quot;:&quot;11:00&quot;}]"', false);
 
         // Tanggal lain (belum ada reservasi) → tidak ada jam terisi.
-        $tglLain = Carbon::today()->addDays(21)->toDateString();
+        $tglLain = Carbon::parse($tgl)->addDay()->toDateString();
         $this->getJson(route('reservasi.fasilitas.jam-terisi', $fas->id_fasilitas).'?tanggal='.$tglLain)
             ->assertOk()->assertExactJson([]);
     }
@@ -84,7 +91,7 @@ class AlurPemesanTest extends TestCase
     {
         $tarif = $this->tarifSatuan('Jam');
         $fas = $tarif->fasilitas;
-        $tgl = Carbon::today()->addDays(5)->toDateString();
+        $tgl = $this->hariKerja(5);
 
         $res = $this->post('/reservasi/keranjang', [
             'id_fasilitas'    => $fas->id_fasilitas,
@@ -110,7 +117,7 @@ class AlurPemesanTest extends TestCase
     {
         $tarif = $this->tarifSatuan('Jam');
         $item = app(\App\Services\CartService::class)->buildItem($tarif, [
-            'tanggal_mulai'   => Carbon::today()->addDays(6)->toDateString(),
+            'tanggal_mulai'   => $this->hariKerja(6),
             'jam_mulai'       => '13:00',
             'jam_selesai'     => '15:00',
             'jumlah_pengguna' => 3,
@@ -119,20 +126,15 @@ class AlurPemesanTest extends TestCase
 
         $before = Reservasi::count();
 
-        $res = $this->withSession(['reservasi_cart' => [$item]])->post('/reservasi/checkout', [
-            'nama_lengkap' => 'Uji Pemesan',
-            'email'        => 'uji.stage2@example.com',
-            'no_telepon'   => '08123456789',
-            'usia'         => 30,
-            'pekerjaan'    => 'Staff',
-            'alamat'       => 'Jl. Uji No. 1',
-        ]);
+        // Data diri tidak lagi diisi saat checkout — reservasi dibuat atas nama pemesan yang login.
+        $res = $this->withSession(['reservasi_cart' => [$item]])->post('/reservasi/checkout');
 
-        $res->assertRedirect(route('reservasi.sukses'));
+        $res->assertRedirect(route('customer.reservasi-saya.index'));
+        $res->assertSessionHas('checkout');
         $this->assertSame($before + 1, Reservasi::count());
-        $this->assertDatabaseHas('pemesan', ['email' => 'uji.stage2@example.com', 'nama_lengkap' => 'Uji Pemesan']);
 
         $baru = Reservasi::latest('id_reservasi')->first();
+        $this->assertSame($this->pemesan->id_pemesan, $baru->id_pemesan);
         $this->assertSame('Menunggu', $baru->status_reservasi->value);
         $this->assertSame('pending_approval', $baru->lock_status->value);
         $this->assertNull($baru->id_admin);
@@ -152,8 +154,8 @@ class AlurPemesanTest extends TestCase
             'id_admin'         => null,
             'kode_reservasi'   => 'RSV-TESTCANCEL',
             'kode_transaksi'   => 'TRX-TESTCANCEL',
-            'tanggal_mulai'    => Carbon::today()->addDays(10)->toDateString(),
-            'tanggal_selesai'  => Carbon::today()->addDays(11)->toDateString(),
+            'tanggal_mulai'    => $this->hariKerja(10),
+            'tanggal_selesai'  => $this->hariKerja(11),
             'durasi'           => 2,
             'jumlah_pengguna'  => 5,
             'keperluan'        => 'Acara',
@@ -187,7 +189,7 @@ class AlurPemesanTest extends TestCase
             ]);
         });
 
-        $tgl = Carbon::today()->addDays(4)->toDateString();
+        $tgl = $this->hariKerja(4);
         $ids = $tarifs->map(fn ($t) => $t->id_fasilitas);
 
         $this->post('/reservasi/keranjang', [
@@ -224,7 +226,7 @@ class AlurPemesanTest extends TestCase
             'status_aktif'  => 'Aktif',
         ]);
 
-        $tgl = Carbon::today()->addDays(9)->toDateString();
+        $tgl = $this->hariKerja(9);
         $this->post('/reservasi/keranjang', [
             'id_fasilitas'    => $fasilitas->id_fasilitas,
             'id_tarif_sewa'   => $tarif->id_tarif_sewa,
@@ -243,28 +245,21 @@ class AlurPemesanTest extends TestCase
     {
         $tarif = $this->tarifSatuan('Bulan');
         $item = app(\App\Services\CartService::class)->buildItem($tarif, [
-            'tanggal_mulai'   => Carbon::today()->addDays(7)->toDateString(),
-            'tanggal_selesai' => Carbon::today()->addDays(7)->addMonths(3)->toDateString(),
+            'tanggal_mulai'   => $this->hariKerja(7),
+            'tanggal_selesai' => Carbon::parse($this->hariKerja(7))->addMonths(3)->toDateString(),
             'jumlah_pengguna' => 10,
             'keperluan'       => 'Kantor sementara',
         ]);
 
-        // Tanpa file dokumen → harus gagal validasi.
+        // Tanpa dokumen persyaratan di keranjang → harus gagal validasi.
         $this->withSession(['reservasi_cart' => [$item]])
-            ->post('/reservasi/checkout', [
-                'nama_lengkap' => 'PT Uji',
-                'email'        => 'pt.uji@example.com',
-                'no_telepon'   => '0215550123',
-                'usia'         => 40,
-                'pekerjaan'    => 'Direktur',
-                'alamat'       => 'Jl. Korporat 9',
-            ])
+            ->post('/reservasi/checkout')
             ->assertSessionHasErrors('dokumen');
     }
 
     public function test_tambah_keranjang_tolak_jam_mulai_yang_sudah_lewat_hari_ini(): void
     {
-        Carbon::setTestNow(Carbon::today()->setTime(14, 0)); // Bekukan waktu: hari ini jam 14.00.
+        Carbon::setTestNow(Carbon::parse($this->hariKerja(0))->setTime(14, 0)); // Bekukan waktu: hari ini jam 14.00.
 
         try {
             $tarif = $this->tarifSatuan('Jam');
@@ -299,7 +294,7 @@ class AlurPemesanTest extends TestCase
 
     public function test_tambah_keranjang_tolak_tanggal_hari_ini_kalau_gedung_sudah_tutup(): void
     {
-        Carbon::setTestNow(Carbon::today()->setTime(17, 0)); // Bekukan waktu: hari ini jam 17.00, gedung sudah tutup.
+        Carbon::setTestNow(Carbon::parse($this->hariKerja(0))->setTime(17, 0)); // Bekukan waktu: hari ini jam 17.00, gedung sudah tutup.
 
         try {
             $tarif = $this->tarifSatuan('Hari');
@@ -322,7 +317,7 @@ class AlurPemesanTest extends TestCase
     {
         $tarif = $this->tarifSatuan('Jam');
         $fas = $tarif->fasilitas;
-        $tgl = Carbon::today()->addDays(8)->toDateString();
+        $tgl = $this->hariKerja(8);
 
         $payload = [
             'id_fasilitas'    => $fas->id_fasilitas,
@@ -338,7 +333,7 @@ class AlurPemesanTest extends TestCase
         $this->assertCount(1, session('reservasi_cart'));
 
         // Submit persis sama lagi (mis. double-click / resubmit) → ditolak, keranjang tetap 1 item.
-        $this->post('/reservasi/keranjang', $payload)->assertSessionHasErrors();
+        $this->post('/reservasi/keranjang', $payload)->assertSessionHasErrors('jadwal');
         $this->assertCount(1, session('reservasi_cart'), 'Ruangan+jadwal yang sama tidak boleh masuk keranjang dua kali');
     }
 
@@ -348,7 +343,7 @@ class AlurPemesanTest extends TestCase
         // bentrok (overlap 09:00-10:00), bukan cuma dicek identik persis.
         $tarif = $this->tarifSatuan('Jam');
         $fas = $tarif->fasilitas;
-        $tgl = Carbon::today()->addDays(8)->toDateString();
+        $tgl = $this->hariKerja(8);
 
         $this->post('/reservasi/keranjang', [
             'id_fasilitas' => $fas->id_fasilitas, 'id_tarif_sewa' => $tarif->id_tarif_sewa,
@@ -361,7 +356,8 @@ class AlurPemesanTest extends TestCase
             'id_fasilitas' => $fas->id_fasilitas, 'id_tarif_sewa' => $tarif->id_tarif_sewa,
             'tanggal_mulai' => $tgl, 'jam_mulai' => '09:00', 'jam_selesai' => '10:00',
             'jumlah_pengguna' => 2, 'keperluan' => 'Rapat lain',
-        ])->assertSessionHasErrors();
+        ])->assertSessionHasErrors('jadwal');
+
         $this->assertCount(1, session('reservasi_cart'), 'jam_mulai yang sama pada ruangan yang sama harus tetap dianggap bentrok');
     }
 
@@ -369,7 +365,7 @@ class AlurPemesanTest extends TestCase
     {
         $tarif = $this->tarifSatuan('Jam');
         $fas = $tarif->fasilitas;
-        $tgl = Carbon::today()->addDays(8)->toDateString();
+        $tgl = $this->hariKerja(8);
 
         $this->post('/reservasi/keranjang', [
             'id_fasilitas' => $fas->id_fasilitas, 'id_tarif_sewa' => $tarif->id_tarif_sewa,
@@ -395,7 +391,7 @@ class AlurPemesanTest extends TestCase
         $tarifB = TarifSewa::factory()->create([
             'id_fasilitas' => $fasB->id_fasilitas, 'id_jenis_sewa' => $jenis->id_jenis_sewa, 'status_aktif' => 'Aktif',
         ]);
-        $tgl = Carbon::today()->addDays(8)->toDateString();
+        $tgl = $this->hariKerja(8);
 
         $this->post('/reservasi/keranjang', [
             'id_fasilitas' => $tarifA->fasilitas->id_fasilitas, 'id_tarif_sewa' => $tarifA->id_tarif_sewa,
@@ -424,7 +420,7 @@ class AlurPemesanTest extends TestCase
         // pesan ramah (bukan 500 / lolos begitu saja) begitu batas block() habis.
         $tarif = $this->tarifSatuan('Jam');
         $fas = $tarif->fasilitas;
-        $tgl = Carbon::today()->addDays(8)->toDateString();
+        $tgl = $this->hariKerja(8);
 
         // Request pertama seperti biasa (tanpa lock ditahan) — sekaligus dipakai untuk
         // mendapatkan session ID NYATA yang dipakai controller (pola yang sama seperti

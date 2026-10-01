@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Customer;
 
 use App\Enums\StatusReservasi;
 use App\Http\Controllers\Controller;
-use App\Services\OkupansiService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -13,10 +12,6 @@ class DashboardController extends Controller
     public function __invoke(): View
     {
         $pemesan = Auth::guard('customer')->user();
-
-        // Diagram okupansi (tingkat pemakaian fasilitas) — sama seperti dashboard Admin,
-        // dihitung lewat OkupansiService bersama supaya angkanya selalu sama persis.
-        $okupansi = app(OkupansiService::class)->hitung();
 
         $reservasi = $pemesan->reservasi()->with('tarifSewa.fasilitas.lantai', 'tarifSewa.jenisSewa');
 
@@ -39,10 +34,6 @@ class DashboardController extends Controller
             'jumlahPerStatus' => $jumlahPerStatus,
             'berjalan'        => $berjalan,
             'terbaru'         => $terbaru,
-            'totalRuanganAktif' => $okupansi['totalRuanganAktif'],
-            'okupansiHarian'    => $okupansi['harian'],
-            'okupansiBulanan'   => $okupansi['bulanan'],
-            'topOkupansiFasilitas' => $okupansi['perRuangan']->take(5)->values(),
         ]);
     }
 }

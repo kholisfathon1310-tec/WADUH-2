@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Customer;
 
+use App\Http\Controllers\Concerns\VerifikasiOtpEmail;
 use App\Http\Controllers\Controller;
 use App\Models\Pemesan;
+use App\Services\OtpEmailService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +14,8 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    use VerifikasiOtpEmail;
+
     public function showLogin(): View
     {
         return view('customer.auth.login');
@@ -48,12 +53,40 @@ class AuthController extends Controller
         // akses halaman lain saat belum login (mis. link lama/tab lain), pemesan bisa
         // "terlempar" ke halaman itu alih-alih dashboard begitu berhasil login, membingungkan.
         return redirect()->route('customer.dashboard')
-            ->with('success', "Selamat datang, {$nama}!");
+            ->with('success', "Selamat datang, {$nama}.");
     }
 
-    public function showRegister(): View
+    public function showRegister(OtpEmailService $otp): View
     {
-        return view('customer.auth.register');
+        return view('customer.auth.register', [
+            'otpStatus'      => $otp->status(OtpEmailService::TUJUAN_REGISTRASI, old('email')),
+            'otpTerverifikasi' => $otp->sudahTerverifikasi(OtpEmailService::TUJUAN_REGISTRASI, old('email')),
+        ]);
+    }
+
+    /** AJAX: kirim kode OTP ke email calon pemesan untuk memastikan email tersebut aktif. */
+    public function kirimOtp(Request $request, OtpEmailService $otp): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+        ], [
+            'email.required' => 'Email wajib diisi.',
+            'email.email'    => 'Format email tidak valid. Contoh: nama@email.com.',
+        ]);
+
+        if (Pemesan::where('email', $data['email'])->whereNotNull('password')->exists()) {
+            return response()->json(['ok' => false, 'errors' => ['email' => ['Email ini sudah terdaftar. Silakan masuk.']]], 422);
+        }
+
+        $hasil = $otp->kirim(OtpEmailService::TUJUAN_REGISTRASI, $data['email']);
+
+        return response()->json($hasil, $hasil['ok'] ? 200 : 422);
+    }
+
+    /** AJAX: cek kode OTP; bila valid email ditandai terverifikasi (centang hijau di kolom email). */
+    public function verifikasiOtp(Request $request, OtpEmailService $otp): JsonResponse
+    {
+        return $this->jawabVerifikasiOtp($request, $otp, OtpEmailService::TUJUAN_REGISTRASI);
     }
 
     /**
@@ -61,7 +94,7 @@ class AuthController extends Controller
      * fitur login ada, baris Pemesan yang sama diklaim (updateOrCreate by email) — riwayat
      * reservasi lama otomatis langsung terhubung ke akun baru ini.
      */
-    public function register(Request $request): RedirectResponse
+    public function register(Request $request, OtpEmailService $otp): RedirectResponse
     {
         $existing = Pemesan::where('email', $request->input('email'))->first();
         if ($existing && $existing->password) {
@@ -78,8 +111,15 @@ class AuthController extends Controller
             'email'        => ['required', 'email', 'max:150'],
             'password'     => ['required', 'string', 'min:8', 'confirmed'],
         ], [
-            'no_telepon.regex' => 'Format nomor telepon tidak valid, gunakan angka saja, contoh 0812xxxxxxx.',
+            'no_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, contoh: 081234567890.',
         ]);
+
+        // Akun baru dibuat/diaktifkan HANYA bila email ini sudah diverifikasi dengan kode OTP
+        // (tombol Verifikasi) — memastikan email yang didaftarkan benar-benar aktif.
+        if (! $otp->sudahTerverifikasi(OtpEmailService::TUJUAN_REGISTRASI, $data['email'])) {
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => 'Email belum diverifikasi. Tekan "Kirim OTP", masukkan kode dari email, lalu tekan "Verifikasi".']);
+        }
 
         $pemesan = Pemesan::updateOrCreate(
             ['email' => $data['email']],
@@ -93,11 +133,13 @@ class AuthController extends Controller
             ],
         );
 
+        $otp->lupakanVerifikasi(OtpEmailService::TUJUAN_REGISTRASI);
+
         // Sengaja TIDAK langsung login otomatis setelah daftar — pemesan diarahkan kembali ke
         // halaman masuk supaya jelas bahwa akunnya sudah dibuat dan perlu login sendiri (bukan
         // seolah "menyelinap" masuk tanpa memasukkan kata sandi yang baru saja mereka buat).
         return redirect()->route('customer.login')
-            ->with('success', "Akun \"{$pemesan->nama_lengkap}\" berhasil dibuat. Silakan masuk dengan email dan kata sandi Anda.");
+            ->with('success', "Email berhasil diverifikasi dan akun \"{$pemesan->nama_lengkap}\" telah aktif. Silakan masuk dengan email dan kata sandi Anda.");
     }
 
     public function logout(Request $request): RedirectResponse
@@ -106,6 +148,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('customer.login')->with('success', 'Anda berhasil keluar. Sampai jumpa lagi!');
+        return redirect()->route('customer.login')->with('success', 'Anda telah keluar dari akun.');
     }
 }

@@ -52,10 +52,19 @@
         @media (prefers-reduced-motion: reduce) { [data-reveal] { animation:none; } }
 
         /* SweetAlert2: overlay masih menangkap klik selama animasi fade-out (~150ms) walau
-           popup sudah kelihatan hilang — akibatnya klik SEGERA setelah "Oke" (mis. menekan
+           popup sudah kelihatan hilang — akibatnya klik SEGERA setelah popup ditutup (mis. menekan
            lagi tombol Edit Profil) sering "tertelan" overlay dan perlu diklik 2x. Matikan
            pointer-events begitu class hide dipasang, sebelum animasinya selesai. */
         .swal2-backdrop-hide { pointer-events: none !important; }
+
+        /* SweetAlert2 harus selalu di atas overlay form jadwal (1990) dan lightbox foto (2000). */
+        .swal2-container { z-index:3000 !important; }
+        .is-salah.tanpa-goyang { animation:none; }
+        /* Label mengambang punya latar putih — kolom yang ditandai jangan diberi latar merah
+           muda supaya tidak muncul "tambalan" putih di belakang label. */
+        .fl-field .fl-input.is-salah { background:#fff !important; }
+        .catatan-salah { align-items:flex-start; line-height:1.35; }
+        .catatan-salah i { flex:none; margin-top:.12rem; }
 
         /* ─── FRAME ─────────────────────────────────────────────── */
         .frame { display:flex; min-height:100vh; }
@@ -130,23 +139,22 @@
             background:var(--primary) !important; color:#fff !important; border-radius:9999px !important; padding:.15rem .5rem !important; }
         .side-link.active .badge { background:var(--primary-dark) !important; }
 
-        /* Sub-menu — Fasilitas → Kategori → Lantai */
-        .side-sub { list-style:none; margin:.15rem 0 .3rem; padding:0 0 0 2.5rem; }
+        /* Sub-menu — Fasilitas → Kategori → Lantai. Satu garis panduan tipis (solid) per
+           tingkat, item membulat dengan latar lembut saat hover/aktif. */
+        .side-sub { list-style:none; margin:.2rem 0 .35rem 1.55rem; padding:0 0 0 .6rem; border-left:1px solid var(--line); }
         .side-sub a, .side-sub .side-sub-toggle {
-            display:flex; align-items:center; gap:.5rem; padding:.4rem .7rem; margin:.05rem 0;
-            color:#64748b; text-decoration:none; border-left:2px solid var(--line);
-            border-radius:0 .55rem .55rem 0; font-size:.8rem; font-weight:500;
-            transition:all .18s ease; cursor:pointer; background:transparent; }
-        .side-sub a:hover, .side-sub .side-sub-toggle:hover { color:var(--primary-dark); background:var(--primary-soft); border-left-color:var(--primary); }
-        .side-sub a.active, .side-sub .side-sub-toggle.active {
-            color:var(--primary-dark); border-left-color:var(--primary); background:var(--primary-soft); font-weight:700; }
-        .side-sub .side-sub-toggle .caret-sm { margin-left:auto; font-size:.6rem; opacity:.55; transition:transform .2s; }
+            display:flex; align-items:center; gap:.5rem; padding:.45rem .7rem; margin:.1rem 0;
+            color:#475569; text-decoration:none; border-radius:.6rem; font-size:.82rem; font-weight:600;
+            transition:background .15s ease, color .15s ease; cursor:pointer; background:transparent; }
+        .side-sub a:hover, .side-sub .side-sub-toggle:hover { color:var(--primary-dark); background:var(--primary-soft); }
+        .side-sub a.active, .side-sub .side-sub-toggle.active { color:var(--primary-dark); background:var(--primary-soft); font-weight:700; }
+        .side-sub .side-sub-toggle .caret-sm { margin-left:auto; font-size:.65rem; color:var(--soft); transition:transform .2s ease; }
         .side-sub .side-sub-toggle[aria-expanded="true"] .caret-sm { transform:rotate(90deg); }
-        .side-subsub { list-style:none; margin:.1rem 0 .25rem; padding:0 0 0 1.2rem; }
-        .side-subsub a { display:block; padding:.32rem .6rem; margin:.05rem 0; color:#94a3b8; text-decoration:none;
-            border-left:2px dashed var(--line); border-radius:0 .5rem .5rem 0; font-size:.76rem; font-weight:500; transition:all .18s ease; }
-        .side-subsub a:hover { color:var(--primary-dark); background:var(--primary-soft); }
-        .side-subsub a.active { color:var(--primary-dark); border-left-color:var(--primary); background:var(--primary-soft); font-weight:700; }
+        .side-subsub { list-style:none; margin:.1rem 0 .3rem .7rem; padding:0 0 0 .55rem; border-left:1px solid var(--line-soft); }
+        .side-subsub a { display:block; padding:.38rem .65rem; margin:.05rem 0; color:#64748b; text-decoration:none;
+            border-radius:.55rem; font-size:.79rem; font-weight:500; transition:background .15s ease, color .15s ease; }
+        .side-subsub a:hover { color:var(--primary-dark); background:var(--surface-2); }
+        .side-subsub a.active { color:#fff; background:var(--primary); font-weight:700; }
 
         /* ─── SIDEBAR BOTTOM (logout) ───────────────────────────── */
         .side-bottom { margin-top:auto; padding:1rem .8rem 1.25rem; border-top:1px solid var(--line-soft); }
@@ -160,7 +168,7 @@
             border-bottom:1px solid var(--line);
             padding:.9rem 1.6rem; display:flex; align-items:center; gap:1rem;
             position:sticky; top:0; z-index:1020; min-height:5rem; }
-        .topbar .tb-left { display:flex; align-items:center; gap:1rem; min-width:0; }
+        .topbar .tb-left { display:flex; align-items:center; gap:1rem; min-width:0; flex:1 1 auto; }
         .topbar .crumb { font-size:.65rem; color:var(--soft); font-weight:800; letter-spacing:.12em; text-transform:uppercase;
             display:flex; align-items:center; gap:.4rem; }
         .topbar .crumb .sep { color:#cbd5e1; }
@@ -373,6 +381,34 @@
         .site-footer { margin-top:auto; padding:1.5rem 1.6rem; color:var(--muted); font-size:.8rem;
             background:transparent; border-top:1px solid var(--line-soft); }
 
+
+        /* ─── RESPONSIF SHELL ─────────────────────────────────── */
+        .content { overflow-x:clip; }
+        .topbar .tb-title { flex:1 1 auto; min-width:0; }
+        .topbar h1 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .topbar .tb-right { flex:none; }
+        [data-tip]::after { max-width:min(14rem, calc(100vw - 2rem)); }
+        /* Tooltip hanya berguna dengan kursor — di layar sentuh ia tertinggal setelah ketukan. */
+        @media (hover: none) { [data-tip]::after, [data-tip]::before { display:none !important; } }
+        @media (max-width: 767.98px) {
+            .topbar { padding:.75rem 1.1rem; gap:.65rem; }
+            main.inner { padding:1.35rem 1.1rem 1.75rem; }
+        }
+        @media (max-width: 575.98px) {
+            .topbar { padding:.6rem .85rem; gap:.5rem; min-height:4rem; }
+            .topbar .tb-left { gap:.5rem; }
+            .topbar .crumb { display:none; }
+            .topbar h1 { font-size:.98rem; }
+            .topbar .tb-right { gap:.35rem !important; }
+            .tb-divider { display:none; }
+            .icon-btn, .burger, .bell-btn { width:2.25rem; height:2.25rem; border-radius:.7rem; }
+            .profile-btn { padding:.15rem; gap:0; }
+            .profile-btn .avatar { width:2.2rem; height:2.2rem; }
+            main.inner { padding:1.1rem .9rem 1.5rem; }
+            .site-footer { padding:1.1rem .9rem; font-size:.75rem; }
+            .profile-menu { min-width:min(230px, calc(100vw - 1.5rem)); }
+        }
+
         .is-salah { border-color:var(--rose) !important; background:var(--rose-tint) !important;
             box-shadow:0 0 0 3px rgba(225,29,72,.12) !important; animation:goyang .3s; }
         @keyframes goyang { 25% { transform:translateX(-4px); } 75% { transform:translateX(4px); } }
@@ -482,17 +518,17 @@
     <div class="content">
         <div class="topbar">
             <div class="tb-left">
-                <button class="icon-btn d-lg-none" id="burgerBtn" title="Menu"><i class="bi bi-list"></i></button>
-                <button class="icon-btn" id="btnKembali" title="Kembali"><i class="bi bi-arrow-left"></i></button>
-                <div>
+                <button class="icon-btn d-lg-none" id="burgerBtn" title="Menu" aria-label="Buka menu"><i class="bi bi-list"></i></button>
+                <button class="icon-btn" id="btnKembali" title="Kembali" aria-label="Kembali"><i class="bi bi-arrow-left"></i></button>
+                <div class="tb-title">
                     <div class="crumb"><span>WADUH</span><span class="sep">•</span><span>Area Pemesan</span></div>
                     <h1>@yield('title', 'Dashboard')</h1>
                 </div>
             </div>
-            <div class="ms-auto d-flex align-items-center gap-2">
+            <div class="tb-right ms-auto d-flex align-items-center gap-2">
                 @yield('actions')
 
-                <a href="{{ route('reservasi.checkout.form') }}" class="icon-btn" title="Keranjang">
+                <a href="{{ route('reservasi.checkout.form') }}" class="icon-btn" title="Keranjang" aria-label="Keranjang">
                     <i class="bi bi-bag"></i>
                     @if ($cartN > 0)<span class="cart-dot">{{ $cartN > 99 ? '99+' : $cartN }}</span>@endif
                 </a>
@@ -532,16 +568,15 @@
         </div>
 
         <main class="inner">
-            {{-- Profil, Ubah Password, dan Detail Fasilitas (form Isi Jadwal) punya validasi
-                 inline per-field sendiri (lihat @error di masing-masing form) — banner umum ini
-                 disembunyikan di halaman-halaman itu supaya error tidak tampil dobel (banner + inline). --}}
-            @if ($errors->any() && ! request()->routeIs('customer.akun.profil', 'customer.akun.password', 'reservasi.fasilitas.show'))
-                <div class="err-card mb-3">
-                    <span class="err-ic"><i class="bi bi-emoji-frown"></i></span>
+            {{-- Profil dan Detail Fasilitas (form Atur Jadwal) menampilkan pesan validasi di bawah
+                 masing-masing kolom — ringkasan umum ini tidak ditampilkan di sana supaya pesan
+                 yang sama tidak muncul dua kali. --}}
+            @if ($errors->any() && ! request()->routeIs('customer.akun.profil', 'reservasi.fasilitas.show', 'reservasi.checkout.form'))
+                <div class="err-card mb-3" role="alert">
+                    <span class="err-ic"><i class="bi bi-exclamation-triangle"></i></span>
                     <div>
-                        <div class="fw-bold" style="color:#a12c2c">Ups, ada {{ $errors->count() }} hal yang perlu diperbaiki</div>
-                        <div class="small text-muted mb-1">Lengkapi dulu ya, biar prosesnya bisa lanjut:</div>
-                        <ul class="err-list">
+                        <div class="fw-bold" style="color:#9f1239">Mohon periksa kembali {{ $errors->count() }} isian berikut</div>
+                        <ul class="err-list mb-0 mt-1">
                             @foreach ($errors->all() as $e)<li><i class="bi bi-arrow-right-short"></i>{{ $e }}</li>@endforeach
                         </ul>
                     </div>
@@ -634,23 +669,23 @@
     })();
 
     @if (session('success'))
-        Swal.fire({ icon: 'success', title: 'Berhasil!', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke' });
+        Swal.fire({ icon: 'success', title: 'Berhasil', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Tutup' });
     @endif
     @if (session('error'))
-        Swal.fire({ icon: 'error', title: 'Maaf, ada kendala', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke, mengerti' });
+        Swal.fire({ icon: 'error', title: 'Terjadi Kesalahan', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Mengerti' });
     @endif
     @if (session('checkout'))
         Swal.fire({
             icon: 'success',
-            title: 'Reservasi Terkirim',
+            title: 'Reservasi Berhasil Dikirim',
             html: 'Kode reservasi Anda:<br>'
                 + '<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap;margin-top:.3rem">'
                 + '<strong style="font-size:1.6rem;color:#176b87;letter-spacing:.08em">{{ session('checkout')['kode_transaksi'] ?? '' }}</strong>'
                 + '<button type="button" class="btn btn-sm btn-brand-outline" data-salin="{{ session('checkout')['kode_transaksi'] ?? '' }}"><i class="bi bi-clipboard me-1"></i>Salin</button>'
                 + '</div>'
-                + '<small class="text-muted">Simpan kode ini untuk mengecek status reservasi.</small>',
+                + '<small class="text-muted">Simpan kode ini untuk memantau status reservasi Anda.</small>',
             confirmButtonColor: '#176b87',
-            confirmButtonText: 'Oke, Mengerti',
+            confirmButtonText: 'Mengerti',
         });
     @endif
 
@@ -658,33 +693,88 @@
         const btn = e.target.closest('[data-salin]');
         if (!btn) return;
         const teks = btn.dataset.salin || '';
-        const sukses = () => { const asli = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Tersalin!'; btn.disabled = true; setTimeout(() => { btn.innerHTML = asli; btn.disabled = false; }, 1800); };
-        const gagal = () => { const asli = btn.innerHTML; btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Gagal, salin manual'; setTimeout(() => { btn.innerHTML = asli; }, 1800); };
+        const sukses = () => { const asli = btn.innerHTML; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Tersalin'; btn.disabled = true; setTimeout(() => { btn.innerHTML = asli; btn.disabled = false; }, 1800); };
+        const gagal = () => { const asli = btn.innerHTML; btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Gagal menyalin'; setTimeout(() => { btn.innerHTML = asli; }, 1800); };
         const salinFallback = () => { const ta = document.createElement('textarea'); ta.value = teks; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.focus(); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (err) { ok = false; } document.body.removeChild(ta); ok ? sukses() : gagal(); };
         if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(teks).then(sukses).catch(salinFallback); } else { salinFallback(); }
     });
 
-    const labelDari = el => { const wadah = el.closest('.mb-3, .mb-2, [class*="col-"]') || el.parentElement; const lbl = wadah?.querySelector('.form-label, .pf-modal-lbl, .pw-modal-lbl, .aj-sublabel'); return lbl ? lbl.textContent.replace('*', '').trim() : 'Kolom ini'; };
-    // Pesan singkat & to the point (bukan kalimat panjang) — konsisten dengan lang/id/validation.php.
-    const pesanSalah = el => { const v = el.validity; if (v.valueMissing) { if (el.type === 'file') return 'Dokumen wajib dilampirkan.'; if (el.tagName === 'SELECT') return labelDari(el) + ' wajib dipilih.'; return labelDari(el) + ' wajib diisi.'; } if (v.typeMismatch && el.type === 'email') return 'Format email tidak valid.'; if (v.patternMismatch && el.type === 'tel') return labelDari(el) + ' wajib angka.'; if (v.patternMismatch) return labelDari(el) + ' formatnya salah.'; if (v.rangeUnderflow) return labelDari(el) + ' minimal ' + el.min + '.'; if (v.rangeOverflow) return labelDari(el) + ' maksimal ' + el.max + '.'; if (v.tooShort) return labelDari(el) + ' minimal ' + el.minLength + ' karakter.'; if (v.tooLong) return labelDari(el) + ' terlalu panjang.'; return labelDari(el) + ' formatnya salah.'; };
-    const wakilTerlihat = el => { if (el.type === 'hidden') return el.closest('[data-jampicker]')?.querySelector('.jam-btn') || el; return el; };
-    // .input-group (Bootstrap) / .pf-input-group / .pw-input-group (modal Edit Profil & Ubah Kata
-    // Sandi) — WAJIB dicari sampai ke pembungkus terluarnya, bukan cuma <input>-nya sendiri, supaya
-    // pesan error disisipkan SETELAH kotak ikon+input (baris baru, di bawah), bukan ikut jadi flex
-    // item DI DALAM kotak itu (yang membuatnya tampil di samping, bukan di bawah).
-    const induk = el => el.closest('.input-group, .pf-input-group, .pw-input-group, [data-jampicker]') || el;
-    const tandai = el => { const target = wakilTerlihat(el); target.classList.add('is-salah'); const wadah = induk(target); wadah.parentElement.querySelector(':scope > .catatan-salah')?.remove(); const note = document.createElement('div'); note.className = 'catatan-salah'; note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>' + pesanSalah(el); wadah.insertAdjacentElement('afterend', note); };
-    const bersihkan = el => { const target = wakilTerlihat(el); target.classList.remove('is-salah'); induk(target).parentElement.querySelector(':scope > .catatan-salah')?.remove(); };
+    // ===== Validasi sisi klien (menggantikan balon bawaan browser) =====
+    // Satu pesan per kolom, selalu DI BAWAH kolomnya. Pembungkus yang dikenali:
+    //   .fl-field (label mengambang)  → pesan disisipkan setelah pembungkus, bukan di antara
+    //                                   <input> dan <label> (selector "input + label" tetap utuh);
+    //   .aj-field (form Atur Jadwal)  → pesan disisipkan tepat setelah kolom di dalam pembungkus;
+    //   .input-group / pemilih jam    → pesan disisipkan setelah pembungkus terluarnya.
+    const labelDari = el => {
+        if (el.dataset.label) return el.dataset.label;
+        const wadah = el.closest('.fl-field, .aj-field, .mb-3, .mb-2, [class*="col-"]') || el.parentElement;
+        const lbl = wadah?.querySelector('.fl-label-txt, .aj-sublabel, .form-label, .aj-section-label');
+        const teks = lbl ? lbl.textContent.replace(/\(.*?\)/g, '').replace('*', '').replace(/\s+/g, ' ').trim() : '';
+        return teks || 'Kolom ini';
+    };
+    const pesanSalah = el => {
+        const v = el.validity;
+        const nama = labelDari(el);
+        if (v.customError) return el.validationMessage;
+        if (v.valueMissing) {
+            if (el.type === 'file') return 'Dokumen wajib dilampirkan.';
+            if (el.tagName === 'SELECT' || el.type === 'hidden' || el.type === 'date') return nama + ' wajib dipilih.';
+            return nama + ' wajib diisi.';
+        }
+        if (v.typeMismatch && el.type === 'email') return 'Format email tidak valid. Contoh: nama@email.com.';
+        if (v.patternMismatch && el.type === 'tel') return nama + ' hanya boleh berisi angka (8–20 digit).';
+        if (v.rangeUnderflow) return el.dataset.pesanMin || (nama + ' minimal ' + el.min + '.');
+        if (v.rangeOverflow) return el.dataset.pesanMaks || (nama + ' maksimal ' + el.max + '.');
+        if (v.tooShort) return nama + ' minimal ' + el.minLength + ' karakter.';
+        if (v.tooLong) return nama + ' maksimal ' + el.maxLength + ' karakter.';
+        if ((v.badInput || v.stepMismatch) && el.type === 'number') return nama + ' harus berupa angka bulat.';
+        return nama + ' tidak sesuai format.';
+    };
+    // Input tersembunyi (mis. pemilih jam) → yang ditandai adalah tombol yang terlihat.
+    const wakilTerlihat = el => el.type === 'hidden' ? (el.closest('[data-jampicker]')?.querySelector('.jam-btn') || el) : el;
+    const induk = el => el.closest('.fl-field, .input-group, .pf-input-group, .pw-input-group, [data-jampicker]') || el;
+    // Buang pesan lama milik kolom ini (pesan klien MAUPUN pesan server) supaya tidak dobel.
+    const hapusPesan = wadah => {
+        let n = wadah.nextElementSibling;
+        while (n && n.matches('.catatan-salah, .fl-err, .aj-field-err')) {
+            const berikut = n.nextElementSibling;
+            n.remove();
+            n = berikut;
+        }
+    };
+    const tandai = (el, goyang = true) => {
+        const target = wakilTerlihat(el);
+        if (! target.parentElement) return;
+        target.classList.add('is-salah');
+        target.classList.toggle('tanpa-goyang', ! goyang);
+        const wadah = induk(target);
+        hapusPesan(wadah);
+        const note = document.createElement('div');
+        note.className = 'catatan-salah';
+        note.setAttribute('role', 'alert');
+        note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>';
+        note.appendChild(document.createElement('span')).textContent = pesanSalah(el);
+        wadah.insertAdjacentElement('afterend', note);
+    };
+    const bersihkan = el => {
+        if (! el || ! el.classList || ! el.parentElement) return;
+        const target = wakilTerlihat(el);
+        target.classList.remove('is-salah', 'tanpa-goyang', 'is-invalid');
+        const wadah = induk(target);
+        wadah.classList.remove('is-invalid');
+        hapusPesan(wadah);
+    };
+    // Dipakai skrip halaman (mis. validasi langsung kata sandi) agar memakai tampilan yang sama.
+    window.WaduhValidasi = { tandai, bersihkan };
+
     document.querySelectorAll('form').forEach(f => {
         f.setAttribute('novalidate', '');
         f.addEventListener('submit', e => {
             const salah = [...f.querySelectorAll('input, select, textarea')].filter(el => ! el.disabled && ! el.checkValidity());
             if (! salah.length) return;
-            e.preventDefault(); e.stopImmediatePropagation();
-            // Pesan error tampil DI BAWAH tiap field (tandai()) — sengaja tidak ada pop-up
-            // lagi di sini, supaya tidak menutupi form dan pemesan tidak terasa "keluar"
-            // dari form (mis. modal) saat validasi gagal.
-            salah.forEach(tandai);
+            e.preventDefault();
+            e.stopImmediatePropagation(); // jangan lanjut ke dialog konfirmasi
+            salah.forEach(el => tandai(el));
             const pertama = wakilTerlihat(salah[0]);
             pertama.scrollIntoView({ behavior: 'smooth', block: 'center' });
             setTimeout(() => pertama.focus({ preventScroll: true }), 350);
@@ -693,9 +783,7 @@
         f.addEventListener('change', e => bersihkan(e.target), true);
     });
 
-    // Field nomor telepon/WhatsApp (input[type=tel]) — saring karakter selain angka & tanda "+"
-    // di depan SAAT MENGETIK, bukan cuma divalidasi setelah submit, supaya tidak bisa kepencet
-    // huruf sama sekali (lebih jelas daripada baru dikasih tahu "wajib angka" belakangan).
+    // Kolom nomor telepon/WhatsApp (input[type=tel]) — hanya menerima angka dan tanda "+" di depan.
     document.addEventListener('input', (e) => {
         if (e.target.tagName !== 'INPUT' || e.target.type !== 'tel') return;
         const plus = e.target.value.startsWith('+') ? '+' : '';
@@ -703,26 +791,47 @@
         e.target.value = plus + angka;
     });
 
+    // Dialog konfirmasi untuk form/tautan ber-atribut data-confirm — didelegasikan ke document
+    // supaya berlaku juga untuk konten yang disisipkan belakangan lewat AJAX.
+    // Bila dialog muncul di atas modal Bootstrap yang sedang terbuka, penjaga fokus modal
+    // dimatikan sementara: tanpa itu fokus direbut kembali ke modal, sehingga menekan Enter
+    // pada dialog justru menutup modal dan form tidak terkirim.
+    const dialogKonfirmasi = sumber => {
+        const modal = document.querySelector('.modal.show');
+        const penjaga = modal && window.bootstrap ? bootstrap.Modal.getInstance(modal)?._focustrap : null;
+        penjaga?.deactivate();
+        return Swal.fire({
+            title: sumber.dataset.confirmTitle || 'Konfirmasi',
+            text: sumber.dataset.confirm,
+            icon: sumber.dataset.icon || 'question',
+            showCancelButton: true,
+            confirmButtonText: sumber.dataset.confirmText || 'Ya, lanjutkan',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: sumber.dataset.confirmColor || '#176b87',
+            cancelButtonColor: '#94a3b8',
+            reverseButtons: true,
+        }).then(r => {
+            if (! r.isConfirmed) penjaga?.activate();
+            return r;
+        });
+    };
+
     document.addEventListener('submit', e => {
         const f = e.target.closest('form[data-confirm]');
         if (!f || f.dataset.confirmed) return;
         e.preventDefault();
-        Swal.fire({
-            title: f.dataset.confirmTitle || 'Yakin?', text: f.dataset.confirm, icon: f.dataset.icon || 'question',
-            showCancelButton: true, confirmButtonText: f.dataset.confirmText || 'Ya, lanjutkan', cancelButtonText: 'Batal',
-            confirmButtonColor: f.dataset.confirmColor || '#176b87', cancelButtonColor: '#94a3b8', reverseButtons: true,
-        }).then(r => { if (r.isConfirmed) { f.dataset.confirmed = 1; f.submit(); } });
+        dialogKonfirmasi(f).then(r => {
+            if (! r.isConfirmed) return;
+            f.dataset.confirmed = 1;
+            f.submit();
+        });
     });
 
     document.addEventListener('click', e => {
         const a = e.target.closest('a[data-confirm]');
         if (!a) return;
         e.preventDefault();
-        Swal.fire({
-            title: a.dataset.confirmTitle || 'Yakin?', text: a.dataset.confirm, icon: a.dataset.icon || 'question',
-            showCancelButton: true, confirmButtonText: a.dataset.confirmText || 'Ya, lanjutkan', cancelButtonText: 'Batal',
-            confirmButtonColor: a.dataset.confirmColor || '#176b87', cancelButtonColor: '#94a3b8', reverseButtons: true,
-        }).then(r => { if (r.isConfirmed) window.location.href = a.href; });
+        dialogKonfirmasi(a).then(r => { if (r.isConfirmed) window.location.href = a.href; });
     });
 </script>
 </body>

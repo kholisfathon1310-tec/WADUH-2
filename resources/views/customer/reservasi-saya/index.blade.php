@@ -12,7 +12,7 @@
     ];
     $filterList = [
         'semua'       => 'Semua',
-        'Menunggu'    => 'Menunggu',
+        'Menunggu'    => 'Menunggu Verifikasi',
         'Disetujui'   => 'Disetujui',
         'Selesai'     => 'Selesai',
         'Ditolak'     => 'Ditolak',
@@ -43,7 +43,7 @@
         .rs-search:focus-within { border-color:var(--primary); background:#fff;
             box-shadow:0 0 0 3px rgba(23,107,135,.1); }
         .rs-search i { color:var(--primary); font-size:.9rem; flex:none; }
-        .rs-search { flex:1 1 18rem; min-width:14rem; }
+        .rs-search { flex:1 1 18rem; min-width:0; }
         .rs-search input { flex:1; min-width:0; border:0; background:transparent; outline:none;
             font-size:.82rem; color:var(--ink); padding:.6rem 0; }
         .rs-search input::placeholder { color:var(--soft); }
@@ -106,6 +106,7 @@
         .rs-card .meta .code { color:var(--ink); font-weight:700; }
         .rs-card .meta i { color:var(--soft); font-size:.9em; }
         .rs-card .meta .sep { color:#cbd5e1; }
+        .rs-card .meta span { overflow-wrap:anywhere; }
         .rs-card .desc { font-size:.72rem; color:var(--soft); margin-top:.35rem; }
         .rs-card .side { text-align:end; flex:none; min-width:11rem; display:flex; flex-direction:column; align-items:flex-end; gap:.5rem; }
         .rs-card .side .lbl { font-size:.62rem; font-weight:800; color:var(--soft); text-transform:uppercase; letter-spacing:.08em; }
@@ -115,7 +116,14 @@
 
         @media (max-width: 767.98px) {
             .rs-card { flex-wrap:wrap; }
-            .rs-card .side { min-width:0; width:100%; align-items:flex-start; padding-top:.75rem; border-top:1px solid var(--line-soft); }
+            .rs-card .side { min-width:0; width:100%; flex-direction:row; align-items:center; justify-content:space-between; flex-wrap:wrap; text-align:start; padding-top:.75rem; border-top:1px solid var(--line-soft); }
+        }
+        @media (max-width: 575.98px) {
+            .rs-card { padding:1rem; gap:.85rem; }
+            .rs-card .thumb { width:4rem; height:4rem; }
+            .rs-card .meta .sep { display:none; }
+            .rs-card .meta { gap:.25rem .75rem; }
+            .rs-card .actions { flex-wrap:wrap; }
         }
 
         /* Pagination bar */
@@ -126,18 +134,12 @@
         .rs-empty-filter { display:none; }
     </style>
 
-    <div class="page-head mb-4" data-reveal>
-        <p class="eyebrow-sm mb-2">Reservasi Saya</p>
-        <h1 class="h3 mb-1">Riwayat &amp; Status Reservasi</h1>
-        <p class="text-muted mb-0 lead">Semua reservasi yang pernah Anda ajukan, beserta status terbarunya.</p>
-    </div>
-
     @if ($total === 0)
         <div class="xcard p-5 text-center mx-auto" style="max-width:520px;" data-reveal>
             <div class="icon-tile mx-auto mb-3"><i class="bi bi-journal-x"></i></div>
             <h2 class="h6 mb-2">Belum ada reservasi</h2>
-            <p class="text-muted small mb-3">Mulai reservasi fasilitas pertama Anda sekarang.</p>
-            <a href="{{ route('reservasi.index') }}" class="btn btn-brand px-4">Jelajahi Fasilitas</a>
+            <p class="text-muted small mb-3">Anda belum memiliki reservasi. Silakan pilih fasilitas untuk mengajukan reservasi.</p>
+            <a href="{{ route('reservasi.index') }}" class="btn btn-brand px-4">Lihat Fasilitas</a>
         </div>
     @else
         <div class="xcard mb-3 rs-toolbar" data-reveal>
@@ -192,7 +194,7 @@
 
         <div class="xcard p-5 text-center rs-empty-filter mt-2" id="rsEmptyFilter">
             <div class="icon-tile mx-auto mb-3"><i class="bi bi-search"></i></div>
-            <p class="text-muted small mb-0">Tidak ada reservasi yang cocok dengan filter/pencarian ini.</p>
+            <p class="text-muted small mb-0">Tidak ada reservasi yang sesuai dengan filter atau kata kunci pencarian.</p>
         </div>
 
         <div class="xcard mt-3 rs-paginate" data-reveal>

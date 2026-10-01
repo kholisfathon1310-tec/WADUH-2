@@ -60,6 +60,22 @@ class Reservasi extends Model
         // jam_mulai & jam_selesai (TIME) sengaja tidak di-cast datetime agar tidak diprefiks tanggal.
     ];
 
+    /**
+     * Status yang masih boleh mengunduh Bukti Reservasi: Menunggu (sedang diverifikasi) dan
+     * Disetujui. Ditolak, Dibatalkan, Selesai, dan Kadaluwarsa tidak lagi diterbitkan buktinya.
+     *
+     * @return string[]
+     */
+    public static function statusBuktiTersedia(): array
+    {
+        return [StatusReservasi::Menunggu->value, StatusReservasi::Disetujui->value];
+    }
+
+    public function buktiTersedia(): bool
+    {
+        return in_array($this->status_reservasi->value, self::statusBuktiTersedia(), true);
+    }
+
     public function pemesan(): BelongsTo
     {
         return $this->belongsTo(Pemesan::class, 'id_pemesan', 'id_pemesan');

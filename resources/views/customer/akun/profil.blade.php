@@ -2,23 +2,14 @@
 @section('title', 'Profil Saya')
 
 @section('content')
-    <div class="page-head mb-4" data-reveal>
-        <p class="eyebrow-sm mb-2">Area Pemesan</p>
-        <h1 class="h3 mb-1">Profil Saya</h1>
-        <p class="text-muted mb-0 lead">Data ini dipakai sebagai identitas Anda saat melakukan reservasi ruangan BITC Cimahi.</p>
-    </div>
-
     {{-- Hero card --}}
     @include('customer.akun.partials.hero', [
         'user' => $pemesan,
         'role' => 'Pemesan',
         'idPrefix' => 'BITC-P-',
         'idField' => 'id_pemesan',
-        'active' => 'profil',
         'routes' => [
-            'profil'       => 'customer.akun.profil',
-            'password'     => 'customer.akun.password',
-            'modal_edit'   => 'modalEditProfil',
+            'modal_edit'     => 'modalEditProfil',
             'modal_password' => 'modalUbahPassword',
         ],
     ])
@@ -69,9 +60,10 @@
         </div>
     </div>
 
-    {{-- ══════════════ MODAL EDIT PROFIL ══════════════ --}}
-    <div class="modal fade" id="modalEditProfil" tabindex="-1" aria-labelledby="modalEditProfilLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    {{-- ══════════════ MODAL EDIT PROFIL — satu kolom, berurutan dari atas ke bawah ══════════════ --}}
+    <div class="modal fade" id="modalEditProfil" tabindex="-1" data-bs-focus="false"
+         aria-labelledby="modalEditProfilLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content pf-modal">
                 <div class="pf-modal-head">
                     <div class="pf-modal-head-left">
@@ -80,7 +72,7 @@
                             <h5 class="pf-modal-title" id="modalEditProfilLabel">
                                 Edit Profil <span class="pf-modal-tag">IDENTITAS</span>
                             </h5>
-                            <p class="pf-modal-sub">Perbarui informasi identitas akun pemesan.</p>
+                            <p class="pf-modal-sub">Perbarui data identitas akun pemesan.</p>
                         </div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
@@ -93,41 +85,48 @@
                     @method('PUT')
                     <div class="pf-modal-body">
                         <div class="row g-3">
-                            <div class="col-md-8">
+                            <div class="col-12">
                                 <div class="fl-field @error('nama_lengkap') is-invalid @enderror">
-                                    <input name="nama_lengkap" id="flNamaLengkap" class="fl-input" placeholder=" "
-                                           value="{{ old('nama_lengkap', $pemesan->nama_lengkap) }}" required>
+                                    <input type="text" name="nama_lengkap" id="flNamaLengkap" class="fl-input" placeholder=" " maxlength="150"
+                                           autocomplete="name" value="{{ old('nama_lengkap', $pemesan->nama_lengkap) }}" required>
                                     <label for="flNamaLengkap"><span class="fl-label-txt">Nama Lengkap</span></label>
                                 </div>
                                 @error('nama_lengkap') <div class="fl-err">{{ $message }}</div> @enderror
                             </div>
-                            <div class="col-md-4">
-                                <div class="fl-field @error('usia') is-invalid @enderror">
-                                    <input type="number" name="usia" id="flUsia" class="fl-input" placeholder=" " min="17" max="120"
-                                           value="{{ old('usia', $pemesan->usia) }}" required>
-                                    <label for="flUsia"><span class="fl-label-txt">Usia</span></label>
-                                </div>
-                                @error('usia') <div class="fl-err">{{ $message }}</div> @enderror
-                            </div>
-                            <div class="col-md-7">
-                                <div class="fl-field @error('email') is-invalid @enderror">
-                                    <input type="email" name="email" id="flEmailPemesan" class="fl-input" placeholder=" "
-                                           value="{{ old('email', $pemesan->email) }}" required>
+                            <div class="col-12">
+                                <div class="fl-field otp-field @error('email') is-invalid @enderror">
+                                    <input type="email" name="email" id="flEmailPemesan" class="fl-input" placeholder=" " maxlength="150"
+                                           autocomplete="email" value="{{ old('email', $pemesan->email) }}" required>
                                     <label for="flEmailPemesan"><span class="fl-label-txt">Email</span></label>
+                                    @include('partials.otp-email-tombol', ['emailId' => 'flEmailPemesan'])
                                 </div>
-                                @error('email') <div class="fl-err">{{ $message }}</div> @enderror
+                                @error('email') <div class="fl-err otp-galat-email">{{ $message }}</div> @enderror
+                                @include('partials.otp-email', [
+                                    'emailId' => 'flEmailPemesan', 'url' => route('customer.akun.profil.otp'), 'urlVerifikasi' => route('customer.akun.profil.otp.verifikasi'),
+                                    'emailAwal' => $pemesan->email, 'status' => $otpStatus ?? null, 'terverifikasi' => $otpTerverifikasi ?? false,
+                                ])
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-12">
                                 <div class="fl-field @error('no_telepon') is-invalid @enderror">
-                                    <input type="tel" name="no_telepon" id="flNoTelepon" class="fl-input" inputmode="numeric"
-                                           pattern="\+?[0-9]{8,20}" placeholder=" " value="{{ old('no_telepon', $pemesan->no_telepon) }}" required>
+                                    <input type="tel" name="no_telepon" id="flNoTelepon" class="fl-input" inputmode="numeric" maxlength="21"
+                                           pattern="\+?[0-9]{8,20}" placeholder=" " autocomplete="tel"
+                                           value="{{ old('no_telepon', $pemesan->no_telepon) }}" required>
                                     <label for="flNoTelepon"><span class="fl-label-txt">No. Telepon</span></label>
                                 </div>
                                 @error('no_telepon') <div class="fl-err">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-12">
+                                <div class="fl-field @error('usia') is-invalid @enderror">
+                                    <input type="number" name="usia" id="flUsia" class="fl-input" placeholder=" " min="17" max="120" step="1"
+                                           inputmode="numeric" value="{{ old('usia', $pemesan->usia) }}" required
+                                           data-pesan-min="Usia minimal 17 tahun." data-pesan-maks="Usia maksimal 120 tahun.">
+                                    <label for="flUsia"><span class="fl-label-txt">Usia</span></label>
+                                </div>
+                                @error('usia') <div class="fl-err">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-12">
                                 <div class="fl-field @error('pekerjaan') is-invalid @enderror">
-                                    <input name="pekerjaan" id="flPekerjaan" class="fl-input" placeholder=" "
+                                    <input type="text" name="pekerjaan" id="flPekerjaan" class="fl-input" placeholder=" " maxlength="100"
                                            value="{{ old('pekerjaan', $pemesan->pekerjaan) }}" required>
                                     <label for="flPekerjaan"><span class="fl-label-txt">Pekerjaan / Instansi</span></label>
                                 </div>
@@ -135,7 +134,7 @@
                             </div>
                             <div class="col-12">
                                 <div class="fl-field @error('alamat') is-invalid @enderror">
-                                    <textarea name="alamat" id="flAlamatPemesan" class="fl-input" rows="3" placeholder=" " required>{{ old('alamat', $pemesan->alamat) }}</textarea>
+                                    <textarea name="alamat" id="flAlamatPemesan" class="fl-input" rows="3" placeholder=" " maxlength="500" required>{{ old('alamat', $pemesan->alamat) }}</textarea>
                                     <label for="flAlamatPemesan"><span class="fl-label-txt">Alamat Domisili</span></label>
                                 </div>
                                 @error('alamat') <div class="fl-err">{{ $message }}</div> @enderror
@@ -153,36 +152,28 @@
         </div>
     </div>
 
-    @if ($errors->any())
+    {{-- ══════════════ MODAL UBAH KATA SANDI (bersama Admin) ══════════════ --}}
+    @include('customer.akun.partials.modal-ubah-sandi', [
+        'aksi'      => route('customer.akun.password.update'),
+        'kolomBaru' => 'password',
+    ])
+
+    @php
+        // Modal dibuka kembali otomatis HANYA untuk galat miliknya sendiri, atau bila halaman
+        // dituju lewat tautan lama /profil/password (?ubah=sandi).
+        $galatProfil = $errors->hasAny(['nama_lengkap', 'email', 'no_telepon', 'usia', 'pekerjaan', 'alamat']);
+        $galatSandi = $errors->hasAny(['password_lama', 'password', 'password_confirmation']);
+        $bukaModal = ($galatSandi || request('ubah') === 'sandi') ? 'modalUbahPassword' : ($galatProfil ? 'modalEditProfil' : null);
+    @endphp
+    @if ($bukaModal)
         <script>
             document.addEventListener('DOMContentLoaded', () => {
-                new bootstrap.Modal(document.getElementById('modalEditProfil')).show();
+                new bootstrap.Modal(document.getElementById(@json($bukaModal))).show();
+                // Buang ?ubah=sandi dari alamat supaya memuat ulang halaman tidak membuka modal lagi.
+                if (window.location.search.includes('ubah=')) {
+                    window.history.replaceState(null, '', window.location.pathname);
+                }
             });
         </script>
     @endif
-
-    <style>
-        /* ══════ MODAL SHARED ══════ */
-        .pf-modal { border:1px solid var(--line); border-radius:1.25rem; overflow:hidden;
-            box-shadow:0 25px 50px -12px rgba(15,23,42,.25); }
-        .pf-modal-head { display:flex; align-items:flex-start; justify-content:space-between;
-            gap:1rem; padding:1.25rem 1.5rem; border-bottom:1px solid var(--line-soft);
-            background:linear-gradient(135deg, var(--surface), #fff); }
-        .pf-modal-head-left { display:flex; align-items:flex-start; gap:.85rem; min-width:0; }
-        .pf-modal-icon { display:grid; place-items:center; width:2.5rem; height:2.5rem;
-            border-radius:.75rem;
-            background:linear-gradient(135deg, var(--primary-dark), var(--primary));
-            color:#fff; font-size:1.1rem; flex:none;
-            box-shadow:0 6px 14px -3px rgba(15,118,110,.45); }
-        .pf-modal-title { font-size:1.05rem; font-weight:800; color:var(--ink); margin:0;
-            display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
-        .pf-modal-tag { font-size:.58rem; font-weight:800; letter-spacing:.06em;
-            background:var(--primary-soft); color:var(--primary-dark);
-            padding:.15rem .5rem; border-radius:.35rem; border:1px solid var(--primary-softer); }
-        .pf-modal-sub { font-size:.75rem; color:var(--muted); margin:.2rem 0 0; }
-        .pf-modal-body { padding:1.35rem 1.5rem; }
-        .fl-input::-ms-reveal, .fl-input::-ms-clear { display:none; }
-        .pf-modal-foot { display:flex; justify-content:flex-end; gap:.55rem;
-            padding:1rem 1.5rem; border-top:1px solid var(--line-soft); background:var(--surface); }
-    </style>
 @endsection

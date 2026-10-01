@@ -106,11 +106,11 @@ class ReservasiAdminController extends Controller
             ->get();
 
         if ($pending->isEmpty()) {
-            return back()->with('error', 'Tidak ada ruangan berstatus Menunggu pada pemesanan ini.');
+            return back()->with('error', 'Tidak ada ruangan berstatus Menunggu pada reservasi ini.');
         }
         foreach ($pending as $item) {
             if (! $this->approval->passes($item)) {
-                return back()->with('error', 'Belum semua syarat terpenuhi. Periksa checklist tiap ruangan.');
+                return back()->with('error', 'Persyaratan belum terpenuhi seluruhnya. Periksa checklist pada setiap ruangan.');
             }
         }
 
@@ -125,7 +125,7 @@ class ReservasiAdminController extends Controller
         // Tetap di halaman detail (back()) — bukan redirect ke daftar. Duplikasi entri histori
         // browser (yang bikin tombol back perlu 2x tekan) ditangani di sisi klien: form ini
         // dikirim lewat fetch + location.replace() (lihat data-nav-replace di admin/layouts/app).
-        return back()->with('success', "Reservasi {$reservasi->kode_transaksi} disetujui ({$pending->count()} ruangan).");
+        return back()->with('success', "Reservasi {$reservasi->kode_transaksi} berhasil disetujui ({$pending->count()} ruangan).");
     }
 
     /** Tolak SELURUH ruangan Menunggu dalam pemesanan ini; alasan tercatat via Observer. */
@@ -135,7 +135,7 @@ class ReservasiAdminController extends Controller
             ['alasan' => ['required', 'string', 'max:1000']],
             [
                 'alasan.required' => 'Alasan penolakan wajib diisi. Alasan ini akan ditampilkan kepada pemesan pada riwayat status.',
-                'alasan.max'      => 'Alasan terlalu panjang, maksimal 1000 karakter.',
+                'alasan.max'      => 'Alasan penolakan maksimal 1000 karakter.',
             ],
         );
 
@@ -146,7 +146,7 @@ class ReservasiAdminController extends Controller
             ->get();
 
         if ($pending->isEmpty()) {
-            return back()->with('error', 'Tidak ada ruangan berstatus Menunggu pada pemesanan ini.');
+            return back()->with('error', 'Tidak ada ruangan berstatus Menunggu pada reservasi ini.');
         }
 
         foreach ($pending as $item) {
@@ -157,7 +157,7 @@ class ReservasiAdminController extends Controller
             $item->save();
         }
 
-        return back()->with('success', "Reservasi {$reservasi->kode_transaksi} ditolak ({$pending->count()} ruangan).");
+        return back()->with('success', "Reservasi {$reservasi->kode_transaksi} telah ditolak ({$pending->count()} ruangan).");
     }
 
     /**
@@ -187,7 +187,7 @@ class ReservasiAdminController extends Controller
         });
 
         return redirect()->route('admin.reservasi.index')
-            ->with('success', "Pemesanan {$reservasi->kode_transaksi} ({$items->count()} ruangan) berhasil dihapus.");
+            ->with('success', "Reservasi {$reservasi->kode_transaksi} ({$items->count()} ruangan) berhasil dihapus.");
     }
 
     /**
@@ -205,7 +205,7 @@ class ReservasiAdminController extends Controller
 
         // Keputusan Valid/Tidak Valid final — begitu sudah diputuskan, tidak boleh diubah lagi.
         if ($dokumen->status_verifikasi !== StatusVerifikasi::Menunggu) {
-            return back()->with('error', 'Dokumen ini sudah diputuskan sebelumnya dan tidak bisa diubah lagi.');
+            return back()->with('error', 'Dokumen ini telah diverifikasi sebelumnya dan tidak dapat diubah.');
         }
 
         $kodeTransaksi = $dokumen->reservasi->kode_transaksi;
@@ -214,7 +214,7 @@ class ReservasiAdminController extends Controller
             ->where('nama_file', $dokumen->nama_file)
             ->update(['status_verifikasi' => $data['status_verifikasi']]);
 
-        return back()->with('success', 'Status dokumen diperbarui.');
+        return back()->with('success', 'Status verifikasi dokumen berhasil diperbarui.');
     }
 
     /** @param array<int,string> $with */

@@ -4,7 +4,9 @@ namespace App\Http\Requests;
 
 use App\Enums\SatuanSewa;
 use App\Enums\StatusAktif;
+use App\Models\Fasilitas;
 use App\Models\TarifSewa;
+use App\Services\CartService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
@@ -160,18 +162,26 @@ class TambahKeranjangRequest extends FormRequest
                 $v->errors()->add('tanggal_mulai', 'Tanggal mulai sewa tidak boleh jatuh di hari Sabtu & Minggu, pilih hari kerja (Senin–Jumat).');
             }
 
-            // Jumlah pengguna tidak boleh melebihi kapasitas.
-            $fasilitas = $tarif->fasilitas;
-            if ($fasilitas && $this->filled('jumlah_pengguna') && (int) $this->input('jumlah_pengguna') > $fasilitas->kapasitas) {
-                $v->errors()->add('jumlah_pengguna', "Jumlah pengguna melebihi kapasitas fasilitas ({$fasilitas->kapasitas} orang).");
+            // Jumlah pengguna tidak boleh melebihi kapasitas — untuk multi-ruangan (antrian)
+            // batasnya kapasitas TERKECIL di antara ruangan terpilih, karena satu jumlah
+            // pengguna berlaku untuk semua ruangan tersebut.
+            $kapasitas = $this->kapasitasMaksimal();
+            if ($kapasitas !== null && $this->filled('jumlah_pengguna') && (int) $this->input('jumlah_pengguna') > $kapasitas) {
+                $v->errors()->add('jumlah_pengguna', "Jumlah pengguna melebihi kapasitas maksimal fasilitas ({$kapasitas} orang).");
             }
 
-            // Sewa Bulan: rentang harus memenuhi durasi_minimum (mis. 3 bulan).
-            if ($tarif->jenisSewa?->satuan === SatuanSewa::Bulan && $this->filled('tanggal_mulai') && $this->filled('tanggal_selesai')) {
-                $bulan = Carbon::parse($this->input('tanggal_mulai'))->diffInMonths(Carbon::parse($this->input('tanggal_selesai')));
-                $min = (int) $tarif->jenisSewa->durasi_minimum;
+            // Sewa Bulan: durasi_minimum (mis. 3 bulan) adalah batas MINIMUM — periode yang
+            // lebih panjang diperbolehkan tanpa batas maksimum.
+            if (
+                $tarif->jenisSewa?->satuan === SatuanSewa::Bulan
+                && $this->filled('tanggal_mulai') && $this->filled('tanggal_selesai')
+                && ! $v->errors()->hasAny(['tanggal_mulai', 'tanggal_selesai'])
+            ) {
+                $bulan = CartService::hitungBulan($this->input('tanggal_mulai'), $this->input('tanggal_selesai'))['penuh'];
+                $min = max(1, (int) $tarif->jenisSewa->durasi_minimum);
                 if ($bulan < $min) {
-                    $v->errors()->add('tanggal_selesai', "Sewa bulanan minimal {$min} bulan.");
+                    $palingCepat = Carbon::parse($this->input('tanggal_mulai'))->addMonthsNoOverflow($min)->translatedFormat('j F Y');
+                    $v->errors()->add('tanggal_selesai', "Masa sewa bulanan minimal {$min} bulan. Tanggal berakhir paling cepat {$palingCepat}.");
                 }
             }
 
@@ -187,6 +197,19 @@ class TambahKeranjangRequest extends FormRequest
                 }
             }
         });
+    }
+
+    /** Kapasitas terkecil di antara ruangan utama + ruangan antrian (multi-pilih denah). */
+    public function kapasitasMaksimal(): ?int
+    {
+        $ids = array_filter(array_merge(
+            [(int) $this->input('id_fasilitas')],
+            array_map('intval', explode(',', (string) $this->input('antrian'))),
+        ));
+
+        $kapasitas = Fasilitas::whereIn('id_fasilitas', $ids)->min('kapasitas');
+
+        return $kapasitas === null ? null : (int) $kapasitas;
     }
 
     /** Tarif (beserta jenis & fasilitas) dari input, di-cache sekali. */
@@ -225,28 +248,29 @@ class TambahKeranjangRequest extends FormRequest
         return [
             'id_fasilitas.exists'          => 'Fasilitas yang dipilih tidak tersedia atau sedang tidak aktif.',
             'id_tarif_sewa.exists'         => 'Tarif sewa untuk fasilitas ini tidak tersedia.',
-            'tanggal_mulai.required'       => 'Tanggal mulai pemakaian wajib dipilih.',
-            'tanggal_mulai.after_or_equal' => 'Tanggal mulai tidak boleh di masa lalu, pilih hari ini atau setelahnya.',
-            'tanggal_selesai.required'     => 'Isi tanggal selesai sewa.',
-            'tanggal_selesai.after_or_equal' => 'Tanggal selesai harus sama atau setelah tanggal mulai.',
-            'tanggal_selesai.after'        => 'Tanggal selesai harus setelah tanggal mulai.',
-            'jam_mulai.required'           => 'Isi jam mulai pemakaian (mis. 09:00).',
-            'jam_selesai.required'         => 'Isi jam selesai pemakaian.',
+            'tanggal_mulai.required'       => 'Tanggal mulai wajib dipilih.',
+            'tanggal_mulai.after_or_equal' => 'Tanggal mulai tidak boleh sebelum hari ini.',
+            'tanggal_selesai.required'     => 'Tanggal berakhir wajib dipilih.',
+            'tanggal_selesai.after_or_equal' => 'Tanggal berakhir tidak boleh sebelum tanggal mulai.',
+            'tanggal_selesai.after'        => 'Tanggal berakhir harus setelah tanggal mulai.',
+            'jam_mulai.required'           => 'Jam mulai wajib dipilih.',
+            'jam_selesai.required'         => 'Jam selesai wajib dipilih.',
             'jam_selesai.after'            => 'Jam selesai harus setelah jam mulai.',
-            'jumlah_pengguna.required'     => 'Isi berapa orang yang akan memakai ruangan.',
+            'jumlah_pengguna.required'     => 'Jumlah pengguna wajib diisi.',
+            'jumlah_pengguna.integer'      => 'Jumlah pengguna harus berupa angka.',
             'jumlah_pengguna.min'          => 'Jumlah pengguna minimal 1 orang.',
-            'keperluan.required'           => 'Keperluan pemakaian ruangan wajib diisi, contoh rapat tim.',
-            'keperluan.max'                => 'Keperluan terlalu panjang, maksimal 1000 karakter.',
-            'nama_lengkap.required'        => 'Nama lengkap wajib diisi sesuai identitas.',
-            'alamat.required'              => 'Alamat wajib diisi.',
-            'usia.required'                => 'Usia wajib diisi.',
+            'keperluan.required'           => 'Keperluan wajib diisi.',
+            'keperluan.max'                => 'Keperluan maksimal 1000 karakter.',
+            'nama_lengkap.required'        => 'Nama lengkap pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
+            'alamat.required'              => 'Alamat pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
+            'usia.required'                => 'Usia pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
             'usia.min'                     => 'Pemesan minimal berusia 17 tahun.',
-            'usia.max'                     => 'Usia tidak valid.',
-            'pekerjaan.required'           => 'Pekerjaan wajib diisi.',
-            'no_telepon.required'          => 'Nomor telepon wajib diisi agar admin bisa menghubungi Anda.',
+            'usia.max'                     => 'Usia pada profil tidak valid.',
+            'pekerjaan.required'           => 'Pekerjaan pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
+            'no_telepon.required'          => 'Nomor telepon pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
             'dokumen.*.mimes'              => 'Dokumen harus berformat PDF, JPG, atau PNG.',
             'dokumen.*.max'                => 'Ukuran tiap dokumen maksimal 5 MB.',
-            'no_telepon.regex'             => 'Nomor telepon wajib angka, boleh diawali tanda +, contoh 0812xxxxxxx.',
+            'no_telepon.regex'             => 'Nomor telepon pada profil hanya boleh berisi angka (boleh diawali tanda +).',
         ];
     }
 }

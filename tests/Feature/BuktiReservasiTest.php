@@ -101,4 +101,30 @@ class BuktiReservasiTest extends TestCase
         $res->assertOk();
         $this->assertStringStartsWith('%PDF', $res->getContent());
     }
+
+    /** Bukti hanya untuk Menunggu & Disetujui; status lain ditolak dan tombolnya tidak tampil. */
+    public function test_bukti_hanya_untuk_status_menunggu_dan_disetujui(): void
+    {
+        $jenis = JenisSewa::where('satuan', 'Jam')->firstOrFail();
+        $p = Pemesan::factory()->create();
+
+        foreach (['Menunggu' => true, 'Disetujui' => true, 'Ditolak' => false, 'Dibatalkan' => false, 'Selesai' => false, 'Kadaluwarsa' => false] as $status => $boleh) {
+            $f = Fasilitas::factory()->create(['status_aktif' => 'Aktif']);
+            $t = TarifSewa::factory()->create([
+                'id_fasilitas' => $f->id_fasilitas, 'id_jenis_sewa' => $jenis->id_jenis_sewa,
+                'status_aktif' => 'Aktif', 'harga' => 50000,
+            ]);
+            $kode = 'RSV-ST'.strtoupper(substr($status, 0, 3));
+            $r = $this->buatReservasi($t, $p, $kode, 'TRX-'.$kode, $status);
+
+            $this->assertSame($boleh, $r->fresh()->buktiTersedia(), $status);
+            $res = $this->get(route('cek-status.bukti-reservasi', $r->kode_reservasi));
+            if ($boleh) {
+                $res->assertOk();
+                $this->assertStringStartsWith('%PDF', $res->getContent());
+            } else {
+                $res->assertRedirect()->assertSessionHas('error');
+            }
+        }
+    }
 }

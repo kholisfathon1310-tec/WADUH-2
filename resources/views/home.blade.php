@@ -364,6 +364,29 @@
         [data-reveal] { opacity:0; transform:translateY(20px); transition:opacity .55s ease, transform .55s ease; }
         [data-reveal].in { opacity:1; transform:none; }
         @media (prefers-reduced-motion: reduce) { [data-reveal] { opacity:1; transform:none; } }
+
+        /* ══════════════════════════════════════════════════════════════
+           RESPONSIF — tablet & HP
+           ══════════════════════════════════════════════════════════════ */
+        .info-row, .jam-row { flex-wrap:wrap; gap:.25rem 1rem; }
+        .info-row b, .jam-row b { overflow-wrap:anywhere; }
+        @media (max-width: 991.98px) {
+            .hero { padding:8rem 0 4rem; }
+            .section { padding:4.5rem 0; }
+        }
+        @media (max-width: 575.98px) {
+            .hero { padding:6.5rem 0 3rem; }
+            .hero h1 { font-size:clamp(1.9rem, 9vw, 2.6rem); }
+            .hero p.lead-copy { font-size:.95rem; }
+            .btn-hero { width:100%; justify-content:center; }
+            .hero-stats { grid-template-columns:1fr; margin-top:1.75rem; }
+            .section { padding:3.25rem 0; }
+            .lantai-card .head { height:160px; }
+            .jam-panel { padding:1.5rem 1.25rem; }
+            .jam-row b { max-width:100% !important; text-align:left !important; }
+            .cta-band { padding:1.75rem 1.25rem; }
+            .cta-band .btn-hero, .cta-band a { width:100%; justify-content:center; }
+        }
     </style>
 </head>
 <body>
@@ -439,7 +462,7 @@
             <div class="row align-items-center gy-5">
                 <div class="col-lg-7" data-reveal>
                     <span class="badge-hero mb-4"><i class="bi bi-stars"></i>Wadah Akses Digital Unit Hunian BITC</span>
-                    <h1>Reservasi ruang di <span class="grad">Gedung BITC</span>, semudah beberapa klik.</h1>
+                    <h1>Reservasi ruang di <span class="grad">Gedung BITC</span>, mudah dan terintegrasi.</h1>
                     <p class="lead-copy">WADUH adalah layanan resmi reservasi fasilitas <strong>Baros Information Technology Creative Center (BITC)</strong>, mulai dari kubikal co-working, ruang kerja privat, ruang rapat, hingga convention hall. Pemesanan dilakukan secara online tanpa perlu antre di lokasi.</p>
                     <div class="d-flex flex-wrap gap-3 mt-4">
                         <a href="{{ route('reservasi.index') }}" class="btn-hero solid">Reservasi Sekarang <i class="bi bi-arrow-up-right"></i></a>
@@ -487,7 +510,7 @@
                         <p class="eyebrow">Tentang BITC</p>
                         <h2>Baros Information Technology Creative Centre.</h2>
                         <p class="lead">Gedung <strong>BITC</strong> di  Jl. HMS Mintareja Sarjana Hukum, Baros, Kec. Cimahi Tengah, Kota Cimahi, Jawa Barat dikelola oleh <strong>UPTD Cimahi Techno Park</strong> sebagai pusat pengembangan industri teknologi informasi dan ekonomi kreatif Kota Cimahi. Di dalamnya tersedia unit hunian usaha yang dapat disewa: ruang kerja privat, ruang rapat, kubikal co-working, hingga convention hall untuk acara berskala besar.</p>
-                        <p class="text-muted mt-3" style="line-height:1.85"><strong>WADUH (Wadah Akses Digital Unit Hunian)</strong> hadir agar seluruh proses mulai dari melihat ketersediaan per lantai, mengajukan reservasi, sampai cek status reservasi, bisa dilakukan dari mana saja.</p>
+                        <p class="text-muted mt-3" style="line-height:1.85"><strong>WADUH (Wadah Akses Digital Unit Hunian)</strong> hadir agar seluruh proses mulai dari melihat ketersediaan per lantai, mengajukan reservasi, hingga pengecekan status reservasi dapat dilakukan dari mana saja.</p>
                     </div>
                 </div>
                 <div class="col-lg-6" data-reveal>
@@ -495,7 +518,7 @@
                         <div class="info-card-head"><i class="bi bi-clock"></i> Jam Operasional Gedung BITC</div>
                         <div class="info-row"><span>Senin – Jumat</span><b>08:00 – 16:00 WIB</b></div>
                         <div class="info-row"><span>Sewa Per Jam</span><b>08:00 – 16:00 WIB</b></div>
-                        <div class="info-row"><span>Sabtu – Minggu</span><b class="text-muted">Tutup (kecuali event)</b></div>
+                        <div class="info-row"><span>Sabtu – Minggu</span><b class="text-muted">Tutup (kecuali acara khusus)</b></div>
                         <div class="info-row"><span>Hari Libur Nasional</span><b class="text-muted">Tutup</b></div>
                     </div>
                 </div>
@@ -528,7 +551,7 @@
                     <div class="feature-card">
                         <span class="ic"><i class="bi bi-lightning-charge-fill"></i></span>
                         <h3>Proses Digital</h3>
-                        <p>Lihat ruangan sampai checkout, semuanya lewat WADUH.</p>
+                        <p>Seluruh proses, dari pemilihan ruangan hingga pengajuan reservasi, dilakukan melalui WADUH.</p>
                     </div>
                 </div>
             </div>
@@ -543,7 +566,7 @@
             <div class="section-head center mb-5" data-reveal>
                 <p class="eyebrow">Fasilitas per Lantai</p>
                 <h2>Lima lantai, tiga jenis ruang.</h2>
-                <p class="lead">Pilih lantai untuk langsung melihat denah &amp; detail tiap ruangannya.</p>
+                <p class="lead">Pilih lantai untuk melihat denah dan detail setiap ruangan.</p>
             </div>
             <div class="row g-4">
                 @foreach ($daftarLantai as $l)
@@ -612,35 +635,35 @@
             <div class="section-head center mb-5" data-reveal>
                 <p class="eyebrow">Cara Kerja</p>
                 <h2>Reservasi dalam 4 langkah singkat.</h2>
-                <p class="text-muted mb-0">Masuk sebagai Pemesan untuk memulai — seluruh proses reservasi hanya butuh 4 langkah.</p>
+                <p class="text-muted mb-0">Masuk sebagai Pemesan untuk memulai. Seluruh proses reservasi diselesaikan dalam 4 langkah.</p>
             </div>
             <div class="row g-4">
                 <div class="col-md-6 col-lg-3" data-reveal>
                     <div class="step-card">
                         <span class="n">1</span>
                         <h3>Pilih Ruang</h3>
-                        <p>Masuk atau daftar, lalu telusuri lantai & pilih ruang di denah interaktif.</p>
+                        <p>Masuk atau daftar, kemudian pilih ruangan pada denah interaktif setiap lantai.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3" data-reveal>
                     <div class="step-card">
                         <span class="n">2</span>
                         <h3>Atur Jadwal</h3>
-                        <p>Sewa per jam, harian, atau bulanan, bisa beberapa ruang sekaligus.</p>
+                        <p>Sewa per jam, per hari, atau per bulan, dapat mencakup beberapa ruangan sekaligus.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3" data-reveal>
                     <div class="step-card">
                         <span class="n">3</span>
-                        <h3>Checkout</h3>
-                        <p>Isi data diri sekali, unggah dokumen, dapat kode reservasi.</p>
+                        <h3>Kirim Reservasi</h3>
+                        <p>Periksa keranjang, kirim reservasi, dan terima kode reservasi.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3" data-reveal>
                     <div class="step-card">
                         <span class="n">4</span>
                         <h3>Pantau &amp; Gunakan</h3>
-                        <p>Cek status persetujuan dengan kode reservasi, lalu gunakan ruangmu.</p>
+                        <p>Pantau status persetujuan dengan kode reservasi, lalu gunakan ruangan sesuai jadwal.</p>
                     </div>
                 </div>
             </div>
@@ -663,12 +686,12 @@
                 <div class="col-lg-6" data-reveal>
                     <div class="section-head">
                         <p class="eyebrow">Kontak</p>
-                        <h2>Butuh bantuan? Hubungi admin BITC.</h2>
-                        <p class="lead">Mau reservasi secara langsung atau ingin melakukan pembayaran? Admin BITC siap membantu.</p>
+                        <h2>Perlu bantuan? Hubungi admin BITC.</h2>
+                        <p class="lead">Untuk reservasi secara langsung atau informasi pembayaran, silakan hubungi admin BITC.</p>
                         <a class="btn-wa mt-3"
-                           href="https://wa.me/{{ $waDigit }}?text={{ urlencode('Halo Admin BITC, saya ingin bertanya tentang reservasi fasilitas lewat WADUH.') }}"
+                           href="https://wa.me/{{ $waDigit }}?text={{ urlencode('Selamat siang Admin BITC, saya ingin menanyakan reservasi fasilitas melalui WADUH.') }}"
                            target="_blank" rel="noopener">
-                            <i class="bi bi-whatsapp"></i> Chat WhatsApp 
+                            <i class="bi bi-whatsapp"></i> Hubungi via WhatsApp 
                         </a>
                     </div>
                 </div>
@@ -694,8 +717,8 @@
         <div class="container">
             <div class="cta-band d-flex flex-wrap justify-content-between align-items-center gap-3" data-reveal>
                 <div>
-                    <h2 class="h3 mb-1" style="color:#fff">Siap pakai ruang di BITC?</h2>
-                    <p class="mb-0" style="opacity:.85">Mulai reservasi sekarang, prosesnya cepat.</p>
+                    <h2 class="h3 mb-1" style="color:#fff">Siap menggunakan ruang di BITC?</h2>
+                    <p class="mb-0" style="opacity:.85">Ajukan reservasi Anda sekarang melalui WADUH.</p>
                 </div>
                 <a href="{{ route('reservasi.index') }}" class="btn-hero" style="background:#fff; color:var(--primary);">Mulai Reservasi <i class="bi bi-arrow-up-right"></i></a>
             </div>

@@ -61,6 +61,14 @@
             .login-shell { min-height:0; }
             .login-form-panel { padding:2.25rem 1.75rem; }
         }
+        .catatan-salah { align-items:flex-start; line-height:1.4; }
+        .catatan-salah i { margin-top:.12rem; flex:none; }
+        @media (max-width: 575.98px) {
+            body { padding:.75rem; }
+            .login-shell, .reg-shell { border-radius:1.25rem; }
+            .login-form-panel, .reg-form-panel { padding:1.75rem 1.15rem 1.5rem; }
+            .login-form-head h2, .reg-head h2 { font-size:1.25rem; }
+        }
     </style>
 </head>
 <body>
@@ -69,7 +77,7 @@
             <div class="lv-grid"></div>
             <div>
                 <h1 class="lv-headline">Buat kata sandi baru</h1>
-                <p class="lv-sub">Pastikan kata sandi baru mudah Anda ingat, tapi sulit ditebak orang lain.</p>
+                <p class="lv-sub">Gunakan kata sandi yang mudah diingat, namun sulit ditebak oleh orang lain.</p>
                 <ul class="lv-points">
                     <li><span class="ic"><i class="bi bi-shield-check"></i></span>Minimal 8 karakter</li>
                 </ul>
@@ -82,8 +90,9 @@
                 <p>Masukkan kata sandi baru untuk akun admin Anda.</p>
             </div>
 
-            @if ($errors->any())
-                <div class="alert alert-danger py-2 small"><ul class="mb-0 ps-3">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
+            @php $galatLain = collect($errors->getMessages())->except(['email', 'password', 'password_confirmation'])->flatten(); @endphp
+            @if ($galatLain->isNotEmpty())
+                <div class="alert alert-danger py-2 small mb-3" role="alert">{{ $galatLain->first() }}</div>
             @endif
 
             <form method="POST" action="{{ route('admin.password.update') }}">
@@ -95,6 +104,7 @@
                         <span class="input-group-text"><i class="bi bi-envelope"></i></span>
                         <input type="email" name="email" class="form-control" value="{{ old('email', $email) }}" readonly required>
                     </div>
+                    @error('email')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Kata Sandi Baru</label>
@@ -102,6 +112,7 @@
                         <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
                         <input type="password" name="password" class="form-control" placeholder="Minimal 8 karakter" minlength="8" required>
                     </div>
+                    @error('password')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Konfirmasi Kata Sandi Baru</label>
@@ -109,6 +120,7 @@
                         <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
                         <input type="password" name="password_confirmation" class="form-control" placeholder="Ulangi kata sandi baru" minlength="8" required>
                     </div>
+                    @error('password_confirmation')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                 </div>
                 <button class="btn btn-login w-100"><i class="bi bi-check-circle me-1"></i> Ubah Kata Sandi</button>
             </form>
@@ -118,34 +130,73 @@
     <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
     <script>
         @if (session('success'))
-            Swal.fire({ icon: 'success', title: 'Berhasil', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke' });
+            Swal.fire({ icon: 'success', title: 'Berhasil', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Tutup' });
         @endif
         @if (session('error'))
-            Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke, Mengerti' });
+            Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Mengerti' });
         @endif
 
+        // Kolom masuk dibuat readonly saat halaman dimuat agar tidak diisi otomatis oleh peramban,
+        // lalu dilepas sesaat kemudian sehingga ketukan pertama langsung dapat dipakai mengetik.
+        document.querySelectorAll('[data-lepas-readonly]').forEach(el => {
+            const lepas = () => el.removeAttribute('readonly');
+            ['focus', 'pointerdown', 'touchstart'].forEach(ev => el.addEventListener(ev, lepas, { passive: true }));
+            setTimeout(lepas, 500);
+        });
+
+        // Validasi di sisi peramban: satu pesan per kolom, tepat di bawah kolomnya.
+        const labelKolom = el => (el.closest('.mb-3')?.querySelector('.form-label')?.textContent || 'Kolom ini').trim();
+        const pesanKolom = el => {
+            const v = el.validity, l = labelKolom(el);
+            if (v.valueMissing) return l + ' wajib diisi.';
+            if (v.typeMismatch || v.patternMismatch) return 'Format ' + l.toLowerCase() + ' tidak valid.';
+            if (v.tooShort) return l + ' minimal ' + el.minLength + ' karakter.';
+            if (v.rangeUnderflow) return l + ' minimal ' + el.min + '.';
+            if (v.rangeOverflow) return l + ' maksimal ' + el.max + '.';
+            return l + ' tidak valid.';
+        };
+        const wadahKolom = el => el.closest('.input-group, .pw-wrap') || el;
+        const hapusCatatan = el => {
+            el.classList.remove('is-salah');
+            let n = wadahKolom(el).nextElementSibling;
+            while (n && n.classList.contains('catatan-salah')) { const berikut = n.nextElementSibling; n.remove(); n = berikut; }
+        };
+        const tandaiKolom = (el, pesan) => {
+            hapusCatatan(el);
+            el.classList.add('is-salah');
+            const note = document.createElement('div');
+            note.className = 'catatan-salah';
+            note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i><span></span>';
+            note.querySelector('span').textContent = pesan;
+            wadahKolom(el).insertAdjacentElement('afterend', note);
+        };
         document.querySelectorAll('form').forEach(f => {
             f.setAttribute('novalidate', '');
             f.addEventListener('submit', e => {
-                const salah = [...f.querySelectorAll('input:not([readonly])')].filter(el => ! el.checkValidity());
-                if (! salah.length) return;
+                if (f.dataset.mengirim === '1') { e.preventDefault(); return; }
+                const salah = [...f.querySelectorAll('input, textarea')]
+                    .filter(el => el.type !== 'hidden' && ! el.readOnly && ! el.checkValidity());
+                const sandi = f.querySelector('[name="password"]');
+                const konfirmasi = f.querySelector('[name="password_confirmation"]');
+                const tidakCocok = sandi && konfirmasi && ! salah.includes(konfirmasi) && sandi.value !== konfirmasi.value;
+                if (! salah.length && ! tidakCocok) {
+                    f.dataset.mengirim = '1';
+                    const tombol = f.querySelector('button.btn-login');
+                    if (tombol) { tombol.disabled = true; tombol.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Memproses…'; }
+                    return;
+                }
                 e.preventDefault();
-                salah.forEach(el => {
-                    el.classList.add('is-salah');
-                    const grup = el.closest('.input-group') || el;
-                    grup.parentElement.querySelector('.catatan-salah')?.remove();
-                    const note = document.createElement('div');
-                    note.className = 'catatan-salah';
-                    note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>' +
-                        (el.validity.valueMissing ? 'Wajib diisi.' : 'Minimal 8 karakter.');
-                    grup.insertAdjacentElement('afterend', note);
-                });
-                salah[0].focus();
+                salah.forEach(el => tandaiKolom(el, pesanKolom(el)));
+                if (tidakCocok) tandaiKolom(konfirmasi, 'Konfirmasi kata sandi tidak cocok.');
+                (salah[0] || konfirmasi).focus();
             });
-            f.addEventListener('input', e => {
-                e.target.classList.remove('is-salah');
-                (e.target.closest('.input-group') || e.target).parentElement.querySelector('.catatan-salah')?.remove();
-            }, true);
+            f.addEventListener('input', e => hapusCatatan(e.target), true);
+        });
+        // Halaman dipulihkan dari riwayat peramban (tombol Kembali): buka kembali tombol kirim.
+        window.addEventListener('pageshow', e => {
+            if (! e.persisted) return;
+            document.querySelectorAll('form').forEach(f => { delete f.dataset.mengirim; });
+            document.querySelectorAll('button.btn-login[disabled]').forEach(b => window.location.reload());
         });
     </script>
 </body>

@@ -21,8 +21,8 @@ class CekStatusController extends Controller
         $data = $request->validate(
             ['kode' => ['required', 'string', 'max:100']],
             [
-                'kode.required' => 'Kode reservasi wajib diisi, contoh RSV-7K3M.',
-                'kode.max'      => 'Kode terlalu panjang, periksa kembali penulisannya.',
+                'kode.required' => 'Kode reservasi wajib diisi, contoh: RSV-7K3M.',
+                'kode.max'      => 'Kode reservasi terlalu panjang. Periksa kembali penulisannya.',
             ],
         );
 

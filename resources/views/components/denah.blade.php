@@ -29,6 +29,9 @@
     'clickable' => false,
     'linkTemplate' => null,
     'jenis' => null,
+    // Satuan jenis sewa terpilih ('Jam' | 'Hari' | 'Bulan' | null). Ruangan "Sebagian Terisi"
+    // hanya dapat dipilih untuk sewa Per Jam (atau bila jenis sewa belum ditentukan).
+    'satuan' => null,
     'kategori' => null,
     'title' => null,
     'info' => null,
@@ -66,7 +69,9 @@
         : collect();
 
     // Helper: bangun class + atribut untuk 1 room, dari 1 baris config + data DB terkait.
-    $renderRoom = function (array $item) use ($statusPerFasilitas, $clickable, $linkTemplate, $kategori, $db, $hargaByFasilitas) {
+    $kuningBisaDipilih = $satuan === null || $satuan === 'Jam';
+
+    $renderRoom = function (array $item) use ($statusPerFasilitas, $clickable, $linkTemplate, $kategori, $db, $hargaByFasilitas, $kuningBisaDipilih) {
         $tipe     = $item['tipe'] ?? 'ruangan';
         $isRuang  = $tipe === 'ruangan';
         $kode     = $item['kode']  ?? null;
@@ -98,14 +103,20 @@
         // tampil & tetap ruangan biasa, bukan kategori/warna terpisah.
         if ($isRuang && ($tidakAktif || $bukanKategoriIni || $rawStatus === 'merah')) {
             $status = 'terisi';
-            $statusLabel = $bukanKategoriIni ? 'Bukan '.$kategori : 'Penuh';
+            $statusLabel = $bukanKategoriIni ? 'Bukan '.$kategori : ($tidakAktif ? 'Tidak disewakan' : 'Terisi');
+            $statusSingkat = 'Terisi';
         } elseif ($isRuang && $rawStatus === 'kuning') {
             $status = 'kuning';
-            $statusLabel = 'Sebagian terisi';
+            $statusLabel = 'Sebagian Terisi';
+            $statusSingkat = 'Sebagian';
         } else {
             $status = 'kosong';
-            $statusLabel = 'Kosong';
+            $statusLabel = 'Tersedia';
+            $statusSingkat = 'Tersedia';
         }
+
+        // Aturan jenis sewa: Tersedia → semua jenis; Sebagian Terisi → hanya Per Jam; Terisi → tidak ada.
+        $bisaDipilih = $status === 'kosong' || ($status === 'kuning' && $kuningBisaDipilih);
 
         $classes = ['d-room', $tipe];
         if ($shape) $classes[] = $shape;
@@ -116,7 +127,7 @@
         // Bisa diklik kalau fasilitasnya nyata + ada tujuan link, dan:
         // - mode admin (clickable=false): tetap bisa diklik walau penuh, untuk melihat detail;
         // - mode pemesan (clickable=true): kosong & kuning bisa dipilih, hanya merah yang tidak.
-        $clickableThis = $isRuang && $kode && $f && $linkTemplate && (! $clickable || $status !== 'terisi');
+        $clickableThis = $isRuang && $kode && $f && $linkTemplate && (! $clickable || $bisaDipilih);
         if ($clickableThis) $classes[] = 'clickable';
 
         // Flex-grow: pakai `flex` kalau ada, atau `luas` (proporsional dengan luas),
@@ -126,12 +137,17 @@
         $href = $clickableThis ? str_replace('__ID__', (string) $f->id_fasilitas, $linkTemplate) : null;
         $harga = $f ? $hargaByFasilitas->get($f->id_fasilitas) : null;
         $hint = $clickable
-            ? ($status !== 'terisi' ? 'Klik untuk memilih' : null)
-            : ($linkTemplate && $f ? 'Klik untuk lihat detail' : null);
+            ? match (true) {
+                $status === 'kosong' => 'Klik untuk memilih',
+                $status === 'kuning' && $bisaDipilih => 'Klik untuk memilih — hanya jam yang masih kosong',
+                $status === 'kuning' => 'Hanya dapat dipesan per jam',
+                default => null,
+            }
+            : ($linkTemplate && $f ? 'Klik untuk melihat detail' : null);
 
         return [
             'classes' => $classes, 'label' => $label, 'luas' => $luas, 'status' => $status,
-            'statusLabel' => $statusLabel, 'clickableThis' => $clickableThis, 'href' => $href,
+            'statusLabel' => $statusLabel, 'statusSingkat' => $statusSingkat, 'clickableThis' => $clickableThis, 'href' => $href,
             'flexGrow' => $flexGrow, 'tipe' => $tipe, 'kode' => $kode, 'f' => $f, 'harga' => $harga, 'hint' => $hint,
         ];
     };
@@ -147,20 +163,26 @@
         // Sama seperti ruangan biasa: hanya hijau/kuning/merah, Tidak Aktif ikut masuk merah.
         if ($tidakAktifHall || $rawStatusHall === 'merah') {
             $statusHall = 'terisi';
-            $statusLabelHall = 'Penuh';
+            $statusLabelHall = $tidakAktifHall ? 'Tidak disewakan' : 'Terisi';
         } elseif ($rawStatusHall === 'kuning') {
             $statusHall = 'kuning';
-            $statusLabelHall = 'Sebagian terisi';
+            $statusLabelHall = 'Sebagian Terisi';
         } else {
             $statusHall = 'kosong';
-            $statusLabelHall = 'Kosong';
+            $statusLabelHall = 'Tersedia';
         }
 
-        $clickableHall = $kodeHall && $fHall && $linkTemplate && (! $clickable || $statusHall !== 'terisi');
+        $bisaDipilihHall = $statusHall === 'kosong' || ($statusHall === 'kuning' && $kuningBisaDipilih);
+        $clickableHall = $kodeHall && $fHall && $linkTemplate && (! $clickable || $bisaDipilihHall);
         $hargaHall = $fHall ? $hargaByFasilitas->get($fHall->id_fasilitas) : null;
         $hintHall = $clickable
-            ? ($statusHall !== 'terisi' ? 'Klik untuk memilih' : null)
-            : ($linkTemplate && $fHall ? 'Klik untuk lihat detail' : null);
+            ? match (true) {
+                $statusHall === 'kosong' => 'Klik untuk memilih',
+                $statusHall === 'kuning' && $bisaDipilihHall => 'Klik untuk memilih — hanya jam yang masih kosong',
+                $statusHall === 'kuning' => 'Hanya dapat dipesan per jam',
+                default => null,
+            }
+            : ($linkTemplate && $fHall ? 'Klik untuk melihat detail' : null);
 
         $hallInfo = [
             'kode' => $kodeHall,
@@ -485,7 +507,7 @@
                     data-hint="{{ $hallInfo['hint'] }}"
                 @endif
             >
-                <span class="dl-hall-status {{ $hallStatus }}">{{ strtoupper($hallStatus) }}</span>
+                <span class="dl-hall-status {{ $hallStatus }}">{{ strtoupper($hallInfo['statusLabel'] ?? 'Tersedia') }}</span>
 
                 <div class="dl-hall-panggung">{{ $hall['panggung'] ?? 'PANGGUNG' }}</div>
 
@@ -565,9 +587,9 @@
 
     {{-- Legenda --}}
     <div class="dl-legend">
-        <div class="dl-legend-item"><span class="dl-swatch sw-ruangan"></span> Ruangan Kosong</div>
+        <div class="dl-legend-item"><span class="dl-swatch sw-ruangan"></span> Tersedia</div>
         <div class="dl-legend-item"><span class="dl-swatch sw-kuning"></span> Sebagian Terisi</div>
-        <div class="dl-legend-item"><span class="dl-swatch sw-terisi"></span> Ruangan Penuh</div>
+        <div class="dl-legend-item"><span class="dl-swatch sw-terisi"></span> Terisi</div>
         <div class="dl-legend-item"><span class="dl-swatch sw-fasilitas"></span> Fasilitas Umum</div>
         <div class="dl-legend-item"><span class="dl-swatch sw-servis"></span> Area Servis</div>
     </div>
@@ -576,7 +598,7 @@
          ruangan sekaligus sebelum lanjut isi jadwal, sama seperti alur sebelumnya. --}}
     @if ($clickable)
         <div class="dl-select-bar">
-            <span class="fw-semibold small" data-count>0 fasilitas dipilih</span>
+            <span class="fw-semibold small" data-count>Belum ada fasilitas dipilih</span>
             <span class="dl-select-chips" data-chips></span>
             <a href="#" class="btn btn-brand btn-sm ms-auto disabled" data-go aria-disabled="true">
                 Lihat Detail <i class="bi bi-arrow-right"></i>
@@ -616,7 +638,7 @@
 
             const render = () => {
                 if (!barCount) return;
-                barCount.textContent = dipilih.size + ' fasilitas dipilih' + (dipilih.size ? ':' : '');
+                barCount.textContent = dipilih.size ? dipilih.size + ' fasilitas dipilih:' : 'Belum ada fasilitas dipilih';
                 barChips.innerHTML = '';
                 dipilih.forEach((v, id) => {
                     const a = document.createElement('a');
@@ -633,7 +655,8 @@
                     barGo.classList.remove('disabled');
                     barGo.removeAttribute('aria-disabled');
                     barGo.href = entries[0][1].href + (antrian.length ? '&antrian=' + antrian.join(',') : '');
-                    barGo.innerHTML = 'Lihat Detail' + (dipilih.size > 1 ? ' (' + dipilih.size + ' ruangan)' : '') + ' <i class="bi bi-arrow-right"></i>';
+                    barGo.innerHTML = 'Lihat Detail' + (dipilih.size > 1 ? ' (' + dipilih.size + ' fasilitas)' : '') + ' <i class="bi bi-arrow-right"></i>';
+
                 } else {
                     barGo.classList.add('disabled');
                     barGo.setAttribute('aria-disabled', 'true');

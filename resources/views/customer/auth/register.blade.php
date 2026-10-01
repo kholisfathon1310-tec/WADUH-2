@@ -96,6 +96,19 @@
             .reg-shell { height:auto; }
             .reg-form-panel { padding:2.25rem 1.75rem; overflow-y:visible; }
             .corner-toggle { position:static; margin:0 0 1rem; justify-content:flex-end; background:transparent; box-shadow:none; padding:0; }
+            /* Kartu bertumpuk vertikal di HP: pilihan peran di atas form, bukan kolom sempit di sampingnya. */
+            .login-shell, .reg-shell { flex-direction:column; }
+            .corner-toggle { align-self:stretch; margin:1rem 1.15rem 0; }
+        }
+        /* Badge peran di pojok kanan atas tidak boleh menimpa judul form pada layar lebar. */
+        @media (min-width: 768px) { .reg-form-panel { padding-top:3.5rem; } }
+        .catatan-salah { align-items:flex-start; line-height:1.4; }
+        .catatan-salah i { margin-top:.12rem; flex:none; }
+        @media (max-width: 575.98px) {
+            body { padding:.75rem; }
+            .login-shell, .reg-shell { border-radius:1.25rem; }
+            .login-form-panel, .reg-form-panel { padding:1.75rem 1.15rem 1.5rem; }
+            .login-form-head h2, .reg-head h2 { font-size:1.25rem; }
         }
     </style>
 </head>
@@ -109,12 +122,12 @@
         <div class="reg-visual">
             <div class="rv-grid"></div>
             <div>
-                <h1 class="rv-headline">Bergabung, kelola reservasi lebih mudah</h1>
-                <p class="rv-sub">Daftar sekali, riwayat reservasi Anda tersimpan dan bisa dipantau kapan saja.</p>
+                <h1 class="rv-headline">Daftar untuk mengelola reservasi Anda</h1>
+                <p class="rv-sub">Dengan satu akun, riwayat reservasi Anda tersimpan dan dapat dipantau kapan saja.</p>
                 <ul class="rv-points">
-                    <li><span class="ic"><i class="bi bi-clock-history"></i></span>Isi data sekali, pakai berulang</li>
-                    <li><span class="ic"><i class="bi bi-journal-check"></i></span>Riwayat reservasi tersimpan rapi</li>
-                    <li><span class="ic"><i class="bi bi-shield-check"></i></span>Data Anda aman &amp; terenkripsi</li>
+                    <li><span class="ic"><i class="bi bi-clock-history"></i></span>Data diri cukup diisi satu kali</li>
+                    <li><span class="ic"><i class="bi bi-journal-check"></i></span>Riwayat reservasi tersimpan</li>
+                    <li><span class="ic"><i class="bi bi-shield-check"></i></span>Kata sandi tersimpan terenkripsi</li>
                 </ul>
             </div>
         </div>
@@ -122,11 +135,12 @@
         <div class="reg-form-panel">
             <div class="reg-head">
                 <h2>Daftar sebagai Pemesan</h2>
-                <p>Buat akun untuk mulai memesan fasilitas BITC.</p>
+                <p>Buat akun untuk mengajukan reservasi fasilitas BITC.</p>
             </div>
 
-            @if ($errors->any())
-                <div class="alert alert-danger py-2 small"><ul class="mb-0 ps-3">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
+            @php $galatLain = collect($errors->getMessages())->except(['alamat', 'email', 'nama_lengkap', 'no_telepon', 'password', 'password_confirmation', 'pekerjaan', 'usia'])->flatten(); @endphp
+            @if ($galatLain->isNotEmpty())
+                <div class="alert alert-danger py-2 small mb-3" role="alert">{{ $galatLain->first() }}</div>
             @endif
 
             <form method="POST" action="{{ route('customer.register.attempt') }}">
@@ -135,46 +149,60 @@
                 <p class="reg-section-lbl"><i class="bi bi-person-vcard"></i>Identitas</p>
                 <div class="row">
                     <div class="col-md-8 mb-3">
-                        <label class="form-label">Nama lengkap</label>
+                        <label class="form-label">Nama Lengkap</label>
                         <input name="nama_lengkap" class="form-control" value="{{ old('nama_lengkap') }}" autocomplete="off" required>
+                        @error('nama_lengkap')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Usia</label>
                         <input type="number" name="usia" class="form-control" min="17" max="120" value="{{ old('usia') }}" autocomplete="off" required>
+                        @error('usia')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label">Pekerjaan</label>
                         <input name="pekerjaan" class="form-control" value="{{ old('pekerjaan') }}" autocomplete="off" required>
+                        @error('pekerjaan')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                 </div>
 
                 <p class="reg-section-lbl"><i class="bi bi-geo-alt"></i>Kontak</p>
                 <div class="row">
-                    <div class="col-md-7 mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" autocomplete="email" required>
+                    <div class="col-12 mb-3">
+                        <label class="form-label" for="regEmail">Email</label>
+                        <div class="otp-field pw-wrap">
+                            <input type="email" name="email" id="regEmail" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" autocomplete="email" required>
+                            @include('partials.otp-email-tombol', ['emailId' => 'regEmail'])
+                        </div>
+                        @error('email')<div class="catatan-salah otp-galat-email"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
+                        @include('partials.otp-email', [
+                            'emailId' => 'regEmail', 'url' => route('customer.register.otp'), 'urlVerifikasi' => route('customer.register.otp.verifikasi'),
+                            'status' => $otpStatus ?? null, 'terverifikasi' => $otpTerverifikasi ?? false,
+                        ])
                     </div>
-                    <div class="col-md-5 mb-3">
-                        <label class="form-label">No. telepon</label>
-                        <input name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" autocomplete="off" required>
+                    <div class="col-12 mb-3">
+                        <label class="form-label">No. Telepon</label>
+                        <input type="tel" name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" inputmode="numeric" pattern="\+?[0-9]{8,20}" autocomplete="off" required>
+                        @error('no_telepon')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label">Alamat</label>
                         <textarea name="alamat" class="form-control" rows="2" autocomplete="off" required>{{ old('alamat') }}</textarea>
+                        @error('alamat')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                 </div>
 
                 <p class="reg-section-lbl"><i class="bi bi-shield-lock"></i>Keamanan</p>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Kata sandi</label>
+                        <label class="form-label">Kata Sandi</label>
                         <div class="pw-wrap">
                             <input type="password" name="password" id="regPassword" class="form-control" minlength="8" autocomplete="new-password" required>
                             <button type="button" class="pw-eye" data-pw-toggle-for="regPassword" aria-label="Tampilkan/sembunyikan kata sandi"><i class="bi bi-eye"></i></button>
                         </div>
+                        @error('password')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Konfirmasi kata sandi</label>
+                        <label class="form-label">Konfirmasi Kata Sandi</label>
                         <div class="pw-wrap">
                             <input type="password" name="password_confirmation" id="regPasswordConf" class="form-control" minlength="8" autocomplete="new-password" required>
                             <button type="button" class="pw-eye" data-pw-toggle-for="regPasswordConf" aria-label="Tampilkan/sembunyikan kata sandi"><i class="bi bi-eye"></i></button>
@@ -192,7 +220,7 @@
     <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
     <script>
         @if (session('error'))
-            Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke, Mengerti' });
+            Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Mengerti' });
         @endif
 
         document.querySelectorAll('.pw-eye').forEach(btn => {
@@ -209,26 +237,67 @@
             });
         });
 
+        // Kolom masuk dibuat readonly saat halaman dimuat agar tidak diisi otomatis oleh peramban,
+        // lalu dilepas sesaat kemudian sehingga ketukan pertama langsung dapat dipakai mengetik.
+        document.querySelectorAll('[data-lepas-readonly]').forEach(el => {
+            const lepas = () => el.removeAttribute('readonly');
+            ['focus', 'pointerdown', 'touchstart'].forEach(ev => el.addEventListener(ev, lepas, { passive: true }));
+            setTimeout(lepas, 500);
+        });
+
+        // Validasi di sisi peramban: satu pesan per kolom, tepat di bawah kolomnya.
+        const labelKolom = el => (el.closest('.mb-3')?.querySelector('.form-label')?.textContent || 'Kolom ini').trim();
+        const pesanKolom = el => {
+            const v = el.validity, l = labelKolom(el);
+            if (v.valueMissing) return l + ' wajib diisi.';
+            if (v.typeMismatch || v.patternMismatch) return 'Format ' + l.toLowerCase() + ' tidak valid.';
+            if (v.tooShort) return l + ' minimal ' + el.minLength + ' karakter.';
+            if (v.rangeUnderflow) return l + ' minimal ' + el.min + '.';
+            if (v.rangeOverflow) return l + ' maksimal ' + el.max + '.';
+            return l + ' tidak valid.';
+        };
+        const wadahKolom = el => el.closest('.input-group, .pw-wrap') || el;
+        const hapusCatatan = el => {
+            el.classList.remove('is-salah');
+            let n = wadahKolom(el).nextElementSibling;
+            while (n && n.classList.contains('catatan-salah')) { const berikut = n.nextElementSibling; n.remove(); n = berikut; }
+        };
+        const tandaiKolom = (el, pesan) => {
+            hapusCatatan(el);
+            el.classList.add('is-salah');
+            const note = document.createElement('div');
+            note.className = 'catatan-salah';
+            note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i><span></span>';
+            note.querySelector('span').textContent = pesan;
+            wadahKolom(el).insertAdjacentElement('afterend', note);
+        };
         document.querySelectorAll('form').forEach(f => {
             f.setAttribute('novalidate', '');
             f.addEventListener('submit', e => {
-                const salah = [...f.querySelectorAll('input, textarea')].filter(el => ! el.checkValidity());
-                if (! salah.length) return;
+                if (f.dataset.mengirim === '1') { e.preventDefault(); return; }
+                const salah = [...f.querySelectorAll('input, textarea')]
+                    .filter(el => el.type !== 'hidden' && ! el.readOnly && ! el.checkValidity());
+                const sandi = f.querySelector('[name="password"]');
+                const konfirmasi = f.querySelector('[name="password_confirmation"]');
+                const tidakCocok = sandi && konfirmasi && ! salah.includes(konfirmasi) && sandi.value !== konfirmasi.value;
+                if (! salah.length && ! tidakCocok) {
+                    f.dataset.mengirim = '1';
+                    const tombol = f.querySelector('button.btn-login');
+                    if (tombol) { tombol.disabled = true; tombol.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Memproses…'; }
+                    return;
+                }
                 e.preventDefault();
-                salah.forEach(el => {
-                    el.classList.add('is-salah');
-                    el.parentElement.querySelector('.catatan-salah')?.remove();
-                    const note = document.createElement('div');
-                    note.className = 'catatan-salah';
-                    note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>' + (el.validity.valueMissing ? 'Kolom ini belum diisi.' : 'Format belum sesuai.');
-                    el.insertAdjacentElement('afterend', note);
-                });
-                salah[0].focus();
+                salah.forEach(el => tandaiKolom(el, pesanKolom(el)));
+                if (tidakCocok) tandaiKolom(konfirmasi, 'Konfirmasi kata sandi tidak cocok.');
+                (salah[0] || konfirmasi).focus();
             });
-            f.addEventListener('input', e => {
-                e.target.classList.remove('is-salah');
-                e.target.parentElement.querySelector('.catatan-salah')?.remove();
-            }, true);
+            f.addEventListener('input', e => hapusCatatan(e.target), true);
+        });
+        // Halaman dipulihkan dari riwayat peramban (tombol Kembali): buka kembali tombol kirim.
+        window.addEventListener('pageshow', e => {
+            if (! e.persisted) return;
+            document.querySelectorAll('form').forEach(f => { delete f.dataset.mengirim; });
+            document.querySelectorAll('button.btn-login[disabled]').forEach(b => window.location.reload());
         });
     </script>
 </body>

@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\BantuPemesan;
 use Tests\TestCase;
 
 /**
@@ -21,7 +22,7 @@ use Tests\TestCase;
  */
 class SkenarioLengkapTest extends TestCase
 {
-    use DatabaseTransactions;
+    use BantuPemesan, DatabaseTransactions;
 
     private function admin(): Admin
     {
@@ -41,25 +42,21 @@ class SkenarioLengkapTest extends TestCase
         return [$t->load('fasilitas', 'jenisSewa'), $f];
     }
 
-    private function dataDiri(array $override = []): array
-    {
-        return array_merge([
-            'nama_lengkap' => 'Rina Skenario', 'email' => 'rina.skenario@example.com',
-            'no_telepon' => '081234567890', 'usia' => 28, 'pekerjaan' => 'Wirausaha', 'alamat' => 'Jl. Skenario 1, Cimahi',
-        ], $override);
-    }
 
     public function test_perjalanan_lengkap_dua_ruangan_sampai_faktur_dan_laporan(): void
     {
         // ===== ROLE PEMESAN =====
         // 1. Halaman publik terbuka.
         $this->get('/')->assertOk()->assertSee('WADUH');
+        // Alur reservasi wajib login Pemesan.
+        $this->get('/reservasi')->assertRedirect(route('customer.login'));
+        $pemesan = $this->loginPemesan(['email' => 'rina.skenario@example.com']);
         $this->get('/reservasi')->assertOk();
 
         // 2. Pilih 2 ruangan dari denah (satu form untuk keduanya) → keranjang berisi 2.
         [$t1, $f1] = $this->ruang('Jam');
         [$t2, $f2] = $this->ruang('Jam');
-        $tgl = Carbon::today()->addDays(30)->toDateString();
+        $tgl = $this->hariKerja(30);
 
         $this->post('/reservasi/keranjang', [
             'id_fasilitas' => $f1->id_fasilitas, 'id_tarif_sewa' => $t1->id_tarif_sewa,
@@ -71,8 +68,8 @@ class SkenarioLengkapTest extends TestCase
         $this->get('/reservasi/checkout')->assertOk()->assertSee($f1->nama_fasilitas)->assertSee($f2->nama_fasilitas);
 
         // 3. Checkout sekali → 2 baris Reservasi, SATU kode reservasi simpel.
-        $this->post('/reservasi/checkout', $this->dataDiri())->assertRedirect(route('reservasi.sukses'));
-        $rows = Reservasi::where('id_pemesan', \App\Models\Pemesan::where('email', 'rina.skenario@example.com')->value('id_pemesan'))->get();
+        $this->post('/reservasi/checkout')->assertRedirect(route('customer.reservasi-saya.index'));
+        $rows = Reservasi::where('id_pemesan', $pemesan->id_pemesan)->get();
         $this->assertCount(2, $rows);
         $kode = $rows->first()->kode_transaksi;
         $this->assertMatchesRegularExpression('/^RSV-[A-Z2-9]{4}$/', $kode);
@@ -81,14 +78,17 @@ class SkenarioLengkapTest extends TestCase
         $this->assertEmpty(session('reservasi_cart', []), 'keranjang kosong setelah checkout');
 
         // 4. Cek status: tracker "Diverifikasi", tombol Batalkan tersedia.
-        $this->post('/cek-status', ['kode' => $kode])->assertOk()
+        $this->followingRedirects()->post('/cek-status', ['kode' => $kode])->assertOk()
             ->assertSee('Diverifikasi')->assertSee('Batalkan');
 
         // ===== ROLE ADMIN =====
         // 5. Login (kredensial salah dulu, lalu benar).
-        $this->post('/admin/login', ['email' => 'admin@waduh.test', 'password' => 'salah'])->assertRedirect();
+        // Kata sandi admin di-set di dalam transaksi tes (tidak bergantung pada data seeder).
+        $admin = $this->admin();
+        $admin->update(['password' => 'Rahasia123']);
+        $this->post('/admin/login', ['admin_email' => $admin->email, 'admin_password' => 'salah'])->assertRedirect();
         $this->assertFalse(auth()->guard('admin')->check());
-        $this->post('/admin/login', ['email' => 'admin@waduh.test', 'password' => 'password'])->assertRedirect(route('admin.dashboard'));
+        $this->post('/admin/login', ['admin_email' => $admin->email, 'admin_password' => 'Rahasia123'])->assertRedirect(route('admin.dashboard'));
 
         // 6. Dashboard & antrian menampilkan pemesanan ini; detail satu halaman untuk 2 ruangan.
         $this->get('/admin/dashboard')->assertOk();
@@ -124,22 +124,23 @@ class SkenarioLengkapTest extends TestCase
 
         // ===== KEMBALI KE PEMESAN =====
         // 10. Status kini Disetujui; pembatalan tidak lagi ditawarkan maupun diizinkan.
-        $this->post('/cek-status', ['kode' => $kode])->assertOk()->assertSee('Disetujui')->assertDontSee('>Batalkan<');
+        $this->followingRedirects()->post('/cek-status', ['kode' => $kode])->assertOk()->assertSee('Disetujui')->assertDontSee('>Batalkan<');
         $this->post('/reservasi/'.$rows->first()->kode_reservasi.'/batalkan')->assertRedirect();
         $this->assertSame('Disetujui', $rows->first()->fresh()->status_reservasi->value, 'yang sudah diputus tidak bisa dibatalkan');
     }
 
     public function test_alur_penolakan_dengan_alasan_tercatat(): void
     {
+        $pemesan = $this->loginPemesan();
         [$t, $f] = $this->ruang('Hari');
-        $tgl = Carbon::today()->addDays(31)->toDateString();
+        $tgl = $this->hariKerja(31);
         $this->post('/reservasi/keranjang', [
             'id_fasilitas' => $f->id_fasilitas, 'id_tarif_sewa' => $t->id_tarif_sewa,
             'tanggal_mulai' => $tgl, 'tanggal_selesai' => $tgl,
             'jumlah_pengguna' => 2, 'keperluan' => 'Uji tolak',
         ]);
-        $this->post('/reservasi/checkout', $this->dataDiri(['email' => 'tolak@example.com']));
-        $r = Reservasi::whereHas('pemesan', fn ($q) => $q->where('email', 'tolak@example.com'))->firstOrFail();
+        $this->post('/reservasi/checkout')->assertRedirect(route('customer.reservasi-saya.index'));
+        $r = Reservasi::where('id_pemesan', $pemesan->id_pemesan)->firstOrFail();
 
         $this->actingAs($this->admin(), 'admin');
 
@@ -153,20 +154,21 @@ class SkenarioLengkapTest extends TestCase
         $this->assertSame('Jadwal bentrok kegiatan internal', $r->riwayatStatus()->latest('id_riwayat')->value('keterangan'));
 
         // Pemesan melihat hasil penolakan.
-        $this->post('/cek-status', ['kode' => $r->kode_transaksi])->assertOk()->assertSee('Ditolak');
+        $this->followingRedirects()->post('/cek-status', ['kode' => $r->kode_transaksi])->assertOk()->assertSee('Ditolak');
     }
 
     public function test_alur_pembatalan_mandiri_pemesan(): void
     {
+        $pemesan = $this->loginPemesan();
         [$t, $f] = $this->ruang('Jam');
-        $tgl = Carbon::today()->addDays(32)->toDateString();
+        $tgl = $this->hariKerja(32);
         $this->post('/reservasi/keranjang', [
             'id_fasilitas' => $f->id_fasilitas, 'id_tarif_sewa' => $t->id_tarif_sewa,
             'tanggal_mulai' => $tgl, 'jam_mulai' => '13:00', 'jam_selesai' => '15:00',
             'jumlah_pengguna' => 2, 'keperluan' => 'Uji batal',
         ]);
-        $this->post('/reservasi/checkout', $this->dataDiri(['email' => 'batal@example.com']));
-        $r = Reservasi::whereHas('pemesan', fn ($q) => $q->where('email', 'batal@example.com'))->firstOrFail();
+        $this->post('/reservasi/checkout')->assertRedirect(route('customer.reservasi-saya.index'));
+        $r = Reservasi::where('id_pemesan', $pemesan->id_pemesan)->firstOrFail();
 
         $this->post('/reservasi/'.$r->kode_reservasi.'/batalkan')->assertRedirect();
 
@@ -180,24 +182,28 @@ class SkenarioLengkapTest extends TestCase
     public function test_alur_sewa_bulan_dokumen_wajib_valid_sebelum_disetujui(): void
     {
         Storage::fake('public');
+        $pemesan = $this->loginPemesan();
         [$t, $f] = $this->ruang('Bulan');
-        $mulai = Carbon::today()->addDays(33);
+        $mulai = Carbon::parse($this->hariKerja(33));
 
-        // Checkout Bulan tanpa dokumen ditolak; dengan dokumen diterima.
-        $isiKeranjang = fn () => $this->post('/reservasi/keranjang', [
+        // Dokumen persyaratan kini diunggah di form "Atur Jadwal" (bukan saat checkout):
+        // sewa Bulan tanpa dokumen ditolak; dengan dokumen masuk keranjang.
+        $isiKeranjang = fn (array $tambahan = []) => $this->post('/reservasi/keranjang', [
             'id_fasilitas' => $f->id_fasilitas, 'id_tarif_sewa' => $t->id_tarif_sewa,
             'tanggal_mulai' => $mulai->toDateString(), 'tanggal_selesai' => $mulai->copy()->addMonths(3)->toDateString(),
             'jumlah_pengguna' => 4, 'keperluan' => 'Kantor startup',
-        ]);
-        $isiKeranjang();
-        $this->post('/reservasi/checkout', $this->dataDiri(['email' => 'bulan@example.com']))
-            ->assertSessionHasErrors('dokumen');
+        ] + $tambahan);
+        $isiKeranjang()->assertSessionHasErrors('dokumen');
+        $this->assertEmpty(session('reservasi_cart', []));
 
-        $this->post('/reservasi/checkout', $this->dataDiri(['email' => 'bulan@example.com']) + [
-            'dokumen' => [UploadedFile::fake()->create('company-profile.pdf', 120, 'application/pdf')],
-        ])->assertRedirect(route('reservasi.sukses'));
+        $isiKeranjang(['dokumen' => [UploadedFile::fake()->create('company-profile.pdf', 120, 'application/pdf')]])
+            ->assertRedirect(route('reservasi.checkout.form'));
+        $this->post('/reservasi/checkout')->assertRedirect(route('customer.reservasi-saya.index'));
 
-        $r = Reservasi::whereHas('pemesan', fn ($q) => $q->where('email', 'bulan@example.com'))->firstOrFail();
+        $r = Reservasi::where('id_pemesan', $pemesan->id_pemesan)->firstOrFail();
+        $this->assertSame(3, $r->durasi);
+        $this->assertSame(300_000.0, (float) $r->total_biaya);
+
         $dok = $r->dokumenPersyaratan()->firstOrFail();
         $this->assertSame('Menunggu', $dok->status_verifikasi->value);
         Storage::disk('public')->assertExists($dok->lokasi_file);

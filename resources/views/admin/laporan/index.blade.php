@@ -2,26 +2,41 @@
 @section('title', 'Laporan Data Reservasi')
 
 @section('content')
-    <form method="GET" action="{{ route('admin.laporan') }}" class="xcard p-3 p-md-4 mb-4" data-filter-form data-reveal>
-        <div class="row g-2 g-md-3 align-items-end">
-            <div class="col-6 col-md-4">
-                <label class="form-label mb-1">Bulan</label>
-                <select name="bulan" class="form-select form-select-sm">
+    @include('admin.partials.filter-ui')
+    <style>
+        .wf-grid-laporan { grid-template-columns:repeat(2, minmax(0, 15rem)); }
+        @media (max-width: 575.98px) { .wf-grid-laporan { grid-template-columns:minmax(0, 1.35fr) minmax(0, 1fr); } }
+
+        @media (max-width: 359.98px) { .wf-grid-laporan { grid-template-columns:minmax(0, 1fr); } }
+    </style>
+
+    <form method="GET" action="{{ route('admin.laporan') }}" class="xcard wf-filter mb-4" data-filter-form data-reveal>
+        <div class="wf-filter-head">
+            <div class="wf-filter-title">
+                <span class="ic"><i class="bi bi-calendar-range"></i></span>
+                <div>Periode Laporan</div>
+            </div>
+            <div class="wf-filter-aksi">
+                <a href="{{ route('admin.laporan') }}" class="btn btn-brand-outline wf-btn" data-filter-reset><i class="bi bi-calendar-check"></i>Bulan Ini</a>
+            </div>
+        </div>
+
+        <div class="wf-filter-grid wf-grid-laporan">
+            <div class="wf-field">
+                <label class="wf-label" for="fBulan">Bulan</label>
+                <select id="fBulan" name="bulan" data-wf-select data-wf-netral data-ikon="bi-calendar3">
                     @foreach ($daftarBulan as $angka => $nama)
                         <option value="{{ $angka }}" @selected($bulan === $angka)>{{ $nama }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-6 col-md-4">
-                <label class="form-label mb-1">Tahun</label>
-                <select name="tahun" class="form-select form-select-sm">
+            <div class="wf-field">
+                <label class="wf-label" for="fTahun">Tahun</label>
+                <select id="fTahun" name="tahun" data-wf-select data-wf-netral data-ikon="bi-calendar4">
                     @foreach ($daftarTahun as $t)
                         <option value="{{ $t }}" @selected($tahun === $t)>{{ $t }}</option>
                     @endforeach
                 </select>
-            </div>
-            <div class="col-12 col-md-4">
-                <a href="{{ route('admin.laporan') }}" class="btn btn-brand-outline btn-sm w-100" data-filter-reset>Bulan Ini</a>
             </div>
         </div>
     </form>
@@ -39,8 +54,8 @@
             const btn = document.getElementById('btnSemua');
             const info = document.getElementById('infoBaris');
             if (btn) btn.innerHTML = semuaTampil
-                ? '<i class="bi bi-chevron-double-up me-1"></i>Tampilkan 10 Saja'
-                : '<i class="bi bi-chevron-double-down me-1"></i>Lihat Semua';
+                ? '<i class="bi bi-chevron-double-up me-1"></i>Tampilkan 10 Data'
+                : '<i class="bi bi-chevron-double-down me-1"></i>Tampilkan Semua';
             if (info) info.textContent = (semuaTampil ? 'seluruh ' : '10 dari ') + document.querySelectorAll('#hasil-laporan tbody tr:not(.fw-bold)').length + ' data';
         }
 
@@ -86,6 +101,7 @@
                 const now = new Date();
                 form.querySelector('[name="bulan"]').value = String(now.getMonth() + 1);
                 form.querySelector('[name="tahun"]').value = String(now.getFullYear());
+                form.querySelectorAll('select').forEach((el) => el.dispatchEvent(new Event('wf:sync')));
                 terapkan();
             });
         })();

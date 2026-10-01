@@ -241,6 +241,33 @@
 
     @media (max-width: 767.98px) { .db-cal-time-inner { min-width:44rem; } }
 
+    .db-cal-more { font-size:.58rem; color:var(--muted); font-weight:700; text-align:center; margin-top:.15rem; white-space:nowrap; }
+    .db-cal-wrap { scroll-margin-top:6.25rem; }
+
+    /* Layar kecil: sel tanggal hanya ±2rem lebarnya, nama ruangan tidak akan terbaca —
+       reservasi ditampilkan sebagai garis penanda, rinciannya lewat ketuk tanggal. */
+    @media (max-width: 575.98px) {
+        .db-cal-head { padding:.85rem .9rem; gap:.65rem; }
+        .db-cal-head-left { gap:.5rem; width:100%; justify-content:space-between; }
+        .db-cal-hari-ini { padding:.5rem .8rem; }
+        .db-cal-title { font-size:.92rem; padding:.2rem .3rem; }
+        .db-cal-view-switch { display:flex; width:100%; }
+        .db-cal-view-switch a { flex:1; text-align:center; padding:.45rem .5rem; }
+        .db-cal-grid { padding:.6rem .5rem .75rem; }
+        .db-cal-weekdays, .db-cal-days { gap:.2rem; }
+        .db-cal-weekday { font-size:.56rem; letter-spacing:.03em; }
+        .db-cal-day { min-height:3.6rem; padding:.3rem .1rem; align-items:center; border-radius:.5rem; }
+        .db-cal-day .dnum { margin-bottom:.2rem; }
+        .db-cal-events-month { width:100%; align-items:center; gap:.17rem; }
+        .db-cal-event-month { font-size:0; line-height:0; padding:0; width:68%; height:.28rem;
+            border:0 !important; border-radius:1rem; background:#2563eb !important; }
+        .db-cal-event-month::after, .db-cal-event-month::before { display:none !important; }
+        .db-cal-more { font-size:.52rem; margin-top:.05rem; }
+        .db-day-head { padding:1rem 1.1rem; }
+        .db-day-body { padding:1rem 1.1rem 1.2rem; }
+        .db-day-event { padding:.9rem .95rem; }
+    }
+
     /* ══════════════ FLOATING CARD (detail hari, muncul dekat tanggal yang diklik) ══════════════ */
     .db-floating-card { position:fixed; z-index:1080; width:25rem; max-width:calc(100vw - 1.5rem);
         background:#fff; border:1px solid var(--line); border-radius:1.4rem; overflow:hidden;
@@ -294,12 +321,12 @@
     // Admin) saat navigasi kalender — supaya klik panah kalender tidak me-reset kontrol lain.
     $calQ = request()->except(['view', 'tanggal', 'bulan']);
 @endphp
-<div class="xcard db-cal-wrap" data-reveal>
+<div class="xcard db-cal-wrap" id="kalender" data-reveal>
     <div class="db-cal-head">
         <div class="db-cal-head-left">
-            <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => $view])) }}" class="db-cal-hari-ini" data-tip="Kembali ke hari ini">Hari ini</a>
+            <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => $view])) }}#kalender" class="db-cal-hari-ini" data-tip="Kembali ke hari ini">Hari ini</a>
             <div class="db-cal-nav-group">
-                <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => $view, $paramNav => $navPrev])) }}" class="db-cal-nav-btn" data-tip="Sebelumnya">
+                <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => $view, $paramNav => $navPrev])) }}#kalender" class="db-cal-nav-btn" data-tip="Sebelumnya">
                     <i class="bi bi-chevron-left"></i>
                 </a>
                 {{-- Input tanggal asli DITUMPUK TRANSPARAN persis di atas label (bukan disembunyikan
@@ -311,17 +338,17 @@
                     <span class="db-cal-title">{{ $labelHeader }}</span>
                     <input type="date" id="dbCalDatePicker" class="db-cal-date-overlay" value="{{ $tanggalAcuan->toDateString() }}" aria-label="Pilih tanggal">
                 </div>
-                <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => $view, $paramNav => $navNext])) }}" class="db-cal-nav-btn" data-tip="Berikutnya">
+                <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => $view, $paramNav => $navNext])) }}#kalender" class="db-cal-nav-btn" data-tip="Berikutnya">
                     <i class="bi bi-chevron-right"></i>
                 </a>
             </div>
         </div>
         <div class="db-cal-view-switch">
-            <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => 'hari', 'tanggal' => $tanggalAcuan->toDateString()])) }}"
+            <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => 'hari', 'tanggal' => $tanggalAcuan->toDateString()])) }}#kalender"
                class="{{ $view === 'hari' ? 'active' : '' }}">Hari</a>
-            <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => 'minggu', 'tanggal' => $tanggalAcuan->toDateString()])) }}"
+            <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => 'minggu', 'tanggal' => $tanggalAcuan->toDateString()])) }}#kalender"
                class="{{ $view === 'minggu' ? 'active' : '' }}">Minggu</a>
-            <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => 'bulan', 'bulan' => $tanggalAcuan->format('Y-m')])) }}"
+            <a href="{{ route($routeDashboard, array_merge($calQ, ['view' => 'bulan', 'bulan' => $tanggalAcuan->format('Y-m')])) }}#kalender"
                class="{{ $view === 'bulan' ? 'active' : '' }}">Bulan</a>
         </div>
     </div>
@@ -370,9 +397,7 @@
                                     </span>
                                 @endforeach
                                 @if ($eventsHariItu->count() > 2)
-                                    <div style="font-size:.58rem; color:var(--muted); font-weight:700; text-align:center; margin-top:.15rem;">
-                                        +{{ $eventsHariItu->count() - 2 }} lagi
-                                    </div>
+                                    <div class="db-cal-more">+{{ $eventsHariItu->count() - 2 }} lagi</div>
                                 @endif
                             </div>
                         @endif
@@ -614,6 +639,7 @@
                 url.searchParams.set('view', @json($view));
                 url.searchParams.set('tanggal', picker.value);
             @endif
+            url.hash = 'kalender';
             window.location.href = url.toString();
         });
     })();

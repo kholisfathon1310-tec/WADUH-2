@@ -71,6 +71,17 @@
 
         @media (max-width: 767.98px) {
             .corner-toggle { position:static; margin:0 0 1rem; justify-content:flex-end; background:transparent; box-shadow:none; padding:0; }
+            /* Kartu bertumpuk vertikal di HP: pilihan peran di atas form, bukan kolom sempit di sampingnya. */
+            .login-shell, .reg-shell { flex-direction:column; }
+            .corner-toggle { align-self:stretch; margin:1rem 1.15rem 0; }
+        }
+        .catatan-salah { align-items:flex-start; line-height:1.4; }
+        .catatan-salah i { margin-top:.12rem; flex:none; }
+        @media (max-width: 575.98px) {
+            body { padding:.75rem; }
+            .login-shell, .reg-shell { border-radius:1.25rem; }
+            .login-form-panel, .reg-form-panel { padding:1.75rem 1.15rem 1.5rem; }
+            .login-form-head h2, .reg-head h2 { font-size:1.25rem; }
         }
     </style>
 </head>
@@ -84,10 +95,10 @@
         <div class="login-visual">
             <div class="lv-grid"></div>
             <div>
-                <h1 class="lv-headline">Reservasi fasilitas BITC jadi lebih mudah</h1>
-                <p class="lv-sub">Masuk untuk memesan ruangan, memantau status reservasi, dan mengelola profil Anda.</p>
+                <h1 class="lv-headline">Reservasi fasilitas BITC dalam satu sistem</h1>
+                <p class="lv-sub">Masuk untuk mengajukan reservasi, memantau status reservasi, dan mengelola profil Anda.</p>
                 <ul class="lv-points">
-                    <li><span class="ic"><i class="bi bi-grid-3x3-gap"></i></span>Jelajahi & pesan fasilitas</li>
+                    <li><span class="ic"><i class="bi bi-grid-3x3-gap"></i></span>Lihat dan reservasi fasilitas</li>
                     <li><span class="ic"><i class="bi bi-journal-check"></i></span>Pantau status reservasi Anda</li>
                     <li><span class="ic"><i class="bi bi-person-check"></i></span>Kelola profil & data diri</li>
                 </ul>
@@ -100,8 +111,9 @@
                 <p>Masukkan email dan kata sandi Anda untuk melanjutkan.</p>
             </div>
 
-            @if ($errors->any())
-                <div class="alert alert-danger py-2 small"><ul class="mb-0 ps-3">@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
+            @php $galatLain = collect($errors->getMessages())->except(['email', 'password'])->flatten(); @endphp
+            @if ($galatLain->isNotEmpty())
+                <div class="alert alert-danger py-2 small mb-3" role="alert">{{ $galatLain->first() }}</div>
             @endif
 
             {{-- Chrome/Edge SENGAJA MENGABAIKAN autocomplete="off" pada field login (username/
@@ -116,15 +128,17 @@
                     <label class="form-label">Email</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                        <input type="email" name="email" id="customerEmail" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" required autofocus>
+                        <input type="email" name="email" id="customerEmail" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" autocomplete="off" readonly data-lepas-readonly required autofocus>
                     </div>
+                    @error('email')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Kata Sandi</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
-                        <input type="password" name="password" id="customerPassword" class="form-control" placeholder="Masukkan kata sandi" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" required>
+                        <input type="password" name="password" id="customerPassword" class="form-control" placeholder="Masukkan kata sandi" autocomplete="off" readonly data-lepas-readonly required>
                     </div>
+                    @error('password')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="form-check mb-0">
@@ -144,36 +158,73 @@
     <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
     <script>
         @if (session('success'))
-            Swal.fire({ icon: 'success', title: 'Berhasil', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke' });
+            Swal.fire({ icon: 'success', title: 'Berhasil', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Tutup' });
         @endif
         @if (session('error'))
-            Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke, Mengerti' });
+            Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Mengerti' });
         @endif
 
+        // Kolom masuk dibuat readonly saat halaman dimuat agar tidak diisi otomatis oleh peramban,
+        // lalu dilepas sesaat kemudian sehingga ketukan pertama langsung dapat dipakai mengetik.
+        document.querySelectorAll('[data-lepas-readonly]').forEach(el => {
+            const lepas = () => el.removeAttribute('readonly');
+            ['focus', 'pointerdown', 'touchstart'].forEach(ev => el.addEventListener(ev, lepas, { passive: true }));
+            setTimeout(lepas, 500);
+        });
+
+        // Validasi di sisi peramban: satu pesan per kolom, tepat di bawah kolomnya.
+        const labelKolom = el => (el.closest('.mb-3')?.querySelector('.form-label')?.textContent || 'Kolom ini').trim();
+        const pesanKolom = el => {
+            const v = el.validity, l = labelKolom(el);
+            if (v.valueMissing) return l + ' wajib diisi.';
+            if (v.typeMismatch || v.patternMismatch) return 'Format ' + l.toLowerCase() + ' tidak valid.';
+            if (v.tooShort) return l + ' minimal ' + el.minLength + ' karakter.';
+            if (v.rangeUnderflow) return l + ' minimal ' + el.min + '.';
+            if (v.rangeOverflow) return l + ' maksimal ' + el.max + '.';
+            return l + ' tidak valid.';
+        };
+        const wadahKolom = el => el.closest('.input-group, .pw-wrap') || el;
+        const hapusCatatan = el => {
+            el.classList.remove('is-salah');
+            let n = wadahKolom(el).nextElementSibling;
+            while (n && n.classList.contains('catatan-salah')) { const berikut = n.nextElementSibling; n.remove(); n = berikut; }
+        };
+        const tandaiKolom = (el, pesan) => {
+            hapusCatatan(el);
+            el.classList.add('is-salah');
+            const note = document.createElement('div');
+            note.className = 'catatan-salah';
+            note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i><span></span>';
+            note.querySelector('span').textContent = pesan;
+            wadahKolom(el).insertAdjacentElement('afterend', note);
+        };
         document.querySelectorAll('form').forEach(f => {
             f.setAttribute('novalidate', '');
             f.addEventListener('submit', e => {
-                const salah = [...f.querySelectorAll('input')].filter(el => ! el.checkValidity());
-                if (! salah.length) return;
+                if (f.dataset.mengirim === '1') { e.preventDefault(); return; }
+                const salah = [...f.querySelectorAll('input, textarea')]
+                    .filter(el => el.type !== 'hidden' && ! el.readOnly && ! el.checkValidity());
+                const sandi = f.querySelector('[name="password"]');
+                const konfirmasi = f.querySelector('[name="password_confirmation"]');
+                const tidakCocok = sandi && konfirmasi && ! salah.includes(konfirmasi) && sandi.value !== konfirmasi.value;
+                if (! salah.length && ! tidakCocok) {
+                    f.dataset.mengirim = '1';
+                    const tombol = f.querySelector('button.btn-login');
+                    if (tombol) { tombol.disabled = true; tombol.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Memproses…'; }
+                    return;
+                }
                 e.preventDefault();
-                salah.forEach(el => {
-                    el.classList.add('is-salah');
-                    const grup = el.closest('.input-group') || el;
-                    grup.parentElement.querySelector('.catatan-salah')?.remove();
-                    const note = document.createElement('div');
-                    note.className = 'catatan-salah';
-                    note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>' +
-                        (el.validity.valueMissing
-                            ? (el.type === 'password' ? 'Kata sandi belum diisi.' : 'Email belum diisi.')
-                            : 'Format email belum benar.');
-                    grup.insertAdjacentElement('afterend', note);
-                });
-                salah[0].focus();
+                salah.forEach(el => tandaiKolom(el, pesanKolom(el)));
+                if (tidakCocok) tandaiKolom(konfirmasi, 'Konfirmasi kata sandi tidak cocok.');
+                (salah[0] || konfirmasi).focus();
             });
-            f.addEventListener('input', e => {
-                e.target.classList.remove('is-salah');
-                (e.target.closest('.input-group') || e.target).parentElement.querySelector('.catatan-salah')?.remove();
-            }, true);
+            f.addEventListener('input', e => hapusCatatan(e.target), true);
+        });
+        // Halaman dipulihkan dari riwayat peramban (tombol Kembali): buka kembali tombol kirim.
+        window.addEventListener('pageshow', e => {
+            if (! e.persisted) return;
+            document.querySelectorAll('form').forEach(f => { delete f.dataset.mengirim; });
+            document.querySelectorAll('button.btn-login[disabled]').forEach(b => window.location.reload());
         });
     </script>
 </body>

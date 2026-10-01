@@ -3,14 +3,11 @@
     $role = $role ?? 'Pemesan';
     $idPrefix = $idPrefix ?? 'BITC-P-';
     $idField = $idField ?? 'id_pemesan';
-    $active = $active ?? 'profil';
     $routes = $routes ?? [];
 
     // Belum ada fitur unggah foto profil — avatar selalu memakai inisial nama.
     $inisial = strtoupper(substr($user->nama_lengkap ?? '?', 0, 1));
 
-    $rutProfil = $routes['profil'] ?? null;
-    $rutPassword = $routes['password'] ?? null;
     $modalEdit = $routes['modal_edit'] ?? 'modalEditProfil';
     $modalPassword = $routes['modal_password'] ?? 'modalUbahPassword';
 
@@ -36,8 +33,14 @@
         background:radial-gradient(24rem 12rem at 15% -30%, rgba(255,255,255,.08), transparent 55%); }
 
     /* Tombol pojok kanan atas banner */
-    .pf-hero-actions { position:absolute; top:1.15rem; right:1.25rem; z-index:2;
-        display:flex; gap:.5rem; }
+    .pf-hero-actions { position:absolute; top:1.15rem; right:1.25rem; left:1.25rem; z-index:2;
+        display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.5rem; }
+    @media (max-width: 575.98px) {
+        .pf-hero-actions { top:.85rem; right:.85rem; left:.85rem; justify-content:center; }
+        .pf-pill { padding:.5rem .8rem; font-size:.74rem; }
+        .pf-hero-body { padding:0 1.1rem 1.25rem; }
+        .pf-name { font-size:1.35rem; }
+    }
     .pf-pill { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1rem;
         font-size:.78rem; font-weight:700; border-radius:.65rem; text-decoration:none;
         transition:transform .15s ease, box-shadow .15s ease; cursor:pointer; border:0; }
@@ -103,7 +106,7 @@
     /* ══════════════ INFO CARDS ══════════════ */
     .pf-info-grid { display:grid; gap:.85rem; margin-top:1.25rem; }
 
-    .pf-info-card { display:flex; align-items:center; gap:1rem;
+    .pf-info-card { display:flex; align-items:center; gap:1rem; min-width:0;
         padding:1.1rem 1.25rem; background:#fff;
         border:1px solid var(--line); border-radius:.95rem;
         transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
@@ -128,27 +131,15 @@
     {{-- Banner --}}
     <div class="pf-hero-banner">
         <div class="pf-hero-actions">
-            @if ($active === 'profil')
-                <button type="button" class="pf-pill pf-pill-dark"
-                        data-bs-toggle="modal" data-bs-target="#{{ $modalEdit }}">
-                    <i class="bi bi-pencil-fill"></i>Edit Profil
-                </button>
-                @if ($rutPassword)
-                    <a href="{{ route($rutPassword) }}" class="pf-pill pf-pill-light">
-                        <i class="bi bi-shield-lock-fill"></i>Ubah Kata Sandi
-                    </a>
-                @endif
-            @else
-                @if ($rutProfil)
-                    <a href="{{ route($rutProfil) }}" class="pf-pill pf-pill-dark">
-                        <i class="bi bi-pencil-fill"></i>Edit Profil
-                    </a>
-                @endif
-                <button type="button" class="pf-pill pf-pill-light"
-                        data-bs-toggle="modal" data-bs-target="#{{ $modalPassword }}">
-                    <i class="bi bi-shield-lock-fill"></i>Ubah Kata Sandi
-                </button>
-            @endif
+            {{-- Kedua tombol langsung membuka modalnya di halaman ini (satu klik). --}}
+            <button type="button" class="pf-pill pf-pill-dark"
+                    data-bs-toggle="modal" data-bs-target="#{{ $modalEdit }}">
+                <i class="bi bi-pencil-fill"></i>Edit Profil
+            </button>
+            <button type="button" class="pf-pill pf-pill-light"
+                    data-bs-toggle="modal" data-bs-target="#{{ $modalPassword }}">
+                <i class="bi bi-shield-lock-fill"></i>Ubah Kata Sandi
+            </button>
         </div>
     </div>
 

@@ -2,12 +2,6 @@
 @section('title', 'Profil')
 
 @section('content')
-    <div class="page-head mb-4" data-reveal>
-        <p class="eyebrow-sm mb-2">Area Admin</p>
-        <h1 class="h3 mb-1">Profil Saya</h1>
-        <p class="text-muted mb-0 lead">Kelola identitas dan keamanan akun Anda sebagai administrator BITC Cimahi.</p>
-    </div>
-
     <style>
         /* Judul halaman — layout admin belum punya .page-head/.eyebrow-sm (khusus Area Pemesan),
            jadi didefinisikan lokal di sini biar sama persis gayanya. */
@@ -30,7 +24,14 @@
             background:radial-gradient(24rem 12rem at 15% -30%, rgba(255,255,255,.1), transparent 55%);
             pointer-events:none; }
 
-        .pf-hero-actions { position:absolute; top:1.15rem; right:1.25rem; z-index:2; display:flex; gap:.5rem; }
+        .pf-hero-actions { position:absolute; top:1.15rem; right:1.25rem; left:1.25rem; z-index:2;
+            display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.5rem; }
+        @media (max-width: 575.98px) {
+            .pf-hero-actions { top:.85rem; right:.85rem; left:.85rem; justify-content:center; }
+            .pf-pill { padding:.5rem .8rem; font-size:.74rem; }
+            .pf-hero-body { padding:0 1.1rem 1.25rem; }
+            .pf-name { font-size:1.35rem; }
+        }
         .pf-pill { display:inline-flex; align-items:center; gap:.4rem; padding:.55rem 1rem;
             font-size:.78rem; font-weight:700; border-radius:.65rem; text-decoration:none;
             transition:transform .15s ease, box-shadow .15s ease; cursor:pointer; border:0; }
@@ -80,7 +81,7 @@
 
         /* ══════════════ INFO CARDS ══════════════ */
         .pf-info-grid { display:grid; gap:.85rem; margin-top:1.25rem; }
-        .pf-info-card { display:flex; align-items:center; gap:1rem;
+        .pf-info-card { display:flex; align-items:center; gap:1rem; min-width:0;
             padding:1.1rem 1.25rem; background:#fff;
             border:1px solid var(--line); border-radius:.95rem;
             transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
@@ -96,36 +97,6 @@
         .pf-info-val.pf-info-empty { color:var(--muted); font-style:italic; font-weight:500; }
         .pf-info-row { display:grid; grid-template-columns:repeat(2, 1fr); gap:.85rem; }
         @media (max-width: 575.98px) { .pf-info-row { grid-template-columns:1fr; } }
-
-        /* ══════ MODAL SHARED — Edit Profil & Ubah Kata Sandi ══════ */
-        .pf-modal, .pw-modal { border:1px solid var(--line); border-radius:1.25rem; overflow:hidden;
-            box-shadow:0 25px 50px -12px rgba(15,23,42,.25); }
-        .pf-modal-head, .pw-modal-head { display:flex; align-items:flex-start; justify-content:space-between;
-            gap:1rem; padding:1.25rem 1.5rem; border-bottom:1px solid var(--line-soft);
-            background:linear-gradient(135deg, var(--surface), #fff); }
-        .pf-modal-head-left, .pw-modal-head-left { display:flex; align-items:flex-start; gap:.85rem; min-width:0; }
-        .pf-modal-icon, .pw-modal-icon { display:grid; place-items:center; width:2.5rem; height:2.5rem;
-            border-radius:.75rem; background:linear-gradient(135deg, var(--primary-dark), var(--primary));
-            color:#fff; font-size:1.1rem; flex:none; box-shadow:0 6px 14px -3px rgba(15,90,110,.45); }
-        .pf-modal-title, .pw-modal-title { font-size:1.05rem; font-weight:800; color:var(--ink); margin:0;
-            display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; }
-        .pf-modal-tag { font-size:.58rem; font-weight:800; letter-spacing:.06em;
-            background:var(--primary-soft); color:var(--primary-dark);
-            padding:.15rem .5rem; border-radius:.35rem; border:1px solid var(--primary-softer); }
-        .pw-modal-tag { font-size:.58rem; font-weight:800; letter-spacing:.06em;
-            background:var(--emerald-soft); color:#047857;
-            padding:.15rem .5rem; border-radius:.35rem; border:1px solid #a7f3d0; }
-        .pf-modal-sub, .pw-modal-sub { font-size:.75rem; color:var(--muted); margin:.2rem 0 0; }
-        .pf-modal-body, .pw-modal-body { padding:1.35rem 1.5rem; }
-        .fl-input::-ms-reveal, .fl-input::-ms-clear { display:none; }
-
-        .pf-modal-foot, .pw-modal-foot { display:flex; align-items:center; justify-content:flex-end; gap:.55rem;
-            padding:1rem 1.5rem; border-top:1px solid var(--line-soft); background:var(--surface); }
-
-        @media (max-width: 575.98px) {
-            .pf-modal-head, .pf-modal-body, .pf-modal-foot,
-            .pw-modal-head, .pw-modal-body, .pw-modal-foot { padding-left:1.15rem; padding-right:1.15rem; }
-        }
     </style>
 
     {{-- Hero card --}}
@@ -207,9 +178,10 @@
         </div>
     </div>
 
-    {{-- ══════════════ MODAL EDIT PROFIL ══════════════ --}}
-    <div class="modal fade" id="modalEditProfil" tabindex="-1" aria-labelledby="modalEditProfilLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    {{-- ══════════════ MODAL EDIT PROFIL — satu kolom, berurutan dari atas ke bawah ══════════════ --}}
+    <div class="modal fade" id="modalEditProfil" tabindex="-1" data-bs-focus="false"
+         aria-labelledby="modalEditProfilLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content pf-modal">
                 <div class="pf-modal-head">
                     <div class="pf-modal-head-left">
@@ -218,44 +190,52 @@
                             <h5 class="pf-modal-title" id="modalEditProfilLabel">
                                 Edit Profil <span class="pf-modal-tag">IDENTITAS</span>
                             </h5>
-                            <p class="pf-modal-sub">Perbarui informasi identitas akun admin.</p>
+                            <p class="pf-modal-sub">Perbarui data identitas akun administrator.</p>
                         </div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
 
                 <form method="POST" action="{{ route('admin.profil.update') }}"
-                      data-confirm="Nama dan email akun akan diperbarui." data-confirm-title="Simpan perubahan profil?"
-                      data-icon="warning" data-confirm-text="Ya, simpan">
+                      data-confirm="Data profil Anda akan diperbarui." data-confirm-title="Simpan perubahan profil?"
+                      data-icon="question" data-confirm-text="Ya, simpan">
                     @csrf
                     @method('PUT')
                     <div class="pf-modal-body">
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="fl-field @error('nama_admin') is-invalid @enderror">
-                                    <input type="text" name="nama_admin" id="flNamaAdmin" class="fl-input" placeholder=" " value="{{ old('nama_admin', $me->nama_admin) }}" required>
+                                    <input type="text" name="nama_admin" id="flNamaAdmin" class="fl-input" placeholder=" " maxlength="255"
+                                           autocomplete="name" value="{{ old('nama_admin', $me->nama_admin) }}" required>
                                     <label for="flNamaAdmin"><span class="fl-label-txt">Nama</span></label>
                                 </div>
                                 @error('nama_admin') <div class="fl-err">{{ $message }}</div> @enderror
                             </div>
-                            <div class="col-md-6">
-                                <div class="fl-field @error('email') is-invalid @enderror">
-                                    <input type="email" name="email" id="flEmailAdmin" class="fl-input" placeholder=" " value="{{ old('email', $me->email) }}" required>
+                            <div class="col-12">
+                                <div class="fl-field otp-field @error('email') is-invalid @enderror">
+                                    <input type="email" name="email" id="flEmailAdmin" class="fl-input" placeholder=" " maxlength="255"
+                                           autocomplete="email" value="{{ old('email', $me->email) }}" required>
                                     <label for="flEmailAdmin"><span class="fl-label-txt">Email</span></label>
+                                    @include('partials.otp-email-tombol', ['emailId' => 'flEmailAdmin'])
                                 </div>
-                                @error('email') <div class="fl-err">{{ $message }}</div> @enderror
+                                @error('email') <div class="fl-err otp-galat-email">{{ $message }}</div> @enderror
+                                @include('partials.otp-email', [
+                                    'emailId' => 'flEmailAdmin', 'url' => route('admin.profil.otp'), 'urlVerifikasi' => route('admin.profil.otp.verifikasi'),
+                                    'emailAwal' => $me->email, 'status' => $otpStatus ?? null, 'terverifikasi' => $otpTerverifikasi ?? false,
+                                ])
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="fl-field @error('no_whatsapp') is-invalid @enderror">
-                                    <input type="tel" name="no_whatsapp" id="flWhatsappAdmin" class="fl-input" inputmode="numeric"
-                                           pattern="\+?[0-9]{8,20}" placeholder=" " value="{{ old('no_whatsapp', $me->no_whatsapp) }}" required>
+                                    <input type="tel" name="no_whatsapp" id="flWhatsappAdmin" class="fl-input" inputmode="numeric" maxlength="20"
+                                           pattern="\+?[0-9]{8,20}" placeholder=" " autocomplete="tel"
+                                           value="{{ old('no_whatsapp', $me->no_whatsapp) }}" required>
                                     <label for="flWhatsappAdmin"><span class="fl-label-txt">No. WhatsApp</span></label>
                                 </div>
                                 @error('no_whatsapp') <div class="fl-err">{{ $message }}</div> @enderror
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="fl-field @error('alamat') is-invalid @enderror">
-                                    <textarea name="alamat" id="flAlamatAdmin" class="fl-input" rows="1" placeholder=" " required>{{ old('alamat', $me->alamat) }}</textarea>
+                                    <textarea name="alamat" id="flAlamatAdmin" class="fl-input" rows="3" placeholder=" " maxlength="500" required>{{ old('alamat', $me->alamat) }}</textarea>
                                     <label for="flAlamatAdmin"><span class="fl-label-txt">Alamat</span></label>
                                 </div>
                                 @error('alamat') <div class="fl-err">{{ $message }}</div> @enderror
@@ -264,97 +244,32 @@
                     </div>
                     <div class="pf-modal-foot">
                         <button type="button" class="btn btn-brand-outline" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-brand"><i class="bi bi-check2 me-1"></i>Simpan Perubahan</button>
+                        <button type="submit" class="btn btn-brand"><i class="bi bi-check2-circle me-1"></i>Simpan Perubahan</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    {{-- ══════════════ MODAL UBAH PASSWORD ══════════════ --}}
-    <div class="modal fade" id="modalUbahPassword" tabindex="-1" aria-labelledby="modalUbahPasswordLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content pw-modal">
-                <div class="pw-modal-head">
-                    <div class="pw-modal-head-left">
-                        <span class="pw-modal-icon"><i class="bi bi-shield-lock-fill"></i></span>
-                        <div>
-                            <h5 class="pw-modal-title" id="modalUbahPasswordLabel">
-                                Ubah Kata Sandi <span class="pw-modal-tag">KEAMANAN</span>
-                            </h5>
-                            <p class="pw-modal-sub">Pastikan menggunakan minimal 8 karakter.</p>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-                </div>
+    {{-- ══════════════ MODAL UBAH KATA SANDI (bersama Pemesan) ══════════════ --}}
+    @include('customer.akun.partials.modal-ubah-sandi', [
+        'aksi'      => route('admin.profil.password'),
+        'kolomBaru' => 'password_baru',
+    ])
 
-                <form method="POST" action="{{ route('admin.profil.password') }}">
-                    @csrf
-                    @method('PUT')
-                    <div class="pw-modal-body">
-                        <div class="mb-3">
-                            <div class="fl-field fl-field-pw @error('password_lama') is-invalid @enderror" data-pw-toggle>
-                                <input type="password" name="password_lama" id="flPasswordLama" class="fl-input" placeholder=" " autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" required>
-                                <label for="flPasswordLama"><span class="fl-label-txt">Kata Sandi Lama</span></label>
-                                <button type="button" class="fl-eye-btn" data-pw-target data-tip="Tampilkan/sembunyikan"><i class="bi bi-eye"></i></button>
-                            </div>
-                            @error('password_lama') <div class="fl-err">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="mb-3">
-                            <div class="fl-field fl-field-pw @error('password_baru') is-invalid @enderror" data-pw-toggle>
-                                <input type="password" name="password_baru" id="flPasswordBaru" class="fl-input" placeholder=" " minlength="8" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" required>
-                                <label for="flPasswordBaru"><span class="fl-label-txt">Kata Sandi Baru</span></label>
-                                <button type="button" class="fl-eye-btn" data-pw-target data-tip="Tampilkan/sembunyikan"><i class="bi bi-eye"></i></button>
-                            </div>
-                            @error('password_baru') <div class="fl-err">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="mb-3">
-                            <div class="fl-field fl-field-pw" data-pw-toggle>
-                                <input type="password" name="password_baru_confirmation" id="flPasswordBaruConf" class="fl-input" placeholder=" " minlength="8" autocomplete="off" readonly onfocus="this.removeAttribute('readonly')" required>
-                                <label for="flPasswordBaruConf"><span class="fl-label-txt">Konfirmasi Kata Sandi Baru</span></label>
-                                <button type="button" class="fl-eye-btn" data-pw-target data-tip="Tampilkan/sembunyikan"><i class="bi bi-eye"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="pw-modal-foot">
-                        <button type="button" class="btn btn-brand-outline" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-brand"><i class="bi bi-shield-check me-1"></i>Ubah Kata Sandi</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Buka otomatis modal terkait kalau baru saja submit dengan error dari form itu.
-        // Ditunggu sampai DOMContentLoaded karena script ini letaknya SEBELUM
-        // <script src="bootstrap.bundle.min.js"> di layout (dirender di tengah @yield('content')),
-        // jadi objek `bootstrap` belum ada kalau dipanggil langsung di sini.
-        @if ($errors->has('nama_admin') || $errors->has('email') || $errors->has('no_whatsapp') || $errors->has('alamat'))
+    @php
+        // Modal dibuka kembali otomatis HANYA untuk galat miliknya sendiri.
+        $galatProfil = $errors->hasAny(['nama_admin', 'email', 'no_whatsapp', 'alamat']);
+        $galatSandi = $errors->hasAny(['password_lama', 'password_baru', 'password_baru_confirmation']);
+        $bukaModal = $galatSandi ? 'modalUbahPassword' : ($galatProfil ? 'modalEditProfil' : null);
+    @endphp
+    @if ($bukaModal)
+        {{-- Ditunggu sampai DOMContentLoaded karena skrip ini dirender SEBELUM berkas
+             bootstrap.bundle di layout, jadi objek `bootstrap` belum ada bila dipanggil langsung. --}}
+        <script>
             document.addEventListener('DOMContentLoaded', () => {
-                new bootstrap.Modal(document.getElementById('modalEditProfil')).show();
+                new bootstrap.Modal(document.getElementById(@json($bukaModal))).show();
             });
-        @endif
-        @if ($errors->has('password_lama') || $errors->has('password_baru'))
-            document.addEventListener('DOMContentLoaded', () => {
-                new bootstrap.Modal(document.getElementById('modalUbahPassword')).show();
-            });
-        @endif
-
-        // Toggle eye untuk semua input password di modal Ubah Kata Sandi.
-        document.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-pw-target]');
-            if (!btn) return;
-            const wrap = btn.closest('[data-pw-toggle]');
-            const input = wrap.querySelector('.fl-input');
-            const icon = btn.querySelector('i');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.replace('bi-eye', 'bi-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.replace('bi-eye-slash', 'bi-eye');
-            }
-        });
-    </script>
+        </script>
+    @endif
 @endsection

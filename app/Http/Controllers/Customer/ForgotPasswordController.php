@@ -23,7 +23,7 @@ class ForgotPasswordController extends Controller
             'email' => ['required', 'email'],
         ], [
             'email.required' => 'Email wajib diisi.',
-            'email.email'    => 'Format email belum benar.',
+            'email.email'    => 'Format email tidak valid.',
         ]);
 
         $status = Password::broker('pemesans')->sendResetLink(
@@ -31,7 +31,7 @@ class ForgotPasswordController extends Controller
         );
 
         return $status === Password::RESET_LINK_SENT
-            ? back()->with('success', 'Tautan ubah kata sandi sudah dikirim ke email Anda.')
+            ? back()->with('success', 'Tautan pengaturan ulang kata sandi telah dikirim ke email Anda.')
             : back()->withInput()->with('error', 'Email tidak terdaftar sebagai akun pemesan.');
     }
 
@@ -53,7 +53,7 @@ class ForgotPasswordController extends Controller
         ], [
             'token.required'       => 'Tautan tidak valid.',
             'email.required'       => 'Email wajib diisi.',
-            'email.email'          => 'Format email belum benar.',
+            'email.email'          => 'Format email tidak valid.',
             'password.required'    => 'Kata sandi baru wajib diisi.',
             'password.min'         => 'Kata sandi baru minimal 8 karakter.',
             'password.confirmed'   => 'Konfirmasi kata sandi baru tidak cocok.',
@@ -69,6 +69,6 @@ class ForgotPasswordController extends Controller
 
         return $status === Password::PASSWORD_RESET
             ? redirect()->route('customer.login')->with('success', 'Kata sandi berhasil diubah. Silakan masuk dengan kata sandi baru.')
-            : back()->withInput($request->only('email'))->with('error', 'Tautan sudah kedaluwarsa atau tidak valid. Silakan minta tautan baru.');
+            : back()->withInput($request->only('email'))->with('error', 'Tautan tidak valid atau sudah kedaluwarsa. Silakan ajukan tautan baru.');
     }
 }

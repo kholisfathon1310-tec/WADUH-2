@@ -2,7 +2,7 @@
 @section('title', 'Detail Fasilitas')
 
 @section('actions')
-    <a href="{{ route('admin.monitoring', ['lantai' => $fasilitas->id_lantai]) }}" class="btn btn-brand-outline btn-sm"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+    <a href="{{ route('admin.monitoring', ['lantai' => $fasilitas->id_lantai]) }}" class="btn btn-brand-outline btn-sm d-none d-md-inline-flex align-items-center"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
 @endsection
 
 @section('content')
@@ -49,6 +49,14 @@
 
         .df-empty { text-align:center; padding:3.2rem 1rem; color:var(--muted); }
         .df-empty i { font-size:1.8rem; opacity:.4; display:block; margin-bottom:.6rem; }
+
+        .df-keperluan { display:block; max-width:12rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        @media (max-width: 575.98px) {
+            .df-hero { height:170px; }
+            .df-hero-caption { flex-wrap:wrap; left:1rem; right:1rem; }
+            .df-table thead th, .df-table tbody td { padding:.65rem .75rem; }
+            .df-lightbox { padding:1rem; }
+        }
 
         .df-lightbox { position:fixed; inset:0; z-index:1080; background:rgba(10,20,35,.9); display:none; align-items:center; justify-content:center; padding:2rem; cursor:zoom-out; }
         .df-lightbox.show { display:flex; }
@@ -117,13 +125,13 @@
                     <div>
                         <span class="d-block"><i class="bi bi-calendar-week me-1"></i>Reservasi Aktif</span>
                         <span class="cell-sub">
-                            {{ $slot['tanggal_mulai'] }}@if($slot['tanggal_selesai'] !== $slot['tanggal_mulai']) &nbsp;s/d&nbsp; {{ $slot['tanggal_selesai'] }}@endif
+                            {{ \Illuminate\Support\Carbon::parse($slot['tanggal_mulai'])->translatedFormat('d F Y') }}@if($slot['tanggal_selesai'] !== $slot['tanggal_mulai']) s.d. {{ \Illuminate\Support\Carbon::parse($slot['tanggal_selesai'])->translatedFormat('d F Y') }}@endif
                         </span>
                     </div>
-                    <span class="d-flex gap-1">
+                    <span class="d-flex flex-wrap gap-1">
                         @if ($disetujui) <span class="df-pill success"><i class="bi bi-check-circle me-1"></i>{{ $disetujui }} disetujui</span> @endif
                         @if ($menunggu) <span class="df-pill warning"><i class="bi bi-hourglass-split me-1"></i>{{ $menunggu }} menunggu</span> @endif
-                        @if (! $disetujui && ! $menunggu) <span class="df-pill secondary">Tidak ada</span> @endif
+                        @if (! $disetujui && ! $menunggu) <span class="df-pill secondary">Tidak ada reservasi</span> @endif
                     </span>
                 </div>
 
@@ -145,15 +153,15 @@
                                 <td class="fw-bold" style="color:var(--primary)">{{ $r->kode_reservasi }}</td>
                                 <td class="small fw-semibold">{{ $r->pemesan->nama_lengkap }}</td>
                                 <td class="small">
-                                    {{ $r->tanggal_mulai->format('d/m/Y') }}
+                                    <span class="text-nowrap">{{ $r->tanggal_mulai->translatedFormat('d M Y') }}</span>
                                     @if($r->jam_mulai)
-                                        <span class="cell-sub d-block">{{ \Illuminate\Support\Str::substr($r->jam_mulai,0,5) }}–{{ \Illuminate\Support\Str::substr($r->jam_selesai,0,5) }}</span>
+                                        <span class="cell-sub d-block text-nowrap">{{ \Illuminate\Support\Str::substr($r->jam_mulai,0,5) }}–{{ \Illuminate\Support\Str::substr($r->jam_selesai,0,5) }} WIB</span>
                                     @elseif($r->tanggal_selesai->ne($r->tanggal_mulai))
-                                        <span class="cell-sub d-block">s/d {{ $r->tanggal_selesai->format('d/m/Y') }}</span>
+                                        <span class="cell-sub d-block text-nowrap">s.d. {{ $r->tanggal_selesai->translatedFormat('d M Y') }}</span>
                                     @endif
                                 </td>
-                                <td class="small">{{ $r->jumlah_pengguna }} orang</td>
-                                <td class="small text-truncate d-inline-block" style="max-width:12rem" title="{{ $r->keperluan }}">{{ $r->keperluan }}</td>
+                                <td class="small text-nowrap">{{ $r->jumlah_pengguna }} orang</td>
+                                <td class="small"><span class="df-keperluan" title="{{ $r->keperluan }}">{{ $r->keperluan }}</span></td>
                                 <td>
                                     <span class="df-pill {{ $r->status_reservasi->value === 'Disetujui' ? 'success' : 'warning' }}">{{ $r->status_reservasi->value }}</span>
                                 </td>
@@ -163,7 +171,7 @@
                                 <td colspan="6" class="border-0">
                                     <div class="df-empty">
                                         <i class="bi bi-calendar-x"></i>
-                                        Tidak ada reservasi aktif pada rentang ini.
+                                        Tidak ada reservasi aktif pada tanggal ini.
                                     </div>
                                 </td>
                             </tr>

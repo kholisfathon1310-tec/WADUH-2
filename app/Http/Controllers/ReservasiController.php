@@ -131,6 +131,13 @@ class ReservasiController extends Controller
             $f->id_fasilitas => $this->availability->statusFasilitas($f, $slot, $sessionId),
         ]);
 
+        // Per Hari / Per Bulan: ruangan yang sebagian terisi tidak dapat dipesan, jadi langsung
+        // ditandai Terisi (merah). Status Sebagian Terisi (kuning) hanya tampil pada Per Jam
+        // dan saat jenis sewa belum dipilih.
+        if ($jenis && $jenis->satuan !== SatuanSewa::Jam) {
+            $status = $status->map(fn (string $s) => $s === 'kuning' ? 'merah' : $s);
+        }
+
         // Filter interaktif: request AJAX cukup dibalas fragmen hasil, tanpa layout.
         if ($request->ajax()) {
             return view('reservasi.partials.denah-hasil', compact('kategori', 'jenis', 'lantai', 'fasilitas', 'status', 'slot'));
@@ -161,9 +168,6 @@ class ReservasiController extends Controller
 
         abort_if($semuaTarif->isEmpty(), 404, 'Belum ada tarif aktif untuk fasilitas ini.');
 
-        $jenisId = $request->integer('jenis');
-        $tarif = ($jenisId ? $semuaTarif->firstWhere('id_jenis_sewa', $jenisId) : null) ?? $semuaTarif->first();
-
         // Mode "Ubah" (dari Keranjang): kalau item di index tsb memang ruangan ini, kirim
         // datanya ke view untuk mengisi ulang form jadwal (lihat atur-jadwal-modal.blade.php).
         $editIndex = $request->filled('edit_index') ? (int) $request->input('edit_index') : null;
@@ -175,60 +179,238 @@ class ReservasiController extends Controller
             }
         }
 
-        // Rentang jam yang sudah terisi pada tanggal yang sedang ditampilkan (Per Jam saja) —
-        // dipakai jam-picker supaya jam yang bentrok tidak bisa diklik & langsung kelihatan
-        // terisi sampai jam berapa. Selanjutnya di-refresh via AJAX (lihat jamTerisi()) tiap
-        // pemesan mengganti tanggal di form, tanpa reload halaman.
-        $jamTerisi = [];
-        if ($tarif->jenisSewa->satuan === SatuanSewa::Jam) {
-            $tanggalAwal = $request->input('tanggal_mulai', $editItem['tanggal_mulai'] ?? Carbon::today()->toDateString());
-            $jamTerisi = $this->hitungJamTerisi($fasilitas->id_fasilitas, $tanggalAwal);
-        }
+        // Kondisi fasilitas (Tersedia / Sebagian Terisi / Terisi) pada tanggal acuan — dihitung
+        // dari jadwal reservasi tersimpan + hold keranjang session lain — menentukan jenis sewa
+        // mana yang masih dapat dipesan (lihat AvailabilityService::bisaDipesan()).
+        $sessionId = $request->session()->getId();
+        $tanggalAcuan = $this->tanggalValid($request->input('tanggal_mulai'), $editItem['tanggal_mulai'] ?? null);
+        // Multi-pilih dari denah (?antrian=id2,id3): satu jadwal berlaku untuk semua ruangan,
+        // jadi kondisi gabungannya = kondisi terburuk di antara ruangan terpilih.
+        $semuaRuangan = $this->ruanganDariRequest($request, $fasilitas);
+        $kondisiPerRuangan = $semuaRuangan->mapWithKeys(fn (Fasilitas $f) => [
+            $f->id_fasilitas => $this->kondisiFasilitas($f, $tanggalAcuan, $sessionId),
+        ]);
+        $kondisi = $this->gabungKondisi($kondisiPerRuangan->all(), $tanggalAcuan);
+
+        $tarifPerRuangan = TarifSewa::tersedia()
+            ->whereIn('id_fasilitas', $semuaRuangan->pluck('id_fasilitas'))
+            ->with('jenisSewa')
+            ->get()
+            ->groupBy('id_fasilitas');
+
+        $jenisId = $request->integer('jenis') ?: (int) ($editItem['id_jenis_sewa'] ?? 0);
+        $tarif = ($jenisId ? $semuaTarif->firstWhere('id_jenis_sewa', $jenisId) : null)
+            ?? $semuaTarif->first(fn (TarifSewa $t) => $kondisi['bisa'][$t->jenisSewa->satuan->value] ?? false)
+            ?? $semuaTarif->first();
 
         return view('reservasi.fasilitas', [
-            'fasilitas'  => $fasilitas->load('lantai'),
-            'tarif'      => $tarif,
-            'jenis'      => $tarif->jenisSewa,
-            'semuaTarif' => $semuaTarif,
-            'jamTerisi'  => $jamTerisi,
-            'pemesan'    => Auth::guard('customer')->user(),
-            'editItem'   => $editItem,
-            'editIndex'  => $editIndex,
+            'fasilitas'         => $fasilitas,
+            'semuaRuangan'      => $semuaRuangan,
+            'kondisiPerRuangan' => $kondisiPerRuangan,
+            'tarifPerRuangan'   => $tarifPerRuangan,
+            'tarif'             => $tarif,
+            'jenis'             => $tarif->jenisSewa,
+            'semuaTarif'        => $semuaTarif,
+            // Rentang jam terisi pada tanggal acuan — dipakai jam-picker supaya jam yang sudah
+            // terisi tidak bisa dipilih; di-refresh via AJAX tiap tanggal di form diganti.
+            'jamTerisi'         => $kondisi['jam_terisi'],
+            'kondisi'           => $kondisi,
+            'tanggalAcuan'      => $tanggalAcuan,
+            'pemesan'           => Auth::guard('customer')->user(),
+            'editItem'          => $editItem,
+            'editIndex'         => $editIndex,
         ]);
     }
 
     /**
-     * AJAX: rentang jam yang sudah terisi (Menunggu/Disetujui) untuk 1 fasilitas pada 1
-     * tanggal — dipanggil jam-picker (pilih-jam.blade.php) tiap tanggal di form diganti,
-     * supaya daftar jam yang bisa diklik selalu sesuai tanggal yang sedang dipilih.
+     * AJAX: rentang jam yang sudah terisi pada 1 tanggal (gabungan seluruh ruangan terpilih)
+     * — dipanggil jam-picker (pilih-jam.blade.php) tiap tanggal di form diganti.
      */
     public function jamTerisi(Request $request, Fasilitas $fasilitas): JsonResponse
     {
-        $tanggal = $request->input('tanggal');
+        $tanggal = $this->tanggalValid($request->input('tanggal'), null, false);
+        if (! $tanggal) {
+            return response()->json([]);
+        }
 
-        return response()->json($tanggal ? $this->hitungJamTerisi($fasilitas->id_fasilitas, $tanggal) : []);
+        $sessionId = $request->session()->getId();
+        $perRuangan = $this->ruanganDariRequest($request, $fasilitas)
+            ->map(fn (Fasilitas $f) => $this->kondisiFasilitas($f, $tanggal, $sessionId))
+            ->all();
+
+        return response()->json($this->gabungKondisi($perRuangan, $tanggal)['jam_terisi']);
+    }
+
+    /** Ruangan utama + ruangan antrian (multi-pilih denah, ?antrian=id2,id3) yang masih aktif. */
+    private function ruanganDariRequest(Request $request, Fasilitas $fasilitas): \Illuminate\Support\Collection
+    {
+        $fasilitas->loadMissing('lantai');
+        $idsLain = array_values(array_unique(array_filter(
+            array_map('intval', explode(',', (string) $request->input('antrian'))),
+            fn (int $id) => $id > 0 && $id !== $fasilitas->id_fasilitas,
+        )));
+
+        $lain = $idsLain
+            ? Fasilitas::with('lantai')
+                ->whereIn('id_fasilitas', $idsLain)
+                ->where('status_aktif', StatusAktif::Aktif->value)
+                ->orderBy('nama_fasilitas')
+                ->get()
+            : collect();
+
+        return collect([$fasilitas])->concat($lain)->values();
     }
 
     /**
-     * Rentang jam terisi (Menunggu/Disetujui) fasilitas pada tanggal tsb. Reservasi
-     * Harian/Bulanan (jam_mulai kosong) mengunci SELURUH jam operasional hari itu.
+     * Gabungkan kondisi beberapa ruangan menjadi satu: status terburuk, jenis sewa hanya
+     * dapat dipesan bila SEMUA ruangan mengizinkan, jam terisi = gabungan semua ruangan.
      *
-     * @return array<int, array{mulai: string, selesai: string}>
+     * @param  array<int, array>  $perRuangan
      */
-    private function hitungJamTerisi(int $fasilitasId, string $tanggal): array
+    private function gabungKondisi(array $perRuangan, string $tanggal): array
     {
-        return Reservasi::query()
-            ->whereHas('tarifSewa', fn ($q) => $q->where('id_fasilitas', $fasilitasId))
-            ->whereIn('status_reservasi', AvailabilityService::statusAktif())
-            ->whereDate('tanggal_mulai', '<=', $tanggal)
-            ->whereDate('tanggal_selesai', '>=', $tanggal)
-            ->get(['jam_mulai', 'jam_selesai'])
-            ->map(fn (Reservasi $r) => [
-                'mulai'   => $r->jam_mulai ? Str::substr($r->jam_mulai, 0, 5) : '00:00',
-                'selesai' => $r->jam_selesai ? Str::substr($r->jam_selesai, 0, 5) : '24:00',
-            ])
-            ->values()
-            ->all();
+        $urutan = ['hijau' => 0, 'kuning' => 1, 'merah' => 2];
+        $status = 'hijau';
+        $jam = [];
+        $bisa = [];
+
+        foreach ($perRuangan as $k) {
+            if ($urutan[$k['status']] > $urutan[$status]) {
+                $status = $k['status'];
+            }
+            $jam = array_merge($jam, $k['jam_terisi']);
+            foreach ($k['bisa'] as $satuan => $boleh) {
+                $bisa[$satuan] = ($bisa[$satuan] ?? true) && $boleh;
+            }
+        }
+
+        return [
+            'status'     => $status,
+            'label'      => AvailabilityService::labelStatus($status),
+            'tanggal'    => $tanggal,
+            'jam_terisi' => $this->availability->gabungRentangJam($jam),
+            'bisa'       => $bisa,
+        ];
+    }
+
+    /**
+     * AJAX: pengecekan jadwal SEBELUM form disimpan — kondisi fasilitas pada tanggal mulai,
+     * jenis sewa yang masih dapat dipesan, dan (kalau jadwalnya sudah lengkap) apakah jadwal
+     * itu bentrok beserta tanggal/jam penyebabnya. Validasi final tetap di tambahKeranjang().
+     */
+    public function cekJadwal(Request $request, Fasilitas $fasilitas): JsonResponse
+    {
+        $sessionId = $request->session()->getId();
+        $tanggalMulai = $this->tanggalValid($request->input('tanggal_mulai'), null, false);
+        if (! $tanggalMulai) {
+            return response()->json(['tersedia' => true, 'pesan' => [], 'kondisi' => null]);
+        }
+
+        $ruangan = $this->ruanganDariRequest($request, $fasilitas);
+        $kondisi = $this->gabungKondisi(
+            $ruangan->map(fn (Fasilitas $f) => $this->kondisiFasilitas($f, $tanggalMulai, $sessionId))->all(),
+            $tanggalMulai,
+        );
+        $satuan = SatuanSewa::tryFrom((string) $request->input('satuan'));
+        $editIndex = $request->filled('edit_index') ? (int) $request->input('edit_index') : null;
+
+        $slot = null;
+        if ($satuan === SatuanSewa::Jam) {
+            $jamMulai = (string) $request->input('jam_mulai');
+            $jamSelesai = (string) $request->input('jam_selesai');
+            if (preg_match('/^\d{2}:\d{2}$/', $jamMulai) && preg_match('/^\d{2}:\d{2}$/', $jamSelesai) && $jamSelesai > $jamMulai) {
+                $slot = ['tanggal_mulai' => $tanggalMulai, 'tanggal_selesai' => $tanggalMulai, 'jam_mulai' => $jamMulai, 'jam_selesai' => $jamSelesai];
+            }
+        } elseif ($satuan !== null) {
+            $tanggalSelesai = $this->tanggalValid($request->input('tanggal_selesai'), null, false);
+            if ($tanggalSelesai && $tanggalSelesai >= $tanggalMulai && Carbon::parse($tanggalMulai)->diffInDays($tanggalSelesai) <= 366 * 5) {
+                $slot = ['tanggal_mulai' => $tanggalMulai, 'tanggal_selesai' => $tanggalSelesai, 'jam_mulai' => null, 'jam_selesai' => null];
+            }
+        }
+
+        $pesan = [];
+        if ($slot) {
+            $multi = $ruangan->count() > 1;
+
+            foreach ($ruangan as $f) {
+                $galat = $this->galatJadwal($f->id_fasilitas, $slot, $sessionId, $editIndex);
+                if ($galat !== null) {
+                    $pesan[] = ($multi ? $f->nama_fasilitas.': ' : '').$galat;
+                }
+            }
+        }
+
+        // Jadwal belum lengkap, tetapi kondisi fasilitas pada tanggal mulai sudah menutup
+        // jenis sewa yang sedang dipilih — beri tahu lebih awal.
+        if ($pesan === [] && $satuan !== null && ! $kondisi['bisa'][$satuan->value]) {
+            $tanggal = Carbon::parse($tanggalMulai)->translatedFormat('l, j F Y');
+            $pesan[] = $kondisi['status'] === 'merah'
+                ? "Fasilitas sudah terisi penuh pada {$tanggal}. Silakan pilih tanggal lain."
+                : "Fasilitas sebagian terisi pada {$tanggal}, sehingga hanya dapat dipesan per jam pada jam yang masih kosong. Silakan pilih tanggal lain untuk sewa per ".strtolower($satuan->value).'.';
+        }
+
+        return response()->json([
+            'tersedia' => $pesan === [],
+            'pesan'    => $pesan,
+            'kondisi'  => $kondisi,
+        ]);
+    }
+
+    /**
+     * Kondisi fasilitas pada satu tanggal + jenis sewa yang masih dapat dipesan.
+     *
+     * @return array{status: string, label: string, tanggal: string, jam_terisi: array, bisa: array<string, bool>}
+     */
+    private function kondisiFasilitas(Fasilitas $fasilitas, string $tanggal, string $sessionId): array
+    {
+        $hari = $this->availability->kondisiHarian($fasilitas->id_fasilitas, $tanggal, $tanggal, $sessionId)[$tanggal];
+        $status = ['bebas' => 'hijau', 'sebagian' => 'kuning', 'penuh' => 'merah'][$hari['status']];
+
+        $bisa = [];
+        foreach (SatuanSewa::cases() as $satuan) {
+            $bisa[$satuan->value] = AvailabilityService::bisaDipesan($status, $satuan);
+        }
+
+        return [
+            'status'     => $status,
+            'label'      => AvailabilityService::labelStatus($status),
+            'tanggal'    => $tanggal,
+            // Terisi seharian (reservasi harian/bulanan) → seluruh jam operasional terkunci.
+            'jam_terisi' => $hari['status'] === 'penuh' && $hari['jam'] === []
+                ? [['mulai' => '00:00', 'selesai' => '24:00']]
+                : $hari['jam'],
+            'bisa'       => $bisa,
+        ];
+    }
+
+    /**
+     * Pesan bentrok untuk satu ruangan pada slot yang diminta (null = jadwal bebas): bentrok
+     * dengan item lain di keranjang sendiri, atau dengan jadwal tersimpan/hold session lain.
+     */
+    private function galatJadwal(int $fasilitasId, array $slot, string $sessionId, ?int $editIndex = null): ?string
+    {
+        if ($this->cart->hasConflict(['id_fasilitas' => $fasilitasId] + $slot, $this->availability, $editIndex)) {
+            return 'Fasilitas ini sudah ada di keranjang Anda dengan jadwal yang bertumpang-tindih.';
+        }
+
+        $detail = $this->availability->detailBentrok($fasilitasId, $slot, $sessionId);
+
+        return $detail['bentrok'] ? $this->availability->pesanBentrok($slot, $detail) : null;
+    }
+
+    /** Tanggal Y-m-d yang valid dari input bebas; selain itu pakai cadangan / hari ini. */
+    private function tanggalValid(mixed $nilai, ?string $cadangan = null, bool $defaultHariIni = true): ?string
+    {
+        foreach ([$nilai, $cadangan] as $kandidat) {
+            if (is_string($kandidat) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $kandidat)) {
+                [$y, $m, $d] = array_map('intval', explode('-', $kandidat));
+                if (checkdate($m, $d, $y)) {
+                    return $kandidat;
+                }
+            }
+        }
+
+        return $defaultHariIni ? Carbon::today()->toDateString() : null;
     }
 
     /**
@@ -276,14 +458,14 @@ class ReservasiController extends Controller
                 if ($editIndex !== null) {
                     if ($idsLain !== []) {
                         return back()->withInput()->withErrors([
-                            'edit_index' => 'Tidak bisa mengedit jadwal sambil menambah ruangan baru dari denah. Batalkan pilihan ruangan lain terlebih dahulu.',
+                            'edit_index' => 'Jadwal tidak dapat diubah bersamaan dengan penambahan fasilitas baru. Batalkan pilihan fasilitas lain terlebih dahulu.',
                         ]);
                     }
 
                     $existing = $this->cart->get($editIndex);
                     if (! $existing || (int) $existing['id_fasilitas'] !== (int) $tarifUtama->id_fasilitas) {
                         return back()->withInput()->withErrors([
-                            'edit_index' => 'Item yang ingin diubah tidak ditemukan, silakan coba lagi dari Keranjang.',
+                            'edit_index' => 'Item yang akan diubah tidak ditemukan. Silakan ulangi dari halaman Keranjang.',
                         ]);
                     }
                 }
@@ -300,7 +482,7 @@ class ReservasiController extends Controller
 
                     if (! $t) {
                         return back()->withInput()->withErrors([
-                            'antrian' => 'Salah satu ruangan yang dipilih sudah tidak tersedia untuk jenis sewa ini. Silakan pilih ulang di denah.',
+                            'antrian' => 'Salah satu fasilitas yang dipilih tidak tersedia untuk jenis sewa ini. Silakan pilih ulang melalui denah.',
                         ]);
                     }
                     $daftarTarif->push($t);
@@ -318,19 +500,21 @@ class ReservasiController extends Controller
                         'jam_selesai'     => $item['jam_selesai'],
                     ];
 
+                    $awalan = $daftarTarif->count() > 1 ? "{$t->fasilitas->nama_fasilitas}: " : '';
+
                     if ((int) $data['jumlah_pengguna'] > $t->fasilitas->kapasitas) {
-                        $galat[] = "{$t->fasilitas->nama_fasilitas}: kapasitas maksimal {$t->fasilitas->kapasitas} orang.";
-                    } elseif ($this->cart->hasConflict($item, $this->availability, $editIndex) || $this->bentrokDiBatch($items, $item)) {
-                        $galat[] = "{$t->fasilitas->nama_fasilitas}: ruangan ini sudah ada di keranjang dengan jadwal yang bentrok.";
-                    } elseif (! $this->availability->slotAvailable($item['id_fasilitas'], $slot, $sessionId)) {
-                        $galat[] = "{$t->fasilitas->nama_fasilitas}: jadwal tersebut baru saja terisi, pilih jadwal lain.";
+                        $galat[] = "{$awalan}Jumlah pengguna melebihi kapasitas maksimal fasilitas ({$t->fasilitas->kapasitas} orang).";
+                    } elseif ($this->bentrokDiBatch($items, $item)) {
+                        $galat[] = "{$awalan}Fasilitas ini dipilih lebih dari satu kali dengan jadwal yang sama.";
+                    } elseif (($pesan = $this->galatJadwal($item['id_fasilitas'], $slot, $sessionId, $editIndex)) !== null) {
+                        $galat[] = $awalan.$pesan;
                     } else {
                         $items[] = $item;
                     }
                 }
 
                 if ($galat !== []) {
-                    return back()->withInput()->withErrors($galat);
+                    return back()->withInput()->withErrors(['jadwal' => $galat]);
                 }
 
                 // Dokumen persyaratan Bulan — satu lampiran untuk seluruh keranjang, diproses
@@ -348,7 +532,7 @@ class ReservasiController extends Controller
 
                     $request->session()->save();
 
-                    return redirect()->route('reservasi.checkout.form')->with('success', "Jadwal \"{$items[0]['nama_fasilitas']}\" berhasil diperbarui.");
+                    return redirect()->route('reservasi.checkout.form')->with('success', "Jadwal {$items[0]['nama_fasilitas']} berhasil diperbarui.");
                 }
 
                 foreach ($items as $item) {
@@ -364,12 +548,12 @@ class ReservasiController extends Controller
                 $n = count($items);
 
                 return redirect()->route('reservasi.checkout.form')->with('success', $n > 1
-                    ? "{$n} ruangan ditambahkan ke keranjang dengan jadwal yang sama. 🎉"
-                    : "\"{$items[0]['nama_fasilitas']}\" ditambahkan ke keranjang.");
+                    ? "{$n} fasilitas berhasil ditambahkan ke keranjang dengan jadwal yang sama."
+                    : "{$items[0]['nama_fasilitas']} berhasil ditambahkan ke keranjang.");
             });
         } catch (LockTimeoutException) {
             return back()->withInput()->withErrors([
-                'antrian' => 'Keranjang Anda sedang diproses permintaan lain, coba lagi sesaat lagi.',
+                'antrian' => 'Keranjang Anda sedang memproses permintaan lain. Silakan coba kembali beberapa saat lagi.',
             ]);
         }
     }
@@ -407,10 +591,10 @@ class ReservasiController extends Controller
         // redirect lagi (keranjang kosong) dan menimpa pesan sukses ini — jadi arahkan
         // langsung ke katalog Fasilitas supaya pesan "item dihapus" benar-benar terlihat.
         if ($this->cart->isEmpty()) {
-            return redirect()->route('reservasi.index')->with('success', 'Item dihapus, keranjang Anda sekarang kosong.');
+            return redirect()->route('reservasi.index')->with('success', 'Item berhasil dihapus. Keranjang Anda kosong.');
         }
 
-        return back()->with('success', 'Item dihapus dari keranjang.');
+        return back()->with('success', 'Item berhasil dihapus dari keranjang.');
     }
 
     /** Kosongkan seluruh keranjang + lepas semua cache hold. */
@@ -445,13 +629,53 @@ class ReservasiController extends Controller
     public function checkout(CheckoutRequest $request): RedirectResponse
     {
         if ($this->cart->isEmpty()) {
-            return redirect()->route('reservasi.index')->with('error', 'Keranjang masih kosong.');
+            return redirect()->route('reservasi.index')->with('error', 'Keranjang Anda masih kosong. Pilih fasilitas terlebih dahulu.');
         }
 
         $items = $this->cart->items();
         $pemesan = Auth::guard('customer')->user();
+        $sessionId = $request->session()->getId();
 
-        $hasil = DB::transaction(function () use ($items, $pemesan) {
+        // Keranjang kini tersimpan lintas login, jadi itemnya bisa saja sudah melewati
+        // tanggal mulai saat akhirnya diajukan.
+        $hariIni = Carbon::today()->toDateString();
+        $lampau = array_filter($items, fn (array $i) => $i['tanggal_mulai'] < $hariIni);
+        if ($lampau !== []) {
+            return redirect()->route('reservasi.checkout.form')->withErrors(['jadwal' => array_map(
+                fn (array $i) => "{$i['nama_fasilitas']}: tanggal mulai ".Carbon::parse($i['tanggal_mulai'])->translatedFormat('j F Y')
+                    .' sudah lewat. Ubah jadwal atau hapus item ini dari keranjang.',
+                array_values($lampau),
+            )]);
+        }
+
+        $hasil = DB::transaction(function () use ($items, $pemesan, $sessionId) {
+            // 0. Cek ulang ketersediaan SEMUA item tepat sebelum disimpan — hold keranjang
+            //    hanya berlaku 15 menit, jadi jadwalnya bisa saja sudah diisi reservasi lain
+            //    sejak item dimasukkan ke keranjang. Baris tarif fasilitas dikunci dulu
+            //    (lockForUpdate) supaya dua checkout bersamaan untuk fasilitas yang sama
+            //    diproses bergantian, bukan sama-sama lolos.
+            TarifSewa::whereIn('id_fasilitas', array_unique(array_column($items, 'id_fasilitas')))
+                ->orderBy('id_tarif_sewa')
+                ->lockForUpdate()
+                ->get(['id_tarif_sewa']);
+
+            $galat = [];
+            foreach ($items as $item) {
+                $slot = [
+                    'tanggal_mulai'   => $item['tanggal_mulai'],
+                    'tanggal_selesai' => $item['tanggal_selesai'],
+                    'jam_mulai'       => $item['jam_mulai'],
+                    'jam_selesai'     => $item['jam_selesai'],
+                ];
+                $detail = $this->availability->detailBentrok($item['id_fasilitas'], $slot, $sessionId);
+                if ($detail['bentrok']) {
+                    $galat[] = "{$item['nama_fasilitas']}: ".$this->availability->pesanBentrok($slot, $detail);
+                }
+            }
+            if ($galat !== []) {
+                return ['galat' => $galat];
+            }
+
             // 1. SATU kode simpel per checkout (mis. RSV-7K3M) untuk seluruh ruangan.
             //    Baris ke-2 dst diberi suffix internal (-2, ...) karena kode_reservasi UNIQUE per baris,
             //    tapi kode yang ditampilkan ke pemesan tetap satu: kode dasar (= kode_transaksi).
@@ -496,6 +720,10 @@ class ReservasiController extends Controller
 
             return ['kode_transaksi' => $kodeDasar, 'kode_reservasi' => $kodeReservasi];
         });
+
+        if (isset($hasil['galat'])) {
+            return redirect()->route('reservasi.checkout.form')->withErrors(['jadwal' => $hasil['galat']]);
+        }
 
         // 4 & 5. Setelah commit: lepas semua cache hold, kosongkan keranjang. Dokumen TIDAK
         // dihapus dari storage (hapusFile=false) — path filenya sekarang jadi lokasi_file
@@ -544,7 +772,7 @@ class ReservasiController extends Controller
         $belumLewat = $reservasi->tanggal_mulai->startOfDay()->gte(Carbon::today());
 
         if (! $bolehStatus || ! $belumLewat) {
-            return redirect($kembaliKe)->with('error', 'Reservasi hanya dapat dibatalkan selama masih diverifikasi.');
+            return redirect($kembaliKe)->with('error', 'Reservasi hanya dapat dibatalkan selama masih menunggu verifikasi dan belum melewati tanggal mulai.');
         }
 
         // Observer otomatis mencatat Riwayat_Status (id_admin null = dibatalkan pemesan).
@@ -588,25 +816,34 @@ class ReservasiController extends Controller
     /** Bangun slot untuk pengecekan warna dari query, dengan default aman agar warna selalu tampil. */
     private function slotDariRequest(Request $request, ?SatuanSewa $satuan): array
     {
-        $today = Carbon::today()->toDateString();
-
         if ($satuan === SatuanSewa::Jam) {
+            $tanggal = $this->tanggalValid($request->input('tanggal_mulai'));
+
+            // Per Jam selalu dinilai terhadap SELURUH jam operasional (08.00–16.00) hari itu.
             return [
-                'tanggal_mulai'   => $request->input('tanggal_mulai', $today),
-                'tanggal_selesai' => $request->input('tanggal_mulai', $today),
-                'jam_mulai'       => $request->input('jam_mulai', '08:00'),
-                'jam_selesai'     => $request->input('jam_selesai', '16:00'), // jam operasional 08.00–16.00
+                'tanggal_mulai'   => $tanggal,
+                'tanggal_selesai' => $tanggal,
+                'jam_mulai'       => '08:00',
+                'jam_selesai'     => '16:00',
             ];
         }
 
-        $mulai = $request->input('tanggal_mulai', $today);
+
+        $mulai = $this->tanggalValid($request->input('tanggal_mulai'));
+        // Sewa Bulan: jendela default = durasi minimum (mis. 3 bulan) sejak tanggal mulai.
+        $minBulan = max(1, (int) JenisSewa::where('satuan', SatuanSewa::Bulan->value)->value('durasi_minimum'));
         $defaultSelesai = $satuan === SatuanSewa::Bulan
-            ? Carbon::parse($mulai)->addMonths(3)->toDateString()
+            ? Carbon::parse($mulai)->addMonthsNoOverflow($minBulan)->toDateString()
             : $mulai;
+        $selesai = $this->tanggalValid($request->input('tanggal_selesai'), $defaultSelesai);
+        // Rentang terbalik atau tak wajar panjangnya → kembali ke default.
+        if ($selesai < $mulai || Carbon::parse($mulai)->diffInDays($selesai) > 366 * 5) {
+            $selesai = $defaultSelesai;
+        }
 
         return [
             'tanggal_mulai'   => $mulai,
-            'tanggal_selesai' => $request->input('tanggal_selesai', $defaultSelesai),
+            'tanggal_selesai' => $selesai,
             'jam_mulai'       => null,
             'jam_selesai'     => null,
         ];

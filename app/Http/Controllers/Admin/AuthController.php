@@ -49,7 +49,7 @@ class AuthController extends Controller
         // akses halaman lain saat belum login (mis. link lama/tab lain), pemesan/admin bisa
         // "terlempar" ke halaman itu alih-alih dashboard begitu berhasil login, membingungkan.
         return redirect()->route('admin.dashboard')
-            ->with('success', "Selamat datang, {$nama}!");
+            ->with('success', "Selamat datang, {$nama}.");
     }
 
     public function logout(Request $request): RedirectResponse

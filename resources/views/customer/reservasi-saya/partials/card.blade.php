@@ -5,6 +5,7 @@
     $fasilitas = $r->tarifSewa->fasilitas ?? null;
     $statusVal = $r->status_reservasi->value;
     $statusLabel = $chipLabel[$statusVal] ?? $statusVal;
+    $satuanKartu = strtolower($r->tarifSewa->jenisSewa->satuan->value ?? '');
 @endphp
 <article class="xcard hover rs-card"
          data-rs-status="{{ $statusVal }}"
@@ -21,13 +22,17 @@
         <div class="meta">
             <span class="code"><i class="bi bi-upc"></i> #{{ $r->kode_reservasi }}</span>
             <span class="sep">•</span>
-            <span><i class="bi bi-calendar3"></i> {{ $r->tanggal_mulai->translatedFormat('d M Y') }}</span>
+            <span><i class="bi bi-calendar3"></i> {{ $r->tanggal_mulai->translatedFormat('d M Y') }}@if ($r->tanggal_selesai && $r->tanggal_selesai->ne($r->tanggal_mulai)) s.d. {{ $r->tanggal_selesai->translatedFormat('d M Y') }}@endif</span>
             <span class="sep">•</span>
             <span><i class="bi bi-building"></i> Lantai {{ $fasilitas->lantai->nomor_lantai ?? '—' }} @if($fasilitas?->kategori_fasilitas) - {{ $fasilitas->kategori_fasilitas }} @endif</span>
             @if ($r->jam_mulai && $r->jam_selesai)
                 <span class="sep">•</span>
-                <span><i class="bi bi-clock"></i> {{ substr($r->jam_mulai,0,5) }} - {{ substr($r->jam_selesai,0,5) }} WIB</span>
+                <span><i class="bi bi-clock"></i> {{ substr($r->jam_mulai,0,5) }}–{{ substr($r->jam_selesai,0,5) }} WIB</span>
             @endif
+            <span class="sep">•</span>
+            <span><i class="bi bi-hourglass-split"></i> {{ $r->durasi }} {{ $satuanKartu }}</span>
+            <span class="sep">•</span>
+            <span><i class="bi bi-people"></i> {{ $r->jumlah_pengguna }} orang</span>
         </div>
         @if ($r->keperluan)
             <div class="desc">{{ \Illuminate\Support\Str::limit($r->keperluan, 90) }}</div>
@@ -42,7 +47,7 @@
         <div class="actions">
             @if ($statusVal === 'Selesai')
                 <a href="{{ route('reservasi.index') }}" class="btn btn-sm btn-brand">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Pesan Lagi
+                    <i class="bi bi-arrow-clockwise me-1"></i>Reservasi Kembali
                 </a>
             @endif
             <a href="{{ route('customer.reservasi-saya.show', $r->kode_reservasi) }}" class="btn btn-sm btn-detail

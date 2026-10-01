@@ -34,7 +34,7 @@ class FakturController extends Controller
             ->get();
 
         if ($items->isEmpty()) {
-            return back()->with('error', 'Faktur hanya untuk reservasi berstatus Disetujui atau Selesai.');
+            return back()->with('error', 'Faktur hanya dapat diterbitkan untuk reservasi berstatus Disetujui atau Selesai.');
         }
 
         // Anchor = baris pertama transaksi; buat faktur sekali, selanjutnya pakai yang sama.
@@ -63,7 +63,7 @@ class FakturController extends Controller
             : null;
 
         if (! $faktur) {
-            return back()->with('error', 'Belum ada faktur untuk reservasi ini.');
+            return back()->with('error', 'Faktur untuk reservasi ini belum diterbitkan.');
         }
 
         return $this->pdf($faktur, $items);

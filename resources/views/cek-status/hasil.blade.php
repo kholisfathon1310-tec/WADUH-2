@@ -9,7 +9,7 @@
         'Selesai' => 'selesai', 'Dibatalkan' => 'dibatalkan', 'Kadaluwarsa' => 'kadaluwarsa',
     ];
     $chipLabel = [
-        'Menunggu' => 'Diverifikasi', 'Disetujui' => 'Disetujui', 'Ditolak' => 'Ditolak',
+        'Menunggu' => 'Menunggu Verifikasi', 'Disetujui' => 'Disetujui', 'Ditolak' => 'Ditolak',
         'Selesai' => 'Selesai', 'Dibatalkan' => 'Dibatalkan', 'Kadaluwarsa' => 'Kadaluwarsa',
     ];
 @endphp
@@ -87,6 +87,8 @@
     .rs-carousel .carousel-indicators .active { opacity:1; }
     .rs-carousel .carousel-control-prev, .rs-carousel .carousel-control-next { width:2.4rem; opacity:0; transition:opacity .15s ease; z-index:6; }
     .rs-carousel:hover .carousel-control-prev, .rs-carousel:hover .carousel-control-next { opacity:1; }
+    /* Layar sentuh tidak punya hover — kontrol galeri harus selalu terlihat. */
+    @media (hover: none) { .rs-carousel .carousel-control-prev, .rs-carousel .carousel-control-next { opacity:.9; } }
     .fp-zoomable { cursor:zoom-in; transition:filter .15s ease; }
     .fp-zoomable:hover { filter:brightness(.92); }
 
@@ -98,6 +100,8 @@
         display:inline-flex; align-items:center; gap:.3rem; }
     .rs-detail-info .kode-row .kode i { color:var(--soft); font-size:.9em; }
     .rs-detail-info .price-col { text-align:right; flex:none; }
+    .rs-detail-info h1 .chip { margin-left:.4rem; vertical-align:middle; }
+    .rs-detail-info .kode-row .kode { overflow-wrap:anywhere; }
     .rs-detail-info .price-col .lbl { font-size:.62rem; font-weight:800; letter-spacing:.08em;
         text-transform:uppercase; color:var(--soft); }
     .rs-detail-info .price-col .val { font-size:1.5rem; font-weight:800; color:var(--primary-dark);
@@ -106,11 +110,11 @@
 
     /* Tracker horizontal */
     .rs-tracker { display:flex; align-items:flex-start; margin:.75rem 0; padding:1rem 0; }
-    .rs-tstep { flex:1 1 0; text-align:center; position:relative; min-width:70px; }
+    .rs-tstep { flex:1 1 0; text-align:center; position:relative; min-width:0; }
     .rs-tstep .tdot { width:2.4rem; height:2.4rem; border-radius:50%; display:grid; place-items:center;
         margin:0 auto .4rem; background:#e6edf3; color:#8a97a5; font-size:1rem; position:relative; z-index:1;
         border:3px solid #fff; box-shadow:0 0 0 1px #e0e8ef; transition:all .25s ease; }
-    .rs-tstep .tlabel { font-size:.72rem; font-weight:800; color:#8a97a5; }
+    .rs-tstep .tlabel { font-size:.72rem; font-weight:800; color:#8a97a5; overflow-wrap:anywhere; padding:0 .15rem; }
     .rs-tstep::before { content:''; position:absolute; top:1.2rem; left:-50%; width:100%; height:3px; background:#e2e9f0; z-index:0; }
     .rs-tstep:first-child::before { display:none; }
     .rs-tstep.done .tdot { background:linear-gradient(135deg, var(--emerald), #10b981); color:#fff;
@@ -139,7 +143,8 @@
     /* ══════ KUITANSI ══════ */
     .rs-kuitansi { padding:1.5rem 1.75rem; border-top:1px solid var(--line-soft);
         background:linear-gradient(180deg, var(--surface), #fff); }
-    .rs-kuitansi-head { display:flex; align-items:flex-start; gap:.75rem; margin-bottom:1rem; }
+    .rs-kuitansi-head { display:flex; align-items:flex-start; gap:.75rem; margin-bottom:1rem; flex-wrap:wrap; }
+    .rs-kuitansi-head .body { flex:1 1 10rem; min-width:0; }
     .rs-kuitansi-head .ic { display:grid; place-items:center; width:2.65rem; height:2.65rem; border-radius:.75rem;
         background:linear-gradient(135deg, var(--primary-dark), var(--primary));
         color:#fff; font-size:1rem; flex:none; box-shadow:0 6px 14px -3px rgba(23,107,135,.45); }
@@ -179,6 +184,26 @@
     .rs-alasan-box.tolak { background:var(--rose-tint); border:1px solid #fecdd3; color:#9f1239; }
     .rs-alasan-box.batal { background:var(--surface-2); border:1px solid var(--line); color:#4a5568; }
     .rs-alasan-box.approved { background:var(--emerald-soft); border:1px solid #a7f3d0; color:#065f46; }
+
+    /* ══════ LAYAR KECIL ══════ */
+    @media (max-width: 575.98px) {
+        .rs-detail-img { min-height:12rem; }
+        .rs-detail-info, .rs-kuitansi { padding:1.1rem 1rem; }
+        .rs-detail-info h1 { font-size:1.25rem; }
+        .rs-detail-info h1 .chip { margin-left:0; margin-top:.35rem; }
+        .rs-detail-info .price-col { text-align:left; width:100%; }
+        .rs-detail-info .price-col .val { font-size:1.3rem; }
+        .rs-tracker { padding:.6rem 0; }
+        .rs-tstep .tdot { width:2rem; height:2rem; font-size:.85rem; }
+        .rs-tstep::before { top:1rem; }
+        .rs-tstep .tlabel { font-size:.62rem; }
+        .rs-kuitansi-head .side { margin-left:0; text-align:left; width:100%; }
+        .rs-total-row { padding:.9rem 1rem; }
+        .rs-total-row .val-t { font-size:1.25rem; }
+        .rs-actions > .btn, .rs-actions > form, .rs-actions > form .btn { width:100%; }
+        .rs-hero-stat { flex:1 1 7rem; min-width:0; }
+        .fp-lightbox { padding:1rem; }
+    }
 
     /* Riwayat timeline */
     .rs-hist-btn { background:none; border:0; color:var(--primary-dark);
@@ -220,9 +245,9 @@
         <div class="xcard p-5 text-center mx-auto" style="max-width:560px;">
             <div class="icon-tile mx-auto mb-3" style="background:#fff4d6; color:#9a6b00;"><i class="bi bi-search"></i></div>
             <h1 class="h5 mb-2">Kode <span style="color:var(--primary)">{{ $kode }}</span> tidak ditemukan</h1>
-            <p class="text-muted small mb-4">Pastikan kode diketik lengkap beserta awalannya, yaitu <strong>TRX-</strong> untuk satu pemesanan utuh atau <strong>RSV-</strong> untuk satu ruangan. Huruf besar dan huruf kecil tidak berpengaruh, namun tanda hubung harus ikut ditulis.</p>
+            <p class="text-muted small mb-4">Pastikan kode ditulis lengkap beserta awalan <strong>RSV-</strong>, contoh <strong>RSV-7K3M</strong>. Huruf besar dan huruf kecil tidak berpengaruh, namun tanda hubung harus ikut ditulis.</p>
             <div class="d-flex justify-content-center gap-2 flex-wrap">
-                <a href="{{ route('cek-status.form') }}" class="btn btn-brand px-4"><i class="bi bi-arrow-counterclockwise me-1"></i>Coba Lagi</a>
+                <a href="{{ route('cek-status.form') }}" class="btn btn-brand px-4"><i class="bi bi-arrow-counterclockwise me-1"></i>Cari Kembali</a>
                 <a href="{{ route('reservasi.index') }}" class="btn btn-brand-outline px-4">Buat Reservasi Baru</a>
             </div>
         </div>
@@ -247,14 +272,14 @@
                     <p class="mb-0 mt-2 small" style="color:#d3ecf1">
                         <i class="bi bi-person me-1"></i>{{ $pemesan->nama_lengkap }}
                         @if ($diajukanPada)
-                            <span class="mx-1">·</span><i class="bi bi-calendar-plus me-1"></i>diajukan {{ $diajukanPada->translatedFormat('d M Y H:i') }}
+                            <span class="mx-1">·</span><i class="bi bi-calendar-plus me-1"></i>Diajukan {{ $diajukanPada->translatedFormat('d F Y, H:i') }} WIB
                         @endif
                     </p>
                 </div>
                 <div class="rs-hero-stats">
                     <div class="rs-hero-stat text-center">
                         <div class="v">{{ $reservasi->count() }}</div>
-                        <div class="k">Ruang Dipesan</div>
+                        <div class="k">Ruangan Dipesan</div>
                     </div>
                     <div class="rs-hero-stat text-center">
                         <div class="v">Rp {{ number_format($totalSemua, 0, ',', '.') }}</div>
@@ -331,7 +356,7 @@
                         <div class="rs-detail-info-top">
                             <div style="min-width:0;">
                                 <h1>{{ $fs->nama_fasilitas }}
-                                    <span class="chip {{ $chipClass[$status] ?? '' }}" style="margin-left:.4rem; vertical-align:middle;">{{ $labelStatus }}</span>
+                                    <span class="chip {{ $chipClass[$status] ?? '' }}">{{ $labelStatus }}</span>
                                 </h1>
                                 <div class="kode-row">
                                     <span class="kode"><i class="bi bi-upc"></i>{{ $r->kode_reservasi }}</span>
@@ -362,8 +387,8 @@
                         <div class="rs-meta-chips">
                             <span class="rs-meta-chip">
                                 <i class="bi bi-calendar3"></i>
-                                {{ $r->tanggal_mulai->translatedFormat('d M Y') }}
-                                @if($r->tanggal_selesai->ne($r->tanggal_mulai)) → {{ $r->tanggal_selesai->translatedFormat('d M Y') }}@endif
+                                {{ $r->tanggal_mulai->translatedFormat('d F Y') }}
+                                @if($r->tanggal_selesai->ne($r->tanggal_mulai)) s.d. {{ $r->tanggal_selesai->translatedFormat('d F Y') }}@endif
                             </span>
                             @if ($r->jam_mulai)
                                 <span class="rs-meta-chip">
@@ -371,7 +396,8 @@
                                     {{ Str::substr($r->jam_mulai,0,5) }}–{{ Str::substr($r->jam_selesai,0,5) }} WIB
                                 </span>
                             @endif
-                            <span class="rs-meta-chip"><i class="bi bi-tag"></i>Per {{ $satuanNama }}</span>
+                            <span class="rs-meta-chip"><i class="bi bi-tag"></i>Sewa per {{ strtolower($satuanNama) }}</span>
+                            <span class="rs-meta-chip"><i class="bi bi-hourglass-split"></i>Durasi {{ $r->durasi }} {{ strtolower($satuanNama) }}</span>
                             @if ($r->jumlah_pengguna)
                                 <span class="rs-meta-chip"><i class="bi bi-people"></i>{{ $r->jumlah_pengguna }} orang</span>
                             @endif
@@ -391,12 +417,12 @@
                         @elseif ($status === 'Kadaluwarsa')
                             <div class="rs-alasan-box tolak">
                                 <i class="bi bi-clock-history flex-shrink-0 mt-1"></i>
-                                <div>Reservasi ini kadaluwarsa karena belum diproses admin hingga melewati waktu penggunaan yang diajukan.</div>
+                                <div>Reservasi ini kedaluwarsa karena belum diproses hingga melewati jadwal pemakaian.</div>
                             </div>
                         @elseif ($status === 'Disetujui' && $r->tanggal_diproses)
                             <div class="rs-alasan-box approved">
                                 <i class="bi bi-patch-check-fill flex-shrink-0 mt-1"></i>
-                                <div>Disetujui pada {{ $r->tanggal_diproses->translatedFormat('d M Y H:i') }}. Tunjukkan kode reservasi Anda saat datang.</div>
+                                <div>Disetujui pada {{ $r->tanggal_diproses->translatedFormat('d M Y H:i') }}. Mohon tunjukkan kode reservasi saat kedatangan.</div>
                             </div>
                         @endif
                     </div>
@@ -434,8 +460,8 @@
                             <span class="val-t">Rp {{ number_format($r->total_biaya, 0, ',', '.') }}</span>
                         </div>
                         <span class="chip-t">
-                            <i class="bi bi-check-circle-fill"></i>
-                            {{ in_array($status, ['Disetujui','Selesai']) ? 'Lunas & Terbayar' : 'Menunggu Verifikasi' }}
+                            <i class="bi {{ in_array($status, ['Disetujui','Selesai']) ? 'bi-check-circle-fill' : 'bi-info-circle-fill' }}"></i>
+                            {{ $labelStatus }}
                         </span>
                     </div>
 
@@ -457,7 +483,7 @@
 
                     {{-- Aksi bawah --}}
                     <div class="rs-actions">
-                        @if ($status !== 'Dibatalkan')
+                        @if ($r->buktiTersedia())
                             <a href="{{ route('cek-status.bukti-reservasi', $r->kode_reservasi) }}" class="btn btn-brand">
                                 <i class="bi bi-file-earmark-arrow-down me-1"></i>Unduh Bukti Reservasi
                             </a>
@@ -493,7 +519,7 @@
                                         $liClass = $sb === 'Ditolak' ? 'merah' : (in_array($sb, ['Disetujui', 'Selesai'], true) ? 'hijau' : '');
                                     @endphp
                                     <li class="{{ $liClass }}">
-                                        <div class="fw-semibold small">{{ $sb === 'Menunggu' ? 'Diverifikasi' : $sb }}</div>
+                                        <div class="fw-semibold small">{{ $sb === 'Menunggu' ? 'Menunggu Verifikasi' : $sb }}</div>
                                         @if ($h->keterangan)<div class="small text-muted">{{ $h->keterangan }}</div>@endif
                                         <div class="tgl">{{ $h->tanggal_perubahan?->translatedFormat('d M Y H:i') }}</div>
                                     </li>

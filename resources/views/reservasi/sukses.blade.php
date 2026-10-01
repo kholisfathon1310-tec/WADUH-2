@@ -14,24 +14,24 @@
         .sukses-next .tx b { font-family:'Plus Jakarta Sans',sans-serif; font-size:.86rem; color:var(--ink); display:block; }
         .sukses-next .tx span { font-size:.78rem; color:var(--muted); }
     </style>
-    <div class="xcard mx-auto text-center p-5" style="max-width:640px;" data-reveal>
+    <div class="xcard mx-auto text-center p-4 p-md-5" style="max-width:640px;" data-reveal>
         <div class="sukses-ic mx-auto mb-3" style="width:5.2rem;height:5.2rem;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#e2f7ef,#d4f2e5);color:#0d8a5f;font-size:2.5rem;">
             <i class="bi bi-check-lg"></i>
         </div>
         <p class="eyebrow-sm mb-1 text-center" style="justify-content:center">Konfirmasi Reservasi</p>
         <h1 class="h4 mb-2">Reservasi Berhasil Diajukan</h1>
-        <p class="text-muted">Status awal <span class="badge text-bg-warning">Menunggu</span> persetujuan admin. Simpan kode berikut untuk mengecek status kapan saja.</p>
+        <p class="text-muted">Reservasi berstatus <span class="badge text-bg-warning">Menunggu Verifikasi</span>. Simpan kode berikut untuk mengecek status reservasi.</p>
 
         <div class="sukses-kode p-4 rounded-4 my-3" style="background:var(--surface); border:1.5px dashed #b8cad5;">
             <span class="text-muted small d-block mb-1">Kode Reservasi Anda</span>
             <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-1">
-                <div class="display-6 fw-bold mb-0" style="color:var(--primary); letter-spacing:.08em;">{{ $checkout['kode_transaksi'] }}</div>
+                <div class="fw-bold mb-0" style="color:var(--primary); letter-spacing:.08em; font-size:clamp(1.5rem, 7vw, 2.5rem); line-height:1.2;">{{ $checkout['kode_transaksi'] }}</div>
                 <button type="button" class="btn btn-sm btn-brand-outline" data-salin="{{ $checkout['kode_transaksi'] }}">
                     <i class="bi bi-clipboard me-1"></i>Salin
                 </button>
             </div>
             @if (count($checkout['kode_reservasi']) > 1)
-                <span class="text-muted small">Satu kode untuk {{ count($checkout['kode_reservasi']) }} ruangan yang Anda pesan.</span>
+                <span class="text-muted small">Kode ini berlaku untuk {{ count($checkout['kode_reservasi']) }} ruangan yang Anda reservasi.</span>
             @endif
         </div>
 
@@ -39,22 +39,22 @@
             <div class="sukses-next">
                 <div class="item">
                     <span class="num">1</span>
-                    <div class="tx"><b>Menunggu verifikasi admin</b><span>Admin BITC akan memeriksa jadwal &amp; kelengkapan data Anda.</span></div>
+                    <div class="tx"><b>Menunggu verifikasi admin</b><span>Admin BITC akan memeriksa jadwal dan kelengkapan data Anda.</span></div>
                 </div>
                 <div class="item">
                     <span class="num">2</span>
-                    <div class="tx"><b>Pantau status di Reservasi Saya</b><span>Status berubah menjadi Disetujui / Ditolak setelah diproses.</span></div>
+                    <div class="tx"><b>Pantau status di Reservasi Saya</b><span>Status berubah menjadi Disetujui atau Ditolak setelah diproses.</span></div>
                 </div>
                 <div class="item">
                     <span class="num">3</span>
-                    <div class="tx"><b>Gunakan ruangan sesuai jadwal</b><span>Datang sesuai tanggal &amp; jam yang telah disetujui.</span></div>
+                    <div class="tx"><b>Gunakan ruangan sesuai jadwal</b><span>Hadir sesuai tanggal dan jam yang telah disetujui.</span></div>
                 </div>
             </div>
         </div>
 
         <div class="d-flex flex-wrap justify-content-center gap-2">
             <a href="{{ route('customer.reservasi-saya.index') }}" class="btn btn-brand px-4"><i class="bi bi-journal-check me-1"></i>Reservasi Saya</a>
-            <a href="{{ route('reservasi.index') }}" class="btn btn-brand-outline px-4">Reservasi Lagi</a>
+            <a href="{{ route('reservasi.index') }}" class="btn btn-brand-outline px-4">Buat Reservasi Baru</a>
         </div>
     </div>
 @endsection

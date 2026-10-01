@@ -10,17 +10,41 @@ use Illuminate\Support\Carbon;
  */
 class KalenderReservasi
 {
+    /** Parameter bulan "Y-m" dari query string; null bila kosong atau tidak valid. */
+    public static function parseBulan(mixed $nilai): ?Carbon
+    {
+        if (! is_string($nilai) || ! preg_match('/^(\d{4})-(0[1-9]|1[0-2])$/', $nilai, $m)) {
+            return null;
+        }
+        if ((int) $m[1] < 2000 || (int) $m[1] > 2100) {
+            return null;
+        }
+
+        return Carbon::create((int) $m[1], (int) $m[2], 1)->startOfDay();
+    }
+
+    /** Parameter tanggal "Y-m-d" dari query string; null bila kosong atau tidak valid. */
+    public static function parseTanggal(mixed $nilai): ?Carbon
+    {
+        if (! is_string($nilai) || ! preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $nilai, $m)) {
+            return null;
+        }
+        if ((int) $m[1] < 2000 || (int) $m[1] > 2100 || ! checkdate((int) $m[2], (int) $m[3], (int) $m[1])) {
+            return null;
+        }
+
+        return Carbon::create((int) $m[1], (int) $m[2], (int) $m[3])->startOfDay();
+    }
+
     /**
      * @return array{view: string, tanggalAcuan: Carbon, rentangAwal: Carbon, rentangAkhir: Carbon,
      *               labelHeader: string, navPrev: string, navNext: string, paramNav: string}
      */
-    public static function range(?string $view, ?string $tanggal, ?string $bulan): array
+    public static function range(mixed $view, mixed $tanggal, mixed $bulan): array
     {
-        $view = in_array($view, ['hari', 'minggu', 'bulan']) ? $view : 'bulan';
+        $view = in_array($view, ['hari', 'minggu', 'bulan'], true) ? $view : 'bulan';
 
-        $tanggalAcuan = $tanggal
-            ? Carbon::parse($tanggal)
-            : ($bulan ? Carbon::createFromFormat('Y-m', $bulan)->startOfMonth() : now());
+        $tanggalAcuan = self::parseTanggal($tanggal) ?? self::parseBulan($bulan) ?? now();
 
         if ($view === 'hari') {
             $rentangAwal = $tanggalAcuan->copy()->startOfDay();
@@ -40,12 +64,12 @@ class KalenderReservasi
         $navPrev = match ($view) {
             'hari' => $tanggalAcuan->copy()->subDay()->toDateString(),
             'minggu' => $tanggalAcuan->copy()->subWeek()->toDateString(),
-            default => $tanggalAcuan->copy()->subMonth()->format('Y-m'),
+            default => $tanggalAcuan->copy()->startOfMonth()->subMonth()->format('Y-m'),
         };
         $navNext = match ($view) {
             'hari' => $tanggalAcuan->copy()->addDay()->toDateString(),
             'minggu' => $tanggalAcuan->copy()->addWeek()->toDateString(),
-            default => $tanggalAcuan->copy()->addMonth()->format('Y-m'),
+            default => $tanggalAcuan->copy()->startOfMonth()->addMonth()->format('Y-m'),
         };
 
         return [

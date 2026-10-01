@@ -16,7 +16,6 @@
         <span class="dn-filter-ic"><i class="bi bi-funnel"></i></span>
         <div>
             <div class="dn-filter-title">Filter Jadwal</div>
-            <div class="dn-filter-sub">Cek ketersediaan ruangan pada tanggal pilihan Anda</div>
         </div>
     </div>
     <input type="hidden" name="jenis" value="{{ $jenisId }}">

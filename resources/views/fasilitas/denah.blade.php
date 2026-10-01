@@ -16,5 +16,5 @@
         <x-denah :lantai="$lantai->nomor_lantai" :status-per-fasilitas="$statusByKode" :clickable="false" :link-template="$tplDetail" :kategori="$kategori"/>
     </div>
 
-    <p class="text-muted small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Klik ruangan untuk melihat detail lengkap fasilitasnya — foto, harga, kapasitas, dan fasilitas yang didapat.</p>
+    <p class="text-muted small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Pilih ruangan untuk melihat detail fasilitas: foto, harga sewa, kapasitas, dan fasilitas yang termasuk.</p>
 @endsection

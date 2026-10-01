@@ -51,6 +51,8 @@ Route::prefix('reservasi')->name('reservasi.')->group(function () {
 
         Route::get('/fasilitas/{fasilitas}', [ReservasiController::class, 'fasilitas'])->name('fasilitas.show');
         Route::get('/fasilitas/{fasilitas}/jam-terisi', [ReservasiController::class, 'jamTerisi'])->name('fasilitas.jam-terisi');
+        Route::get('/fasilitas/{fasilitas}/cek-jadwal', [ReservasiController::class, 'cekJadwal'])->name('fasilitas.cek-jadwal');
+
 
         Route::post('/keranjang', [ReservasiController::class, 'tambahKeranjang'])->name('keranjang.tambah');
         Route::delete('/keranjang', [ReservasiController::class, 'kosongkanKeranjang'])->name('keranjang.kosongkan');
@@ -91,6 +93,8 @@ Route::prefix('customer')->name('customer.')->group(function () {
     Route::middleware('guest:customer')->group(function () {
         Route::get('/daftar', [CustomerAuthController::class, 'showRegister'])->name('register');
         Route::post('/daftar', [CustomerAuthController::class, 'register'])->name('register.attempt');
+        Route::post('/daftar/kirim-otp', [CustomerAuthController::class, 'kirimOtp'])->middleware('throttle:6,10')->name('register.otp');
+        Route::post('/daftar/verifikasi-otp', [CustomerAuthController::class, 'verifikasiOtp'])->middleware('throttle:15,10')->name('register.otp.verifikasi');
         Route::get('/masuk', [CustomerAuthController::class, 'showLogin'])->name('login');
         Route::post('/masuk', [CustomerAuthController::class, 'login'])->name('login.attempt');
 
@@ -112,6 +116,8 @@ Route::prefix('customer')->name('customer.')->group(function () {
 
         Route::get('/profil', [AkunController::class, 'profil'])->name('akun.profil');
         Route::put('/profil', [AkunController::class, 'updateProfil'])->name('akun.profil.update');
+        Route::post('/profil/kirim-otp', [AkunController::class, 'kirimOtpEmail'])->middleware('throttle:6,10')->name('akun.profil.otp');
+        Route::post('/profil/verifikasi-otp', [AkunController::class, 'verifikasiOtpEmail'])->middleware('throttle:15,10')->name('akun.profil.otp.verifikasi');
         Route::get('/profil/password', [AkunController::class, 'password'])->name('akun.password');
         Route::put('/profil/password', [AkunController::class, 'updatePassword'])->name('akun.password.update');
     });
@@ -164,5 +170,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/profil', [ProfilController::class, 'edit'])->name('profil');
         Route::put('/profil', [ProfilController::class, 'update'])->name('profil.update');
         Route::put('/profil/password', [ProfilController::class, 'password'])->name('profil.password');
+        Route::post('/profil/kirim-otp', [ProfilController::class, 'kirimOtpEmail'])->middleware('throttle:6,10')->name('profil.otp');
+        Route::post('/profil/verifikasi-otp', [ProfilController::class, 'verifikasiOtpEmail'])->middleware('throttle:15,10')->name('profil.otp.verifikasi');
     });
 });

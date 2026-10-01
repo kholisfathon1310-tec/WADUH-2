@@ -34,6 +34,8 @@ class AlurAdminTest extends TestCase
         $mulai = Carbon::today()->addDays($offsetDays);
         $isJam = $satuan === 'Jam';
         $isBulan = $satuan === 'Bulan';
+        // Jam: 09.00–11.00 (2 jam); Hari: 2 hari; Bulan: 3 bulan — total = harga × durasi.
+        $durasi = $isBulan ? 3 : 2;
 
         return Reservasi::create([
             'id_pemesan'       => Pemesan::factory()->create()->id_pemesan,
@@ -45,11 +47,11 @@ class AlurAdminTest extends TestCase
             'tanggal_selesai'  => $isJam ? $mulai->toDateString() : (clone $mulai)->addMonths($isBulan ? 3 : 0)->addDays($isBulan ? 0 : 1)->toDateString(),
             'jam_mulai'        => $isJam ? '09:00' : null,
             'jam_selesai'      => $isJam ? '11:00' : null,
-            'durasi'           => $isBulan ? 3 : ($isJam ? 2 : 2),
+            'durasi'           => $durasi,
             'jumlah_pengguna'  => 1,
             'keperluan'        => 'Uji admin',
             'harga_satuan'     => $tarif->harga,
-            'total_biaya'      => $tarif->harga * 2,
+            'total_biaya'      => $tarif->harga * $durasi,
             'status_reservasi' => 'Menunggu',
             'lock_status'      => 'pending_approval',
         ]);
@@ -66,9 +68,23 @@ class AlurAdminTest extends TestCase
         $this->get('/admin/reservasi')->assertRedirect(route('admin.login'));
     }
 
-    public function test_login_dengan_kredensial_seeder_berhasil(): void
+    /**
+     * Admin dengan kata sandi yang diketahui — di-set di dalam transaksi tes (di-rollback),
+     * supaya tes login tidak bergantung pada kredensial yang tersimpan di database.
+     */
+    private function adminDenganSandi(string $sandi = 'Rahasia123'): Admin
     {
-        $this->post('/admin/login', ['email' => 'admin@waduh.test', 'password' => 'password'])
+        $admin = $this->admin();
+        $admin->update(['password' => $sandi]);
+
+        return $admin;
+    }
+
+    public function test_login_dengan_kredensial_benar_berhasil(): void
+    {
+        $admin = $this->adminDenganSandi();
+
+        $this->post('/admin/login', ['admin_email' => $admin->email, 'admin_password' => 'Rahasia123'])
             ->assertRedirect(route('admin.dashboard'));
         $this->assertTrue(auth()->guard('admin')->check());
     }
@@ -77,7 +93,9 @@ class AlurAdminTest extends TestCase
      *  ke tabel admin, ini gagal dengan SQL error "Column not found". */
     public function test_login_dengan_ingat_saya_tidak_error(): void
     {
-        $this->post('/admin/login', ['email' => 'admin@waduh.test', 'password' => 'password', 'remember' => '1'])
+        $admin = $this->adminDenganSandi();
+
+        $this->post('/admin/login', ['admin_email' => $admin->email, 'admin_password' => 'Rahasia123', 'remember' => '1'])
             ->assertRedirect(route('admin.dashboard'));
         $this->assertTrue(auth()->guard('admin')->check());
         $this->assertNotNull($this->admin()->fresh()->remember_token);
@@ -85,8 +103,11 @@ class AlurAdminTest extends TestCase
 
     public function test_login_salah_ditolak(): void
     {
-        $this->post('/admin/login', ['email' => 'admin@waduh.test', 'password' => 'salah'])
+        $admin = $this->adminDenganSandi();
+
+        $this->post('/admin/login', ['admin_email' => $admin->email, 'admin_password' => 'salah'])
             ->assertRedirect();
+
         $this->assertFalse(auth()->guard('admin')->check());
     }
 

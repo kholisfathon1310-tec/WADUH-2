@@ -19,8 +19,8 @@
         <div class="dn-jenis-switch mb-3" data-reveal>
             <span class="dn-jenis-switch-label"><i class="bi bi-funnel"></i>Jenis Sewa</span>
             @foreach ($semuaJenis as $j)
-                <a href="{{ route('reservasi.denah', ['kategori' => $kategori, 'lantai' => $lantai->id_lantai, 'jenis' => $j->id_jenis_sewa]) }}"
-                   class="dn-jenis-pill {{ $jenis?->id_jenis_sewa === $j->id_jenis_sewa ? 'active' : '' }}">
+                <a href="{{ route('reservasi.denah', ['kategori' => $kategori, 'lantai' => $lantai->id_lantai, 'jenis' => $j->id_jenis_sewa, 'tanggal_mulai' => $slot['tanggal_mulai']]) }}"
+                   data-jenis-pill class="dn-jenis-pill {{ $jenis?->id_jenis_sewa === $j->id_jenis_sewa ? 'active' : '' }}">
                     Per {{ $j->satuan->value }}
                 </a>
             @endforeach
@@ -72,6 +72,13 @@
                         hasil.classList.remove('opacity-50');
                         window.initDenah?.(hasil);
                         window.history.replaceState(null, '', urlLengkap);
+                        // Pil jenis sewa ikut membawa tanggal yang baru dipilih.
+                        const tgl = form.querySelector('[name="tanggal_mulai"]')?.value;
+                        document.querySelectorAll('[data-jenis-pill]').forEach((a) => {
+                            const u = new URL(a.href);
+                            tgl ? u.searchParams.set('tanggal_mulai', tgl) : u.searchParams.delete('tanggal_mulai');
+                            a.href = u.toString();
+                        });
                     })
                     .catch((err) => {
                         if (err.name !== 'AbortError') hasil.classList.remove('opacity-50');

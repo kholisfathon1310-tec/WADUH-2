@@ -175,6 +175,20 @@
         transition:border-color .15s ease, color .15s ease, background .15s ease, transform .15s ease;
     }
     .cs-page .btn-reservasi-baru:hover { border-color:var(--primary); background:var(--primary-soft); transform:translateY(-1px); }
+
+    .cs-search input { min-width:0; }
+
+    /* ────────── LAYAR KECIL ────────── */
+    @media (max-width: 575.98px) {
+        .cs-hero { padding:2.25rem 1.1rem; }
+        .cs-hero p.sub { font-size:.9rem; margin-bottom:1.4rem; }
+        .cs-search input { font-size:.92rem; padding:.75rem .6rem; letter-spacing:.03em; }
+        .cs-search input::placeholder { font-size:.8rem; letter-spacing:0; }
+        .cs-search .btn-cek { padding:.7rem .95rem; }
+        .status-card { padding:1rem; }
+        .guide-card { padding:1.2rem; }
+        .cs-page .eyebrow-line { margin-top:1.75rem; }
+    }
 </style>
 
 <div class="cs-page">
@@ -184,15 +198,15 @@
          ══════════════════════════════════════════════════════════════ --}}
     <div class="cs-hero" data-reveal>
         <div class="inner">
-            <span class="cs-badge"><i class="bi bi-shield-check"></i> Lacak Reservasi Anda</span>
+            <span class="cs-badge"><i class="bi bi-shield-check"></i> Pelacakan Reservasi</span>
             <h1>Cek Status Reservasi</h1>
-            <p class="sub">Masukkan kode yang Anda terima setelah checkout untuk melihat progres verifikasi, jadwal, dan rincian biaya reservasi Anda.</p>
+            <p class="sub">Masukkan kode reservasi untuk melihat status verifikasi, jadwal pemakaian, dan rincian biaya.</p>
 
             <form method="POST" action="{{ route('cek-status.cari') }}">
                 @csrf
                 <div class="cs-search">
 
-                    <input name="kode" class="text-uppercase" placeholder="Contoh: TRX-A1B2 atau RSV-7K3M"
+                    <input name="kode" class="text-uppercase" placeholder="Contoh: RSV-7K3M" aria-label="Kode reservasi"
                            value="{{ old('kode') }}" maxlength="100" autocomplete="off" autofocus required>
                     <button type="submit" class="btn-cek">
                         <i class="bi bi-search"></i>
@@ -200,7 +214,6 @@
                     </button>
                 </div>
             </form>
-            </p>
         </div>
     </div>
 
@@ -210,14 +223,14 @@
     <p class="eyebrow-line">Arti Status</p>
     <div class="row g-3" data-reveal>
         @foreach ([
-            ['bi-hourglass-split', 'dot-menunggu', 'Diverifikasi', 'Reservasi sedang diperiksa admin. Anda masih dapat membatalkannya pada tahap ini.'],
-            ['bi-check-circle',    'dot-setujui',  'Disetujui',    'Reservasi diterima. Fasilitas siap digunakan sesuai jadwal yang dipesan.'],
+            ['bi-hourglass-split', 'dot-menunggu', 'Menunggu Verifikasi', 'Reservasi sedang diperiksa oleh admin. Pembatalan masih dapat dilakukan pada tahap ini.'],
+            ['bi-check-circle',    'dot-setujui',  'Disetujui',    'Reservasi disetujui. Fasilitas dapat digunakan sesuai jadwal yang diajukan.'],
             ['bi-x-circle',        'dot-tolak',    'Ditolak',      'Reservasi tidak dapat diproses. Alasan penolakan tercantum di halaman hasil.'],
-            ['bi-slash-circle',    'dot-batal',    'Dibatalkan',   'Reservasi dibatalkan oleh pemesan sebelum diproses admin.'],
-            ['bi-flag-fill',       'dot-selesai',  'Selesai',      'Masa penggunaan fasilitas telah berakhir. Reservasi ini sudah lampau dan tidak dapat diubah lagi.'],
-            ['bi-clock-history',   'dot-expired',  'Kadaluwarsa',  'Batas waktu verifikasi terlewati sebelum admin memproses reservasi ini.'],
+            ['bi-slash-circle',    'dot-batal',    'Dibatalkan',   'Reservasi dibatalkan oleh pemesan sebelum diproses oleh admin.'],
+            ['bi-flag-fill',       'dot-selesai',  'Selesai',      'Masa pemakaian fasilitas telah berakhir dan reservasi tidak dapat diubah.'],
+            ['bi-clock-history',   'dot-expired',  'Kadaluwarsa',  'Jadwal pemakaian terlewati sebelum reservasi selesai diverifikasi.'],
         ] as [$ikon, $kelasWarna, $judul, $desk])
-            <div class="col-6 col-lg-4">
+            <div class="col-12 col-sm-6 col-lg-4">
                 <div class="status-card">
                     <div class="head">
                         <span class="dot {{ $kelasWarna }}"><i class="bi {{ $ikon }}"></i></span>
@@ -236,27 +249,27 @@
     <div class="row g-3" data-reveal>
         <div class="col-lg-7">
             <div class="guide-card">
-                <h2><i class="bi bi-signpost-2"></i>Bagaimana cara kerjanya?</h2>
+                <h2><i class="bi bi-signpost-2"></i>Cara Mengecek Status</h2>
 
                 <div class="step-row">
                     <span class="n">1</span>
                     <div class="body">
                         <b>Masukkan kode reservasi</b>
-                        <span>Kode dikirim lewat pop-up konfirmasi setelah Anda menyelesaikan checkout.</span>
+                        <span>Kode ditampilkan setelah reservasi dikirim dan tersimpan pada menu Reservasi Saya.</span>
                     </div>
                 </div>
                 <div class="step-row">
                     <span class="n">2</span>
                     <div class="body">
-                        <b>Lihat progres verifikasi</b>
+                        <b>Periksa status verifikasi</b>
                         <span>Pantau tahapan Diajukan → Diverifikasi → Disetujui beserta rincian jadwal dan biaya.</span>
                     </div>
                 </div>
                 <div class="step-row">
                     <span class="n">3</span>
                     <div class="body">
-                        <b>Batalkan bila perlu</b>
-                        <span>Selama status masih Diverifikasi dan tanggal belum lewat, reservasi dapat dibatalkan langsung dari halaman hasil.</span>
+                        <b>Batalkan bila diperlukan</b>
+                        <span>Selama status masih Menunggu Verifikasi dan tanggal pemakaian belum terlewati, reservasi dapat dibatalkan dari halaman hasil.</span>
                     </div>
                 </div>
             </div>
@@ -264,8 +277,8 @@
 
         <div class="col-lg-5">
             <div class="guide-card d-flex flex-column">
-                <h2><i class="bi bi-question-circle"></i>Kode hilang?</h2>
-                <p style="color:var(--muted); font-size:.9rem; line-height:1.65;">Kode reservasi hanya ditampilkan sekali setelah checkout. Jika terlupa, hubungi pengelola gedung BITC dengan menyebutkan <strong>nama pemesan</strong> dan <strong>tanggal sewa</strong> Anda.</p>
+                <h2><i class="bi bi-question-circle"></i>Lupa Kode Reservasi?</h2>
+                <p style="color:var(--muted); font-size:.9rem; line-height:1.65;">Kode reservasi dapat dilihat kembali kapan saja pada menu <strong>Reservasi Saya</strong> setelah Anda masuk ke akun. Apabila mengalami kendala, hubungi pengelola gedung BITC dengan menyebutkan <strong>nama pemesan</strong> dan <strong>tanggal sewa</strong>.</p>
                 <div class="mt-auto pt-2">
                     <a href="{{ route('reservasi.index') }}" class="btn-reservasi-baru">
                         <i class="bi bi-plus-circle"></i> Buat Reservasi Baru

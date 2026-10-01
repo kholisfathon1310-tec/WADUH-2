@@ -183,52 +183,28 @@
             color:var(--muted); font-weight:600; }
         .db-populer-card .info i { color:var(--primary); font-size:.85em; }
 
-        /* ─── OKUPANSI FASILITAS (bar chart + peringkat top-5) ─── */
-        .db-okup-grid { display:grid; grid-template-columns:minmax(0, 1.5fr) minmax(0, 1fr); gap:1.5rem; margin-bottom:1.75rem; align-items:stretch; }
-        @media (max-width: 991.98px) { .db-okup-grid { grid-template-columns:1fr; } }
-        .db-okup-card { display:flex; flex-direction:column; }
-        .db-card-head-trend { flex-wrap:wrap; gap:.6rem; }
-        .db-card-head .db-okup-info { font-size:.85em; color:var(--soft); cursor:help; margin-left:.15rem; }
-
-        .db-okup-toggle { display:inline-flex; padding:.2rem; border-radius:2rem; background:var(--line-soft); gap:.15rem; }
-        .db-okup-toggle-opt { padding:.32rem .85rem; border-radius:1.6rem; font-size:.76rem; font-weight:700;
-            text-decoration:none; color:var(--muted); transition:all .15s ease; white-space:nowrap; }
-        .db-okup-toggle-opt:hover { color:var(--primary); }
-        .db-okup-toggle-opt.active { background:var(--primary); color:#fff; box-shadow:0 6px 16px -6px rgba(23,107,135,.4); }
-
-        .db-okup-chart { padding:.5rem 0 .3rem; }
-        .db-okup-svg { width:100%; max-width:560px; height:auto; aspect-ratio:100 / 72; display:block; margin:0 auto; }
-        .db-okup-bar { transition:filter .2s ease; transform-box:fill-box; transform-origin:50% 100%;
-            animation:dbOkupGrow .65s cubic-bezier(.2,.8,.3,1) both; animation-delay:calc(var(--i, 0) * 70ms); }
-        .db-okup-bar:hover { filter:brightness(1.12); cursor:pointer; }
-        @keyframes dbOkupGrow { from { transform:scaleY(0); opacity:.35; } to { transform:scaleY(1); opacity:1; } }
-        @media (prefers-reduced-motion: reduce) { .db-okup-bar { animation:none; } }
-        .db-okup-foot { display:flex; gap:1.5rem; justify-content:center; margin-top:.8rem; font-size:.78rem; color:var(--muted); font-weight:600; }
-        .db-okup-foot .dot { display:inline-block; width:.65rem; height:.65rem; border-radius:.25rem; margin-right:.4rem; vertical-align:middle; }
-
-        .db-okup-pill { background:var(--primary-soft); color:var(--primary-dark); font-size:.72rem; font-weight:700;
-            padding:.35rem .75rem; border-radius:2rem; flex:none; }
-
-        .db-okup-rank { display:flex; align-items:center; gap:.9rem; padding:.7rem 0; }
-        .db-okup-rank + .db-okup-rank { border-top:1px solid var(--line-soft); padding-top:1rem; }
-        .db-okup-rank-num { display:grid; place-items:center; flex:none; width:1.9rem; height:1.9rem; border-radius:50%;
-            font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.85rem; }
-        .db-okup-rank-body { flex:1; min-width:0; }
-        .db-okup-rank-top { display:flex; justify-content:space-between; align-items:baseline; gap:.5rem; margin-bottom:.4rem; }
-        .db-okup-rank-name { font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; color:var(--ink); font-size:.87rem;
-            overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .db-okup-rank-pct { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.95rem; flex:none; }
-        .db-okup-rank-track { height:.5rem; border-radius:1rem; background:var(--line-soft); overflow:hidden; }
-        .db-okup-rank-fill { height:100%; border-radius:1rem; transition:width .6s cubic-bezier(.2,.7,.3,1); }
-
-        /* Tooltip mengambang, mengikuti kursor — dipakai batang grafik okupansi */
-        .db-okup-tip { position:fixed; z-index:2000; pointer-events:none; background:#0f172a; color:#fff;
-            border-radius:.75rem; padding:.6rem .85rem; font-size:.78rem; box-shadow:0 14px 30px -10px rgba(0,0,0,.45);
-            opacity:0; transform:translateY(4px); transition:opacity .12s ease, transform .12s ease; top:0; left:0; }
-        .db-okup-tip.show { opacity:1; transform:none; }
-        .db-okup-tip-label { display:flex; align-items:center; gap:.45rem; font-weight:700; margin-bottom:.15rem; }
-        .db-okup-tip-label .dot { width:.55rem; height:.55rem; border-radius:50%; flex:none; box-shadow:0 0 0 3px rgba(255,255,255,.08); }
-        .db-okup-tip-value { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.95rem; }
+        /* ─── LAYAR KECIL ─── */
+        @media (max-width: 575.98px) {
+            .db-hero { padding:1.5rem 1.25rem; border-radius:1.15rem; margin-bottom:1.25rem; }
+            .db-hero h1 { font-size:1.35rem; }
+            .db-hero .lead { font-size:.85rem; }
+            .db-hero-inner { gap:1.25rem; }
+            .db-stats { gap:.7rem; margin-bottom:1.25rem; grid-template-columns:repeat(2, minmax(0, 1fr)); }
+            .db-stat { flex-direction:column; align-items:flex-start; }
+            .db-stat .ic { width:2.6rem; height:2.6rem; font-size:1rem; }
+            .db-stat .sub { display:none; }
+            .db-populer-card .info { flex-direction:column; align-items:flex-start; gap:.2rem; }
+            .db-populer-card .info > span:nth-child(2) { display:none; }
+            .db-populer-card .info > span { white-space:nowrap; }
+            .db-stat { padding:1rem 1.1rem; gap:.85rem; }
+            .db-stat .v { font-size:1.55rem; }
+            .db-card-head { padding:1rem 1.1rem .9rem; }
+            .db-recent-item { padding:.85rem 1.1rem; gap:.75rem; }
+            .db-recent-item .thumb { width:3rem; height:3rem; }
+            .db-recent-item .chip { font-size:.64rem; padding:.25rem .55rem; }
+            .db-populer-grid { padding:.9rem 1.1rem 1.15rem; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.7rem; }
+            .db-bottom-grid { gap:1.15rem; }
+        }
     </style>
 
     {{-- ══════════════ HERO ══════════════ --}}
@@ -240,7 +216,7 @@
         <div class="db-hero-inner">
             <div>
                 <h1>Selamat Datang, {{ $pemesan->nama_lengkap }}</h1>
-                <p class="lead">Kelola reservasi ruangan dan jadwal kerja Anda dengan mudah di WADUH BITC Cimahi.</p>
+                <p class="lead">Kelola reservasi fasilitas dan pantau jadwal pemakaian Anda di Gedung BITC Cimahi.</p>
             </div>
             <div class="db-hero-actions">
                 <a href="{{ route('reservasi.index') }}" class="db-hero-btn primary">
@@ -374,149 +350,4 @@
             </div>
         </div>
     </div>
-    {{-- ══════════════ OKUPANSI FASILITAS — tingkat pemakaian ruangan aktif ══════════════ --}}
-    @php
-        $okupansiPeriode = in_array(request('okupansi'), ['harian', 'bulanan'], true) ? request('okupansi') : 'harian';
-        $okupansiChart = $okupansiPeriode === 'bulanan' ? $okupansiBulanan : $okupansiHarian;
-        $okBarCount = count($okupansiChart);
-        $okBarW = $okBarCount > 7 ? 5 : 8;
-        $okGap = (100 - $okBarW * $okBarCount) / max(1, $okBarCount - 1);
-        // Warna peringkat top-5: gradasi dari merah (rank 1) → primer (rank 5), supaya rank
-        // teratas paling menonjol — bukan berdasarkan nilai pct itu sendiri.
-        $rankColors = ['#ef4444', '#f59e0b', '#eab308', '#14b8a6', 'var(--primary)'];
-    @endphp
-    <div class="db-okup-grid" data-reveal>
-        <div class="xcard db-okup-card">
-            <div class="db-card-head db-card-head-trend">
-                <h3><i class="bi bi-bar-chart-fill"></i>Tingkat Okupansi Fasilitas
-                    <i class="bi bi-info-circle-fill db-okup-info" tabindex="0" data-tip="Persentase ruangan aktif yang punya reservasi Disetujui/Selesai pada tanggal tersebut."></i>
-                </h3>
-                <div class="db-okup-toggle" role="group" aria-label="Pilih periode okupansi">
-                    <a href="{{ route('customer.dashboard', array_merge(request()->except('okupansi'), ['okupansi' => 'harian'])) }}"
-                       class="db-okup-toggle-opt {{ $okupansiPeriode === 'harian' ? 'active' : '' }}">Per Hari</a>
-                    <a href="{{ route('customer.dashboard', array_merge(request()->except('okupansi'), ['okupansi' => 'bulanan'])) }}"
-                       class="db-okup-toggle-opt {{ $okupansiPeriode === 'bulanan' ? 'active' : '' }}">Per Bulan</a>
-                </div>
-            </div>
-            <div class="db-card-body">
-                <div class="db-okup-chart">
-                    <svg viewBox="0 0 100 72" class="db-okup-svg" role="img" aria-label="Grafik tingkat okupansi fasilitas">
-                        <defs>
-                            <linearGradient id="okupToday" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="var(--teal)"/>
-                                <stop offset="100%" stop-color="var(--primary)"/>
-                            </linearGradient>
-                            <linearGradient id="okupSoft" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#cbe8ec"/>
-                                <stop offset="100%" stop-color="var(--primary-softer)"/>
-                            </linearGradient>
-                        </defs>
-                        @for ($g = 1; $g <= 3; $g++)
-                            <line x1="0" y1="{{ $g * 16 }}" x2="100" y2="{{ $g * 16 }}" stroke="#eef2f6" stroke-width=".25"/>
-                        @endfor
-                        @foreach ($okupansiChart as $i => $d)
-                            @php
-                                $h = $d['pct'] > 0 ? max(3, round($d['pct'] / 100 * 58)) : 1.5;
-                                $x = $i * ($okBarW + $okGap);
-                                $y = 64 - $h;
-                                $tipLabel = $okupansiPeriode === 'bulanan' ? $d['tanggal']->translatedFormat('F Y') : $d['tanggal']->translatedFormat('l, d F');
-                            @endphp
-                            <rect x="{{ $x }}" y="{{ $y }}" width="{{ $okBarW }}" height="{{ $h }}"
-                                  rx="1.8" ry="1.8"
-                                  fill="{{ $d['isAktif'] ? 'url(#okupToday)' : 'url(#okupSoft)' }}"
-                                  class="db-okup-bar" style="--i:{{ $i }}"
-                                  data-tip-label="{{ $tipLabel }}"
-                                  data-tip-value="Okupansi: {{ $d['pct'] }}%"
-                                  data-tip-color="{{ $d['isAktif'] ? 'var(--primary)' : 'var(--primary-softer)' }}"></rect>
-                            @if ($okBarCount <= 7)
-                                <text x="{{ $x + $okBarW / 2 }}" y="{{ $y - 1.8 }}"
-                                      text-anchor="middle" font-size="3.4" font-weight="700"
-                                      fill="{{ $d['isAktif'] ? 'var(--primary)' : '#64748b' }}"
-                                      font-family="'Plus Jakarta Sans',sans-serif">{{ $d['pct'] }}%</text>
-                            @endif
-                            <text x="{{ $x + $okBarW / 2 }}" y="70.5"
-                                  text-anchor="middle" font-size="{{ $okBarCount > 7 ? 2.6 : 2.9 }}" font-weight="600"
-                                  fill="{{ $d['isAktif'] ? 'var(--primary)' : '#94a3b8' }}"
-                                  font-family="'DM Sans',sans-serif">{{ $d['label'] }}</text>
-                        @endforeach
-                    </svg>
-                </div>
-                <div class="db-okup-foot">
-                    <span><span class="dot" style="background:var(--primary)"></span>{{ $okupansiPeriode === 'bulanan' ? 'Bulan ini' : 'Hari ini' }}</span>
-                    <span><span class="dot" style="background:var(--primary-softer)"></span>{{ $okupansiPeriode === 'bulanan' ? '11 bulan sebelumnya' : '6 hari sebelumnya' }}</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="xcard db-okup-card">
-            <div class="db-card-head">
-                <h3><i class="bi bi-bookmark-star-fill"></i>Fasilitas Okupansi Tertinggi</h3>
-                <span class="db-okup-pill">{{ $totalRuanganAktif }} ruangan aktif</span>
-            </div>
-            <div class="db-card-body">
-                @forelse ($topOkupansiFasilitas as $i => $f)
-                    @php $warna = $rankColors[$i] ?? 'var(--primary)'; @endphp
-                    <div class="db-okup-rank">
-                        <span class="db-okup-rank-num" style="background:{{ $warna }}1a; color:{{ $warna }};">{{ $i + 1 }}</span>
-                        <div class="db-okup-rank-body">
-                            <div class="db-okup-rank-top">
-                                <span class="db-okup-rank-name">{{ $f['nama'] }}</span>
-                                <span class="db-okup-rank-pct" style="color:{{ $warna }}">{{ $f['pct'] }}%</span>
-                            </div>
-                            <div class="db-okup-rank-track">
-                                <div class="db-okup-rank-fill" style="width:{{ $f['pct'] }}%; background:{{ $warna }}"></div>
-                            </div>
-                        </div>
-                    </div>
-                @empty
-                    <div class="p-4 text-center">
-                        <div class="icon-tile mx-auto mb-2"><i class="bi bi-bar-chart"></i></div>
-                        <p class="text-muted small mb-0">Belum ada data okupansi.</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-    </div>
-
-    {{-- Tooltip mengambang — muncul saat kursor di atas batang grafik okupansi. --}}
-    <div class="db-okup-tip" id="dbOkupTip" hidden>
-        <div class="db-okup-tip-label"><span class="dot" id="dbOkupTipDot"></span><span id="dbOkupTipLabel"></span></div>
-        <div class="db-okup-tip-value"><span id="dbOkupTipValue"></span></div>
-    </div>
-
-    <script>
-        (function () {
-            const tip = document.getElementById('dbOkupTip');
-            if (!tip) return;
-            const elDot = document.getElementById('dbOkupTipDot');
-            const elLabel = document.getElementById('dbOkupTipLabel');
-            const elValue = document.getElementById('dbOkupTipValue');
-
-            const posisi = (evt) => {
-                const pad = 16;
-                let x = evt.clientX + pad;
-                let y = evt.clientY + pad;
-                const rect = tip.getBoundingClientRect();
-                if (x + rect.width > window.innerWidth - 8) x = evt.clientX - rect.width - pad;
-                if (y + rect.height > window.innerHeight - 8) y = evt.clientY - rect.height - pad;
-                tip.style.left = x + 'px';
-                tip.style.top = y + 'px';
-            };
-            const tampilkan = (el, evt) => {
-                elDot.style.background = el.dataset.tipColor || 'var(--primary)';
-                elLabel.textContent = el.dataset.tipLabel || '';
-                elValue.textContent = el.dataset.tipValue || '';
-                tip.hidden = false;
-                requestAnimationFrame(() => tip.classList.add('show'));
-                posisi(evt);
-            };
-            const sembunyikan = () => { tip.classList.remove('show'); tip.hidden = true; };
-
-            document.querySelectorAll('[data-tip-value]').forEach((el) => {
-                el.addEventListener('mouseenter', (evt) => tampilkan(el, evt));
-                el.addEventListener('mousemove', posisi);
-                el.addEventListener('mouseleave', sembunyikan);
-            });
-        })();
-    </script>
 @endsection

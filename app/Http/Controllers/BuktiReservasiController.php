@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\StatusReservasi;
 use App\Models\Reservasi;
 use App\Support\Denah;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -34,17 +33,20 @@ class BuktiReservasiController extends Controller
             return redirect()->route('cek-status.form')->with('error', 'Kode reservasi tidak ditemukan.');
         }
 
-        // Ruangan yang sudah Dibatalkan tidak lagi bagian dari pemakaian yang berlaku —
-        // dikeluarkan dari bukti supaya tidak ditampilkan seolah masih dipesan/dipakai.
+        // Bukti hanya diterbitkan untuk reservasi yang masih Menunggu atau sudah Disetujui.
+        $pesanTidakTersedia = "Bukti reservasi tidak dapat diunduh karena status reservasi {$ref->kode_reservasi} adalah "
+            .$ref->status_reservasi->value.'. Bukti hanya tersedia untuk reservasi yang menunggu verifikasi atau sudah disetujui.';
+        if (! $ref->buktiTersedia()) {
+            return redirect()->to(url()->previous(route('cek-status.form')))->with('error', $pesanTidakTersedia);
+        }
+
+        // Ruangan lain pada transaksi yang sama yang sudah ditolak/dibatalkan/selesai/kedaluwarsa
+        // tidak ikut dicantumkan, supaya tidak tampil seolah masih berlaku.
         $items = Reservasi::where('kode_transaksi', $ref->kode_transaksi)
-            ->where('status_reservasi', '!=', StatusReservasi::Dibatalkan->value)
+            ->whereIn('status_reservasi', Reservasi::statusBuktiTersedia())
             ->orderBy('id_reservasi')
             ->with(self::RELASI)
             ->get();
-
-        if ($items->isEmpty()) {
-            return redirect()->route('cek-status.form')->with('error', 'Reservasi ini sudah dibatalkan, bukti reservasi tidak tersedia.');
-        }
 
         $anchor = $items->first();
 

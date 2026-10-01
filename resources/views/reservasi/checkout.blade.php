@@ -1,5 +1,5 @@
 @extends('layouts.customer')
-@section('title', 'Checkout & Keranjang')
+@section('title', 'Keranjang Reservasi')
 
 @section('content')
     <style>
@@ -61,7 +61,7 @@
             border:1px solid var(--line); }
 
         /* ─── AKSI ITEM: Ubah / Hapus — dua tombol pill sejajar, tinggi & padding sama ─── */
-        .ck-item-actions { display:flex; align-items:center; gap:.5rem; margin-top:.85rem;
+        .ck-item-actions { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; margin-top:.85rem;
             padding-top:.85rem; border-top:1px dashed var(--line); }
         .ck-act-btn { display:inline-flex; align-items:center; gap:.35rem; font-size:.75rem; font-weight:700;
             padding:.45rem .85rem; border-radius:.6rem; border:1px solid var(--line); background:#fff;
@@ -80,8 +80,10 @@
         .ck-edit-input { width:100%; border:1px solid var(--line); border-radius:.6rem;
             padding:.55rem .75rem; font-size:.85rem; color:var(--ink); background:#fff; }
         .ck-edit-input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 .15rem var(--primary-soft); }
-        .ck-edit-err { font-size:.7rem; color:#e11d48; font-weight:600; margin-top:.3rem; }
-        .ck-edit-actions { display:flex; justify-content:flex-end; align-items:center; gap:.6rem; margin-top:1.1rem; }
+        .ck-edit-err { font-size:.74rem; color:#be123c; font-weight:600; margin-top:.3rem; line-height:1.4; }
+        .ck-edit-hint { font-size:.72rem; color:var(--muted); margin-top:.3rem; }
+        .ck-edit-field { margin-top:.75rem; }
+        .ck-edit-actions { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:.6rem; margin-top:1.1rem; }
         .ck-edit-cancel { padding:.55rem 1rem; border-radius:.6rem; border:1px solid var(--line);
             background:#fff; color:var(--muted); font-weight:700; font-size:.78rem; }
         .ck-edit-cancel:hover { background:var(--surface-2); }
@@ -108,7 +110,7 @@
         .ck-total { padding:1.15rem 0; display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; flex-wrap:wrap; }
         .ck-total .lbl { font-size:.68rem; font-weight:800; letter-spacing:.08em;
             text-transform:uppercase; color:var(--soft); display:block; }
-        .ck-total .amount { font-size:1.75rem; font-weight:800; color:var(--primary-darker);
+        .ck-total .amount { font-size:clamp(1.3rem, 5.5vw, 1.75rem); font-weight:800; color:var(--primary-darker);
             letter-spacing:-.02em; margin-top:.2rem; display:block; line-height:1.1; }
         .ck-total .duration-chip { font-size:.68rem; font-weight:800; color:var(--primary-dark);
             background:var(--primary-soft); border:1px solid var(--primary-softer);
@@ -143,6 +145,16 @@
         .ck-dok-notice.ck-dok-ok b { color:#047857; }
         .ck-dok-notice.ck-dok-ok p a { color:#047857; }
 
+        @media (max-width: 575.98px) {
+            .ck-item-wrap { padding:1rem; }
+            .ck-item { padding:.95rem; }
+            .ck-item-price { text-align:left; flex:1 1 100%; }
+            .ck-summary-card { padding:1.15rem; }
+            .ck-edit-panel { padding:.95rem; }
+            .ck-edit-actions > * { flex:1; justify-content:center; }
+            .ck-edit-input { font-size:1rem; }
+        }
+
         /* EMPTY STATE */
         .ck-empty { padding:4rem 2rem; text-align:center; }
         .ck-empty .ic-wrap { display:grid; place-items:center; width:5.5rem; height:5.5rem; margin:0 auto 1.5rem;
@@ -152,23 +164,12 @@
         .ck-empty p { font-size:.85rem; color:var(--muted); max-width:24rem; margin:0 auto 1.5rem; line-height:1.6; }
     </style>
 
-    {{-- ── HEAD ─────────────────────────────────────── --}}
-    <div class="page-head mb-4" data-reveal>
-        <nav aria-label="breadcrumb" class="mb-2" style="font-size:.72rem;">
-            <span style="color:var(--primary-dark); font-weight:700;">Fasilitas</span>
-            <i class="bi bi-chevron-right mx-1" style="color:var(--soft); font-size:.65em;"></i>
-            <span style="color:var(--primary-dark); font-weight:800; text-transform:uppercase; letter-spacing:.06em;">Konfirmasi Reservasi</span>
-        </nav>
-        <h1 class="h3 mb-1">Keranjang Reservasi</h1>
-        <p class="text-muted mb-0 lead">Periksa kembali item reservasi Anda, lengkapi data kontak pemesan, lalu ajukan verifikasi berkas.</p>
-    </div>
-
     @if (count($items) === 0)
         {{-- ── EMPTY STATE ────────────────────────────── --}}
         <div class="xcard ck-empty mx-auto" style="max-width:640px;" data-reveal>
             <div class="ic-wrap"><i class="bi bi-bag"></i></div>
             <h2>Keranjang Masih Kosong</h2>
-            <p>Anda belum memilih fasilitas atau unit kerja untuk direservasi. Silakan telusuri katalog ruangan atau area kerja BITC yang tersedia.</p>
+            <p>Anda belum memilih fasilitas untuk direservasi. Silakan pilih fasilitas yang tersedia melalui denah gedung BITC.</p>
             <a href="{{ route('reservasi.index') }}" class="btn btn-brand">
                 <i class="bi bi-building me-1"></i>
                 Jelajahi Fasilitas &amp; Ruangan
@@ -222,7 +223,7 @@
                                     <small>Tanggal</small>
                                     <span class="val">
                                         <i class="bi bi-calendar3"></i>
-                                        {{ $item['tanggal_mulai'] }}@if($item['tanggal_selesai'] !== $item['tanggal_mulai']) → {{ $item['tanggal_selesai'] }}@endif
+                                        {{ \Illuminate\Support\Carbon::parse($item['tanggal_mulai'])->translatedFormat('j M Y') }}@if($item['tanggal_selesai'] !== $item['tanggal_mulai']) – {{ \Illuminate\Support\Carbon::parse($item['tanggal_selesai'])->translatedFormat('j M Y') }}@endif
                                     </span>
                                 </div>
                                 <div class="cell">
@@ -230,15 +231,19 @@
                                     <span class="val">
                                         <i class="bi bi-clock"></i>
                                         @if ($item['jam_mulai'])
-                                            {{ substr($item['jam_mulai'],0,5) }} - {{ substr($item['jam_selesai'],0,5) }}
+                                            {{ str_replace(':', '.', substr($item['jam_mulai'],0,5)) }}–{{ str_replace(':', '.', substr($item['jam_selesai'],0,5)) }} ({{ $item['durasi'] }} jam)
                                         @else
                                             {{ $item['durasi'] }} {{ strtolower($item['satuan']) }}
                                         @endif
                                     </span>
                                 </div>
                                 <div class="cell">
-                                    <small>Status</small>
-                                    <span class="chip menunggu">Menunggu Verifikasi</span>
+                                    <small>Jumlah Pengguna</small>
+                                    <span class="val"><i class="bi bi-people"></i>{{ $item['jumlah_pengguna'] }} orang</span>
+                                </div>
+                                <div class="cell">
+                                    <small>Subtotal</small>
+                                    <span class="val">Rp {{ number_format($item['total_biaya'], 0, ',', '.') }}</span>
                                 </div>
                             </div>
 
@@ -272,7 +277,7 @@
                                     <input type="hidden" name="id_fasilitas" value="{{ $item['id_fasilitas'] }}">
                                     <input type="hidden" name="id_tarif_sewa" value="{{ $item['id_tarif_sewa'] }}">
                                     <input type="hidden" name="edit_index" value="{{ $index }}">
-                                    <input type="hidden" name="jumlah_pengguna" value="{{ $item['jumlah_pengguna'] }}">
+
                                     <input type="hidden" name="nama_lengkap" value="{{ $pemesan->nama_lengkap }}">
                                     <input type="hidden" name="alamat" value="{{ $pemesan->alamat }}">
                                     <input type="hidden" name="usia" value="{{ $pemesan->usia }}">
@@ -288,16 +293,27 @@
                                     <textarea name="keperluan" class="ck-edit-input" rows="2" maxlength="1000" required>{{ $sedangDiedit ? old('keperluan', $item['keperluan']) : $item['keperluan'] }}</textarea>
                                     @if ($sedangDiedit) @error('keperluan') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
 
+                                    @php $kapItem = $item['kapasitas'] ?? \App\Models\Fasilitas::whereKey($item['id_fasilitas'])->value('kapasitas'); @endphp
+                                    <div class="ck-edit-field">
+                                        <label class="ck-edit-label">Jumlah Pengguna</label>
+                                        <input type="number" name="jumlah_pengguna" class="ck-edit-input" inputmode="numeric" min="1" max="{{ $kapItem }}" step="1" required
+                                               data-label="Jumlah pengguna"
+                                               data-pesan-maks="Jumlah pengguna melebihi kapasitas maksimal {{ $kapItem }} orang."
+                                               value="{{ $sedangDiedit ? old('jumlah_pengguna', $item['jumlah_pengguna']) : $item['jumlah_pengguna'] }}">
+                                        @if ($sedangDiedit) @error('jumlah_pengguna') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
+                                        <div class="ck-edit-hint">Kapasitas maksimal: {{ $kapItem }} orang</div>
+                                    </div>
+
                                     @if ($item['satuan'] === 'Jam')
                                         <div class="row g-2 mt-1">
-                                            <div class="col-md-6">
+                                            <div class="col-12">
                                                 <label class="ck-edit-label">Tanggal Pemakaian</label>
                                                 <input type="date" name="tanggal_mulai" class="ck-edit-input" required
                                                        min="{{ now()->toDateString() }}"
                                                        value="{{ $sedangDiedit ? old('tanggal_mulai', $item['tanggal_mulai']) : $item['tanggal_mulai'] }}">
                                                 @if ($sedangDiedit) @error('tanggal_mulai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-6">
                                                 <label class="ck-edit-label">Jam Mulai</label>
                                                 @include('reservasi.partials.pilih-jam', [
                                                     'name' => 'jam_mulai',
@@ -306,12 +322,12 @@
                                                 ])
                                                 @if ($sedangDiedit) @error('jam_mulai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-6">
                                                 <label class="ck-edit-label">Jam Selesai</label>
                                                 @include('reservasi.partials.pilih-jam', [
                                                     'name' => 'jam_selesai',
                                                     'value' => $sedangDiedit ? old('jam_selesai', $item['jam_selesai']) : $item['jam_selesai'],
-                                                    'kecil' => true,
+                                                    'kecil' => true, 'kanan' => true,
                                                 ])
                                                 @if ($sedangDiedit) @error('jam_selesai') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
                                             </div>
@@ -403,7 +419,7 @@
                 <div class="xcard ck-summary ck-summary-card">
                     <div class="ck-sum-head">
                         <h3>Ringkasan Biaya</h3>
-                        <span class="rid">#BITC-RSV-{{ str_pad(count($items) * 100 + 42, 4, '0', STR_PAD_LEFT) }}</span>
+                        <span class="rid">{{ count($items) }} item</span>
                     </div>
 
                     <div class="ck-sum-rows">
@@ -420,16 +436,16 @@
                             <span class="lbl">Total Tagihan</span>
                             <span class="amount">Rp {{ number_format($total, 0, ',', '.') }}</span>
                         </div>
-                        <span class="duration-chip">{{ count($items) }} Ruangan</span>
+                        <span class="duration-chip">{{ count($items) }} Fasilitas</span>
                     </div>
 
                     <div class="ck-actions">
                         <form method="POST" action="{{ route('reservasi.checkout') }}"
-                              data-confirm="Reservasi akan dikirim untuk diverifikasi admin. Pastikan data & jadwal sudah benar."
-                              data-confirm-title="Kirim reservasi ini?" data-icon="question" data-confirm-text="Ya, kirim">
+                              data-confirm="Reservasi akan dikirim untuk diverifikasi admin. Pastikan fasilitas dan jadwal sudah benar."
+                              data-confirm-title="Ajukan reservasi?" data-icon="question" data-confirm-text="Ya, ajukan">
                             @csrf
                             <button type="submit" class="btn btn-brand ck-submit-btn w-100">
-                                <span>Ajukan Verifikasi Sekarang</span>
+                                <span>Ajukan Reservasi</span>
                                 <i class="bi bi-arrow-right arrow"></i>
                             </button>
                         </form>
@@ -441,7 +457,7 @@
         @php
             // Error umum (bukan milik field jadwal di panel Ubah, mis. kapasitas/jadwal bentrok/
             // item tidak ditemukan) ditampilkan lewat pop-up, sama seperti di form "Isi Jadwal".
-            $medanDikenalCk = ['keperluan', 'tanggal_mulai', 'tanggal_selesai', 'jam_mulai', 'jam_selesai'];
+            $medanDikenalCk = ['keperluan', 'jumlah_pengguna', 'tanggal_mulai', 'tanggal_selesai', 'jam_mulai', 'jam_selesai'];
             $errUmumCk = collect($errors->getMessages())
                 ->filter(fn ($pesan, $kunci) => ! collect($medanDikenalCk)->contains(fn ($m) => $kunci === $m || str_starts_with((string) $kunci, $m.'.')))
                 ->flatten();
@@ -451,10 +467,11 @@
                 document.addEventListener('DOMContentLoaded', () => {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Tidak bisa disimpan',
-                        html: @json($errUmumCk->map(fn ($p) => e($p))->implode('<br>')),
+                        title: @json($errors->has('jadwal') ? 'Jadwal Tidak Tersedia' : 'Reservasi Belum Dapat Diproses'),
+                        html: @json($errUmumCk->map(fn ($p) => e($p))->implode('<br><br>')),
                         confirmButtonColor: '#176b87',
-                        confirmButtonText: 'Oke, mengerti',
+                        confirmButtonText: 'Mengerti',
+
                     });
                 });
             </script>

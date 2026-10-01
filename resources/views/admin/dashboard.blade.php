@@ -46,13 +46,28 @@
         ->mapWithKeys(fn ($k) => [$k => (int) ($reservasiPerKategori[$k] ?? 0)]);
     $maxKat = max(1, $reservasiPerKategoriLengkap->max());
 
-    // Data untuk bar chart tren — jumlah bar berubah sesuai periode (7 harian / 12 bulanan),
-    // jadi lebar bar disesuaikan otomatis biar tetap proporsional & tidak terlalu rapat.
-    $maxTrend = max(1, collect($trendChart)->max('jumlah'));
-    $trendChartWidth = 100;   // percent-based SVG viewBox
-    $barCount = count($trendChart);
-    $barW = $barCount > 7 ? 5 : 8;   // width bar dalam viewBox unit
-    $gap  = (100 - $barW * $barCount) / max(1, $barCount - 1);
+    // ── Diagram okupansi per bulan ──
+    // Koordinat Y dalam piksel nyata (tinggi SVG tetap), koordinat X dalam persen lebar —
+    // batang & teks tidak ikut mengecil/membesar saat kartu berubah lebar.
+    $fmtPct = fn (float $p) => ($p > 0 && $p < 10 && floor($p) != $p) ? number_format($p, 1, ',', '.') : (string) round($p);
+    $okMaks = collect($okupansiBulanan)->max('pct');
+    [$okSkala, $okLangkah] = collect([[10, 2], [20, 5], [40, 10], [60, 20], [100, 25]])
+        ->first(fn ($s) => $okMaks <= $s[0], [100, 25]);
+    $okTicks = range(0, $okSkala, $okLangkah);
+    $okAtas = 30; $okTinggi = 186; $okDasar = $okAtas + $okTinggi; $okSvgTinggi = 252; $okSetengah = 12;
+    $okY = fn (float $v) => round($okDasar - ($v / $okSkala) * $okTinggi, 1);
+    $okBulanKini = now()->format('Y-m');
+
+    // ── Okupansi per fasilitas (bulan terpilih) ──
+    $okTerpilih = collect($okupansiBulanan)->firstWhere('kunci', $okupansiNav['bulanKunci']);
+    $okTotalFasilitas = $okupansiFasilitas->count();
+    $okTerpakai = $okupansiFasilitas->where('terisi', '>', 0)->count();
+    $okTertinggi = $okupansiFasilitas->where('terisi', '>', 0)->sortByDesc('pct')->first();
+    $okPerLantai = $okupansiFasilitas->groupBy('lantai');
+    $warnaLantaiOk = ['1' => '#2f7fd1', '2' => '#24aa9a', '3A' => '#7c5cd6', '3B' => '#e8833a', '5' => '#d6527c'];
+    $qOkupansi = request()->except(['okupansi_bulan', 'okupansi_tahun']);
+    $urlOkupansi = fn (array $param) => route('admin.dashboard', array_merge($qOkupansi, $param)).'#okupansi';
+    $urlStatus = fn (string $bulan) => route('admin.dashboard', array_merge(request()->except('status_bulan'), ['status_bulan' => $bulan])).'#distribusi-status';
 @endphp
 
 @section('content')
@@ -69,49 +84,55 @@
                 <h2 class="dash-hero-title">Selamat datang, {{ $me?->nama_admin }}</h2>
                 <p class="dash-hero-sub">
                     @if ($menungguSekarang > 0)
-                        Ada <strong>{{ $menungguSekarang }} reservasi menunggu</strong> persetujuan Anda.
+                        Terdapat <strong>{{ $menungguSekarang }} fasilitas</strong> yang menunggu persetujuan Anda.
                     @else
-                        Tidak ada antrean persetujuan — semua reservasi sudah ditangani.
+                        Tidak ada fasilitas yang menunggu persetujuan.
                     @endif
                 </p>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <a href="{{ route('admin.reservasi.index', ['status' => 'Menunggu']) }}" class="dash-btn dash-btn-light"><i class="bi bi-hourglass-split me-1"></i>Proses Antrian</a>
+                <a href="{{ route('admin.reservasi.index', ['status' => 'Menunggu']) }}" class="dash-btn dash-btn-light"><i class="bi bi-hourglass-split me-1"></i>Proses Antrean</a>
                 <a href="{{ route('admin.monitoring') }}" class="dash-btn dash-btn-ghost"><i class="bi bi-grid-3x3-gap me-1"></i>Monitoring</a>
             </div>
         </div>
     </div>
 
     {{-- ═══════════════════════════════════════════════════════════
-         STAT TILES — 6 status ringkas, per bulan (angka reset tiap ganti bulan)
+         KARTU STATUS — jumlah reservasi per status yang diajukan pada bulan terpilih
+         (?status_bulan=Y-m, sama dengan donut Distribusi Status di bawah).
          ═══════════════════════════════════════════════════════════ --}}
-    <div class="dash-tiles-head">
-        <span class="dash-tiles-head-lbl"><i class="bi bi-calendar-month"></i> Ringkasan Bulan</span>
-        <div class="dash-month-nav">
-            <a href="{{ route('admin.dashboard', array_merge(request()->except('status_bulan'), ['status_bulan' => $statBulanNav['prev']])) }}" class="dash-cal-nav-btn" data-tip="Bulan sebelumnya"><i class="bi bi-chevron-left"></i></a>
-            <span class="dash-month-lbl">{{ $statBulanNav['label'] }}</span>
-            <a href="{{ route('admin.dashboard', array_merge(request()->except('status_bulan'), ['status_bulan' => $statBulanNav['next']])) }}" class="dash-cal-nav-btn" data-tip="Bulan berikutnya"><i class="bi bi-chevron-right"></i></a>
-        </div>
-    </div>
-    <div class="dash-tiles">
-        @foreach ($statusMeta as $key => $m)
-            <div class="dash-tile" data-reveal>
-                <div class="dash-tile-head">
-                    <span class="dash-tile-ic" style="background:{{ $m['bg'] }}; color:{{ $m['ic'] }}"><i class="bi {{ $m['ikon'] }}"></i></span>
-                    <span class="dash-tile-l">{{ $m['label'] }}</span>
-                </div>
-                <div class="dash-tile-v">{{ $statistik[$key] }}</div>
-                <div class="dash-tile-foot">
-                    @if ($statistik['total'] > 0)
-                        <span class="dash-tile-pct" style="color:{{ $m['ic'] }}">{{ round($statistik[$key] / $statistik['total'] * 100) }}%</span>
-                        <span class="dash-tile-frac">dari {{ $statistik['total'] }} reservasi</span>
-                    @else
-                        <span class="dash-tile-frac">Belum ada reservasi bulan ini</span>
-                    @endif
-                </div>
+    <section class="dash-status" id="ringkasan-status" data-reveal>
+        <div class="dash-tiles-head">
+            <div>
+                <span class="dash-tiles-head-lbl"><i class="bi bi-clipboard-data"></i>Status Fasilitas Dipesan</span>
+                <p class="dash-tiles-head-sub">Dihitung per fasilitas pada reservasi yang diajukan {{ $statBulanNav['label'] }} — satu reservasi berisi dua fasilitas dihitung dua.</p>
             </div>
-        @endforeach
-    </div>
+            <div class="dash-month-nav">
+                <a href="{{ route('admin.dashboard', array_merge(request()->except('status_bulan'), ['status_bulan' => $statBulanNav['prev']])) }}#ringkasan-status" class="dash-cal-nav-btn" aria-label="Bulan sebelumnya"><i class="bi bi-chevron-left"></i></a>
+                <span class="dash-month-lbl">{{ $statBulanNav['label'] }}</span>
+                <a href="{{ route('admin.dashboard', array_merge(request()->except('status_bulan'), ['status_bulan' => $statBulanNav['next']])) }}#ringkasan-status" class="dash-cal-nav-btn" aria-label="Bulan berikutnya"><i class="bi bi-chevron-right"></i></a>
+            </div>
+        </div>
+        <div class="dash-tiles">
+            @foreach ($statusMeta as $key => $m)
+                <a class="dash-tile" href="{{ route('admin.reservasi.index', ['status' => $m['label']]) }}" title="Lihat data berstatus {{ $m['label'] }}">
+                    <div class="dash-tile-head">
+                        <span class="dash-tile-ic" style="background:{{ $m['bg'] }}; color:{{ $m['ic'] }}"><i class="bi {{ $m['ikon'] }}"></i></span>
+                        <span class="dash-tile-l">{{ $m['label'] }}</span>
+                    </div>
+                    <div class="dash-tile-v">{{ $statistik[$key] }}</div>
+                    <div class="dash-tile-foot">
+                        @if ($statistik['total'] > 0)
+                            <span class="dash-tile-pct" style="color:{{ $m['ic'] }}">{{ round($statistik[$key] / $statistik['total'] * 100) }}%</span>
+                            <span class="dash-tile-frac">dari {{ $statistik['total'] }} fasilitas</span>
+                        @else
+                            <span class="dash-tile-frac">Belum ada pemesanan</span>
+                        @endif
+                    </div>
+                </a>
+            @endforeach
+        </div>
+    </section>
 
     {{-- ═══════════════════════════════════════════════════════════
          KALENDER RESERVASI — partial bersama Admin & Pemesan, hanya yang Disetujui.
@@ -124,161 +145,262 @@
     ])
 
     {{-- ═══════════════════════════════════════════════════════════
-         ROW 1 — Distribusi Status (donut) + Tren 7 Hari (bar chart BARU)
+         OKUPANSI PER BULAN — satu-satunya diagram batang di dashboard.
+         Tiap batang adalah tautan: memilih bulan itu untuk rincian per fasilitas di bawahnya.
          ═══════════════════════════════════════════════════════════ --}}
-    <div class="dash-grid-2">
-        {{-- Donut Distribusi Status --}}
-        <div class="dash-card" data-reveal>
-            <div class="dash-card-head">
-                <span><i class="bi bi-pie-chart-fill"></i> Distribusi Status</span>
-                <span class="dash-pill">{{ $statistik['total'] }} total</span>
-            </div>
-            <div class="dash-card-body dash-card-body-split">
-                <div class="dash-donut-wrap">
-                    <svg viewBox="0 0 120 120" class="dash-donut-svg" role="img" aria-label="Grafik distribusi status reservasi">
-                        <circle class="donut-track" cx="60" cy="60" r="{{ $donutR }}"/>
-                        @if ($statistik['total'] > 0)
-                            @foreach ($segmen as $i => $s)
-                                @if ($s['jumlah'] > 0)
-                                    @php $pct = $statistik['total'] > 0 ? round($s['jumlah'] / $statistik['total'] * 100) : 0; @endphp
-                                    <circle class="donut-seg" cx="60" cy="60" r="{{ $donutR }}"
-                                            stroke="{{ $s['warna'] }}"
-                                            stroke-dashoffset="{{ -$s['offset'] }}"
-                                            data-dash="{{ $s['panjang'] }} {{ $donutKeliling }}"
-                                            data-tip-label="{{ $s['label'] }}" data-tip-value="{{ $s['jumlah'] }}"
-                                            data-tip-pct="{{ $pct }}" data-tip-color="{{ $s['warna'] }}"
-                                            style="stroke-dasharray:0 {{ $donutKeliling }}; transition-delay:{{ $i * .12 }}s"
-                                            transform="rotate(-90 60 60)"></circle>
-                                @endif
-                            @endforeach
-                        @else
-                            <circle class="donut-track" cx="60" cy="60" r="{{ $donutR }}" stroke="#e5e9ef" stroke-width="14"/>
-                        @endif
-                    </svg>
-                    <div class="dash-donut-hole">
-                        <div class="dash-donut-v">{{ $statistik['total'] }}</div>
-                        <small>Reservasi</small>
-                    </div>
-                </div>
-                <div class="dash-legend">
-                    @foreach ($segmen as $s)
-                        @php $pctLegend = $statistik['total'] > 0 ? round($s['jumlah'] / $statistik['total'] * 100) : 0; @endphp
-                        <div class="dash-legend-item" style="background:{{ $s['warna'] }}14"
-                             data-tip-label="{{ $s['label'] }}" data-tip-value="{{ $s['jumlah'] }}"
-                             data-tip-pct="{{ $pctLegend }}" data-tip-color="{{ $s['warna'] }}">
-                            <span class="dot" style="background:{{ $s['warna'] }}"></span>
-                            <span class="lbl">{{ $s['label'] }}</span>
-                            <span class="n">{{ $s['jumlah'] }}</span>
-                        </div>
-                    @endforeach
-                </div>
+    <section class="dash-card dash-anchor" id="okupansi" data-reveal>
+        <div class="dash-card-head dash-card-head-wrap">
+            <span><i class="bi bi-bar-chart-fill"></i> Okupansi per Bulan</span>
+            <div class="dash-month-nav" role="group" aria-label="Pilih tahun">
+                <a href="{{ $urlOkupansi($okupansiNav['tahunPrev']) }}" class="dash-cal-nav-btn" data-tip="Tahun sebelumnya" aria-label="Tahun sebelumnya"><i class="bi bi-chevron-left"></i></a>
+                <span class="dash-month-lbl dash-month-lbl-tahun">{{ $okupansiNav['tahun'] }}</span>
+                <a href="{{ $urlOkupansi($okupansiNav['tahunNext']) }}" class="dash-cal-nav-btn" data-tip="Tahun berikutnya" aria-label="Tahun berikutnya"><i class="bi bi-chevron-right"></i></a>
             </div>
         </div>
+        <div class="dash-card-body">
+            <div class="dash-okup-scroll">
+                <div class="dash-okup-plot">
+                    {{-- Sumbu Y --}}
+                    <svg class="dash-okup-axis" width="100%" height="{{ $okSvgTinggi }}" aria-hidden="true">
+                        @foreach ($okTicks as $t)
+                            <text x="100%" dx="-8" y="{{ $okY($t) + 4 }}" text-anchor="end">{{ $t }}%</text>
+                        @endforeach
+                    </svg>
 
-        {{-- Bar chart Tren — toggle Harian (7 hari) / Bulanan (12 bulan) --}}
-        <div class="dash-card" data-reveal>
-            <div class="dash-card-head dash-card-head-trend">
-                <span><i class="bi bi-graph-up-arrow"></i> {{ $periode === 'bulanan' ? 'Tren 12 Bulan Terakhir' : 'Tren 7 Hari Terakhir' }}</span>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="dash-pill">{{ collect($trendChart)->sum('jumlah') }} reservasi</span>
-                    <div class="dash-toggle" role="group" aria-label="Pilih periode tren">
-                        <a href="{{ route('admin.dashboard', array_merge(request()->except('periode'), ['periode' => 'harian'])) }}"
-                           class="dash-toggle-opt {{ $periode === 'harian' ? 'active' : '' }}">Harian</a>
-                        <a href="{{ route('admin.dashboard', array_merge(request()->except('periode'), ['periode' => 'bulanan'])) }}"
-                           class="dash-toggle-opt {{ $periode === 'bulanan' ? 'active' : '' }}">Bulanan</a>
-                    </div>
-                </div>
-            </div>
-            <div class="dash-card-body">
-                <div class="dash-chart">
-                    {{-- SVG bar chart custom: viewBox 100 unit lebar x 72 unit tinggi + label bawah.
-                         preserveAspectRatio default (xMidYMid meet) dipakai — bukan "none" — supaya
-                         bar/teks/grid selalu diskalakan proporsional, tidak gepeng saat kartu melebar. --}}
-                    <svg viewBox="0 0 100 72" class="dash-chart-svg" role="img" aria-label="Grafik tren reservasi">
-                        <defs>
-                            <linearGradient id="barToday" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="var(--teal)"/>
-                                <stop offset="100%" stop-color="var(--dash-primary)"/>
-                            </linearGradient>
-                            <linearGradient id="barSoft" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#cbe8ec"/>
-                                <stop offset="100%" stop-color="var(--dash-primary-soft-2)"/>
-                            </linearGradient>
-                        </defs>
-                        {{-- Gridlines horizontal --}}
-                        @for ($g = 1; $g <= 3; $g++)
-                            <line x1="0" y1="{{ $g * 16 }}" x2="100" y2="{{ $g * 16 }}" stroke="#eef2f6" stroke-width=".25"/>
-                        @endfor
-                        @foreach ($trendChart as $i => $d)
+                    <svg class="dash-okup-svg" width="100%" height="{{ $okSvgTinggi }}" role="img"
+                         aria-label="Diagram batang okupansi fasilitas per bulan tahun {{ $okupansiNav['tahun'] }}">
+                        @foreach ($okTicks as $t)
+                            <line class="dash-okup-grid {{ $t === 0 ? 'is-base' : '' }}" x1="0" x2="100%" y1="{{ $okY($t) }}" y2="{{ $okY($t) }}"/>
+                        @endforeach
+
+                        @foreach ($okupansiBulanan as $i => $b)
                             @php
-                                $h = $d['jumlah'] > 0 ? max(3, round($d['jumlah'] / $maxTrend * 58)) : 1.5;
-                                $x = $i * ($barW + $gap);
-                                $y = 64 - $h;
-                                $isAktif = $d['isAktif'];
-                                $tipLabel = $periode === 'bulanan' ? $d['tanggal']->translatedFormat('F Y') : $d['tanggal']->translatedFormat('l, d F');
+                                $terpilih = $b['kunci'] === $okupansiNav['bulanKunci'];
+                                $kosong = $b['terisi'] === 0;
+                                $yAtas = $kosong ? $okDasar - 2 : min($okDasar - 3, $okY($b['pct']));
+                                $r = min(4, $okDasar - $yAtas);
+                                $d = $kosong
+                                    ? "M-{$okSetengah},{$okDasar} V{$yAtas} H{$okSetengah} V{$okDasar} Z"
+                                    : "M-{$okSetengah},{$okDasar} V".($yAtas + $r)." Q-{$okSetengah},{$yAtas} ".(-$okSetengah + $r).",{$yAtas} H".($okSetengah - $r)." Q{$okSetengah},{$yAtas} {$okSetengah},".($yAtas + $r)." V{$okDasar} Z";
+                                $catatan = number_format($b['terisi'], 0, ',', '.').' hari terpakai dari '.number_format($b['kapasitas'], 0, ',', '.').' hari tersedia';
                             @endphp
-                            <rect x="{{ $x }}" y="{{ $y }}" width="{{ $barW }}" height="{{ $h }}"
-                                  rx="1.8" ry="1.8"
-                                  fill="{{ $isAktif ? 'url(#barToday)' : 'url(#barSoft)' }}"
-                                  class="dash-bar" style="--i:{{ $i }}"
-                                  data-tip-label="{{ $tipLabel }}"
-                                  data-tip-value="{{ $d['jumlah'] }}"
-                                  data-tip-color="{{ $isAktif ? 'var(--dash-primary)' : 'var(--dash-primary-soft-2)' }}"></rect>
-                            {{-- Angka di atas bar (disembunyikan di mode bulanan kalau bar terlalu rapat) --}}
-                            @if ($d['jumlah'] > 0 && $barCount <= 7)
-                                <text x="{{ $x + $barW / 2 }}" y="{{ $y - 1.8 }}"
-                                      text-anchor="middle" font-size="3.4" font-weight="700"
-                                      fill="{{ $isAktif ? 'var(--dash-primary)' : '#64748b' }}"
-                                      font-family="'Plus Jakarta Sans',sans-serif">{{ $d['jumlah'] }}</text>
-                            @endif
-                            {{-- Label hari/bulan di bawah --}}
-                            <text x="{{ $x + $barW / 2 }}" y="70.5"
-                                  text-anchor="middle" font-size="{{ $barCount > 7 ? 2.6 : 2.9 }}" font-weight="600"
-                                  fill="{{ $isAktif ? 'var(--dash-primary)' : '#94a3b8' }}"
-                                  font-family="'DM Sans',sans-serif">{{ $d['label'] }}</text>
+                            <a href="{{ $urlOkupansi(['okupansi_tahun' => $okupansiNav['tahun'], 'okupansi_bulan' => $b['kunci']]) }}"
+                               aria-label="{{ $b['tanggal']->translatedFormat('F Y') }}: okupansi {{ $fmtPct($b['pct']) }}%, {{ $catatan }}"
+                               @if ($terpilih) aria-current="true" @endif>
+                                <svg class="dash-okup-col {{ $terpilih ? 'is-selected' : '' }} {{ $kosong ? 'is-empty' : '' }}"
+                                     x="{{ round($i / 12 * 100, 4) }}%" width="8.3333%" height="{{ $okSvgTinggi }}" overflow="visible"
+                                     data-tip-label="{{ $b['tanggal']->translatedFormat('F Y') }}"
+                                     data-tip-value="{{ $fmtPct($b['pct']) }}%"
+                                     data-tip-note="{{ $catatan }}"
+                                     data-tip-color="{{ $terpilih ? '#176b87' : '#8fc3cf' }}">
+                                    <rect class="dash-okup-band" x="5%" y="4" width="90%" height="{{ $okSvgTinggi - 6 }}" rx="10"/>
+                                    <svg x="50%" overflow="visible">
+                                        <path class="dash-okup-bar" style="--i:{{ $i }}" d="{{ $d }}"/>
+                                        <text class="dash-okup-val" y="{{ $yAtas - 8 }}" text-anchor="middle">{{ $fmtPct($b['pct']) }}%</text>
+                                        <text class="dash-okup-lbl" y="{{ $okDasar + 21 }}" text-anchor="middle">{{ $b['label'] }}</text>
+                                        @if ($b['kunci'] === $okBulanKini)
+                                            <circle class="dash-okup-now" cx="0" cy="{{ $okDasar + 29 }}" r="2"/>
+                                        @endif
+                                    </svg>
+                                </svg>
+                            </a>
                         @endforeach
                     </svg>
                 </div>
-                <div class="dash-chart-foot">
-                    <span><span class="dot" style="background:var(--dash-primary)"></span> {{ $periode === 'bulanan' ? 'Bulan ini' : 'Hari ini' }}</span>
-                    <span><span class="dot" style="background:var(--dash-primary-soft-2)"></span> {{ $periode === 'bulanan' ? '11 bulan sebelumnya' : '6 hari sebelumnya' }}</span>
-                </div>
             </div>
+
+            <p class="dash-okup-geser"><i class="bi bi-arrow-left-right"></i> Geser untuk melihat bulan lainnya</p>
+            <p class="dash-okup-note">
+                <i class="bi bi-info-circle"></i>
+                Okupansi = hari kerja (Senin–Jumat) yang terisi reservasi Disetujui/Selesai dibanding seluruh hari kerja fasilitas aktif.
+                Pilih batang untuk melihat rincian per fasilitas.
+            </p>
+
+            {{-- Tampilan tabel untuk pembaca layar --}}
+            <table class="visually-hidden">
+                <caption>Okupansi fasilitas per bulan tahun {{ $okupansiNav['tahun'] }}</caption>
+                <thead><tr><th scope="col">Bulan</th><th scope="col">Okupansi</th><th scope="col">Hari-fasilitas terisi</th></tr></thead>
+                <tbody>
+                    @foreach ($okupansiBulanan as $b)
+                        <tr>
+                            <th scope="row">{{ $b['tanggal']->translatedFormat('F Y') }}</th>
+                            <td>{{ $fmtPct($b['pct']) }}%</td>
+                            <td>{{ $b['terisi'] }} dari {{ $b['kapasitas'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-    </div>
+    </section>
 
     {{-- ═══════════════════════════════════════════════════════════
-         ROW 2 — Reservasi per Kategori + Reservasi Terbaru
+         OKUPANSI PER FASILITAS — bulan terpilih, dikelompokkan per lantai.
          ═══════════════════════════════════════════════════════════ --}}
-    <div class="dash-grid-2b">
-        {{-- Reservasi per Kategori --}}
-        <div class="dash-card" data-reveal>
-            <div class="dash-card-head">
-                <span><i class="bi bi-building"></i> Reservasi per Kategori</span>
-                <span class="dash-pill">{{ $reservasiPerKategoriLengkap->sum() }} reservasi</span>
+    <section class="dash-card dash-anchor dash-section-gap" data-reveal>
+        <div class="dash-card-head dash-card-head-wrap">
+            <span><i class="bi bi-door-open-fill"></i> Okupansi per Fasilitas</span>
+            <div class="dash-month-nav" role="group" aria-label="Pilih bulan">
+                <a href="{{ $urlOkupansi($okupansiNav['bulanPrev']) }}" class="dash-cal-nav-btn" data-tip="Bulan sebelumnya" aria-label="Bulan sebelumnya"><i class="bi bi-chevron-left"></i></a>
+                <span class="dash-month-lbl">{{ $okupansiNav['bulanLabel'] }}</span>
+                <a href="{{ $urlOkupansi($okupansiNav['bulanNext']) }}" class="dash-cal-nav-btn" data-tip="Bulan berikutnya" aria-label="Bulan berikutnya"><i class="bi bi-chevron-right"></i></a>
             </div>
-            <div class="dash-card-body">
-                @forelse ($reservasiPerKategoriLengkap as $kategori => $jumlah)
+        </div>
+        <div class="dash-card-body">
+            <div class="dash-kpi">
+                <div class="dash-kpi-item">
+                    <span class="dash-kpi-l">Okupansi gedung</span>
+                    <span class="dash-kpi-v">{{ $fmtPct($okTerpilih['pct'] ?? 0) }}%</span>
+                    <span class="dash-kpi-s">{{ number_format($okTerpilih['terisi'] ?? 0, 0, ',', '.') }} hari terpakai dari {{ number_format($okTerpilih['kapasitas'] ?? 0, 0, ',', '.') }} hari tersedia ({{ $okTotalFasilitas }} fasilitas × {{ $okTerpilih['hariKerja'] ?? 0 }} hari kerja)</span>
+                </div>
+                <div class="dash-kpi-item">
+                    <span class="dash-kpi-l">Fasilitas terpakai</span>
+                    <span class="dash-kpi-v">{{ $okTerpakai }}<small> / {{ $okTotalFasilitas }}</small></span>
+                    <span class="dash-kpi-s">{{ $okTerpilih['hariKerja'] ?? 0 }} hari kerja pada bulan ini</span>
+                </div>
+                <div class="dash-kpi-item">
+                    <span class="dash-kpi-l">Okupansi tertinggi</span>
+                    @if ($okTertinggi)
+                        <span class="dash-kpi-v">{{ $okTertinggi['pct'] }}%</span>
+                        <span class="dash-kpi-s">{{ $okTertinggi['nama'] }} · Lantai {{ $okTertinggi['lantai'] }}</span>
+                    @else
+                        <span class="dash-kpi-v">–</span>
+                        <span class="dash-kpi-s">Belum ada fasilitas terpakai</span>
+                    @endif
+                </div>
+            </div>
+
+            @if ($okTotalFasilitas === 0)
+                <p class="text-muted small mb-0">Belum ada fasilitas aktif.</p>
+            @else
+                <div class="dash-floor-bar">
+                    <span class="dash-floor-bar-l">{{ $okTotalFasilitas }} fasilitas aktif · {{ $okPerLantai->count() }} lantai</span>
+                    <button type="button" class="dash-btn dash-btn-outline dash-btn-sm" id="dashFloorToggle" data-mode="buka">
+                        <i class="bi bi-arrows-expand me-1"></i><span>Buka semua</span>
+                    </button>
+                </div>
+
+                @foreach ($okPerLantai as $lantai => $daftar)
                     @php
-                        $meta = $kategoriMeta[$kategori] ?? ['ikon' => 'bi-door-open', 'shade' => 'var(--dash-primary)'];
-                        $pct = round($jumlah / $maxKat * 100);
+                        $warna = $warnaLantaiOk[$lantai] ?? '#176b87';
+                        $terpakaiLantai = $daftar->where('terisi', '>', 0)->count();
+                        $kapLantai = $daftar->sum('hariKerja');
+                        $pctLantai = $kapLantai > 0 ? round($daftar->sum('terisi') / $kapLantai * 100, 1) : 0.0;
+                        $buka = $terpakaiLantai > 0 || $daftar->count() <= 8;
                     @endphp
-                    <div class="dash-meter">
-                        <span class="dash-meter-ic" style="background:{{ $meta['shade'] }}1a; color:{{ $meta['shade'] }}"><i class="bi {{ $meta['ikon'] }}"></i></span>
-                        <div class="dash-meter-body">
-                            <div class="dash-meter-top">
-                                <span class="dash-meter-name">{{ $kategori }}</span>
-                                <span class="dash-meter-count" style="color:{{ $meta['shade'] }}">{{ $jumlah }} <small>reservasi</small></span>
-                            </div>
-                            <div class="dash-meter-track">
-                                <div class="dash-meter-fill" style="width:{{ $pct }}%; background:{{ $meta['shade'] }}"></div>
-                            </div>
+                    <details class="dash-floor" style="--fl:{{ $warna }}" @if ($buka) open @endif>
+                        <summary>
+                            <span class="dash-floor-dot"></span>
+                            <span class="dash-floor-name">Lantai {{ $lantai }}</span>
+                            <span class="dash-floor-meta">{{ $daftar->count() }} fasilitas · {{ $terpakaiLantai }} terpakai</span>
+                            <span class="dash-floor-avg">
+                                <span class="dash-floor-track"><span class="dash-floor-fill" style="width:{{ min(100, $pctLantai) }}%"></span></span>
+                                <b>{{ $fmtPct($pctLantai) }}%</b>
+                            </span>
+                            <i class="bi bi-chevron-down dash-floor-caret"></i>
+                        </summary>
+                        <div class="dash-fac-grid">
+                            @foreach ($daftar as $f)
+                                <a href="{{ route('admin.monitoring.detail', $f['id_fasilitas']) }}"
+                                   class="dash-fac {{ $f['terisi'] > 0 ? '' : 'is-empty' }}"
+                                   title="{{ $f['nama'] }} · {{ $f['kategori'] }}">
+                                    <span class="dash-fac-top">
+                                        <span class="dash-fac-kode">{{ $f['kode'] }}</span>
+                                        <span class="dash-fac-pct">{{ $f['pct'] }}%</span>
+                                    </span>
+                                    <span class="dash-fac-track"><span class="dash-fac-fill" style="width:{{ $f['terisi'] > 0 ? max(4, min(100, $f['pct'])) : 0 }}%"></span></span>
+                                    <span class="dash-fac-sub">{{ $f['terisi'] }} dari {{ $f['hariKerja'] }} hari kerja</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    </details>
+                @endforeach
+            @endif
+        </div>
+    </section>
+
+    {{-- ═══════════════════════════════════════════════════════════
+         Distribusi Status + Reservasi per Kategori (kiri) · Reservasi Terbaru (kanan)
+         ═══════════════════════════════════════════════════════════ --}}
+    <div class="dash-grid-2">
+        <div class="dash-col">
+            {{-- Donut Distribusi Status --}}
+            <div class="dash-card dash-anchor" id="distribusi-status" data-reveal>
+                <div class="dash-card-head dash-card-head-wrap">
+                    <span><i class="bi bi-pie-chart-fill"></i> Distribusi Status</span>
+                    <div class="dash-month-nav" role="group" aria-label="Pilih bulan pengajuan">
+                        <a href="{{ $urlStatus($statBulanNav['prev']) }}" class="dash-cal-nav-btn" data-tip="Bulan sebelumnya" aria-label="Bulan sebelumnya"><i class="bi bi-chevron-left"></i></a>
+                        <span class="dash-month-lbl">{{ $statBulanNav['label'] }}</span>
+                        <a href="{{ $urlStatus($statBulanNav['next']) }}" class="dash-cal-nav-btn" data-tip="Bulan berikutnya" aria-label="Bulan berikutnya"><i class="bi bi-chevron-right"></i></a>
+                    </div>
+                </div>
+                <div class="dash-card-body dash-card-body-split">
+                    <div class="dash-donut-wrap">
+                        <svg viewBox="0 0 120 120" class="dash-donut-svg" role="img" aria-label="Grafik distribusi status fasilitas yang dipesan pada {{ $statBulanNav['label'] }}">
+                            <circle class="donut-track" cx="60" cy="60" r="{{ $donutR }}"/>
+                            @if ($statistik['total'] > 0)
+                                @foreach ($segmen as $i => $s)
+                                    @if ($s['jumlah'] > 0)
+                                        @php $pct = $statistik['total'] > 0 ? round($s['jumlah'] / $statistik['total'] * 100) : 0; @endphp
+                                        <circle class="donut-seg" cx="60" cy="60" r="{{ $donutR }}"
+                                                stroke="{{ $s['warna'] }}"
+                                                stroke-dashoffset="{{ -$s['offset'] }}"
+                                                data-dash="{{ $s['panjang'] }} {{ $donutKeliling }}"
+                                                data-tip-label="{{ $s['label'] }}" data-tip-value="{{ $s['jumlah'] }}"
+                                                data-tip-pct="{{ $pct }}" data-tip-color="{{ $s['warna'] }}"
+                                                style="stroke-dasharray:0 {{ $donutKeliling }}; transition-delay:{{ $i * .12 }}s"
+                                                transform="rotate(-90 60 60)"></circle>
+                                    @endif
+                                @endforeach
+                            @endif
+                        </svg>
+                        <div class="dash-donut-hole">
+                            <div class="dash-donut-v">{{ $statistik['total'] }}</div>
+                            <small>Fasilitas</small>
                         </div>
                     </div>
-                @empty
-                    <p class="text-muted small mb-0">Belum ada reservasi.</p>
-                @endforelse
-                <a href="{{ route('admin.laporan') }}" class="dash-btn dash-btn-outline w-100 mt-3 justify-content-center"><i class="bi bi-file-earmark-bar-graph me-1"></i>Lihat Laporan</a>
+                    <div class="dash-legend">
+                        @foreach ($segmen as $s)
+                            @php $pctLegend = $statistik['total'] > 0 ? round($s['jumlah'] / $statistik['total'] * 100) : 0; @endphp
+                            <div class="dash-legend-item" style="background:{{ $s['warna'] }}14"
+                                 data-tip-label="{{ $s['label'] }}" data-tip-value="{{ $s['jumlah'] }}"
+                                 data-tip-pct="{{ $pctLegend }}" data-tip-color="{{ $s['warna'] }}">
+                                <span class="dot" style="background:{{ $s['warna'] }}"></span>
+                                <span class="lbl">{{ $s['label'] }}</span>
+                                <span class="n">{{ $s['jumlah'] }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    <p class="dash-donut-note">Dihitung per fasilitas pada reservasi yang diajukan {{ $statBulanNav['label'] }}.</p>
+                </div>
+            </div>
+
+            {{-- Reservasi per Kategori --}}
+            <div class="dash-card" data-reveal>
+                <div class="dash-card-head">
+                    <span><i class="bi bi-building"></i> Reservasi Aktif per Kategori</span>
+                    <span class="dash-pill">{{ $reservasiPerKategoriLengkap->sum() }} fasilitas</span>
+                </div>
+                <div class="dash-card-body">
+                    @foreach ($reservasiPerKategoriLengkap as $kategori => $jumlah)
+                        @php
+                            $meta = $kategoriMeta[$kategori] ?? ['ikon' => 'bi-door-open', 'shade' => 'var(--dash-primary)'];
+                            $pct = round($jumlah / $maxKat * 100);
+                        @endphp
+                        <div class="dash-meter">
+                            <span class="dash-meter-ic" style="background:{{ $meta['shade'] }}1a; color:{{ $meta['shade'] }}"><i class="bi {{ $meta['ikon'] }}"></i></span>
+                            <div class="dash-meter-body">
+                                <div class="dash-meter-top">
+                                    <span class="dash-meter-name">{{ $kategori }}</span>
+                                    <span class="dash-meter-count">{{ $jumlah }} <small>fasilitas</small></span>
+                                </div>
+                                <div class="dash-meter-track">
+                                    <div class="dash-meter-fill" style="width:{{ $pct }}%; background:{{ $meta['shade'] }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                    <a href="{{ route('admin.laporan') }}" class="dash-btn dash-btn-outline w-100 mt-3 justify-content-center"><i class="bi bi-file-earmark-bar-graph me-1"></i>Lihat Laporan</a>
+                </div>
             </div>
         </div>
 
@@ -286,7 +408,7 @@
         <div class="dash-card" data-reveal>
             <div class="dash-card-head">
                 <span><i class="bi bi-clock-history"></i> Reservasi Terbaru</span>
-                <a href="{{ route('admin.reservasi.index') }}" class="dash-btn dash-btn-outline dash-btn-sm">Semua <i class="bi bi-arrow-right ms-1"></i></a>
+                <a href="{{ route('admin.reservasi.index') }}" class="dash-btn dash-btn-outline dash-btn-sm">Lihat Semua <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
             <div class="dash-feed">
                 @forelse ($terbaru as $r)
@@ -313,10 +435,11 @@
         </div>
     </div>
 
-    {{-- Tooltip mengambang — muncul saat kursor di atas segmen donut, batang tren, atau legenda. --}}
+    {{-- Tooltip mengambang — muncul saat kursor di atas batang okupansi, segmen donut, atau legenda. --}}
     <div class="dash-tip" id="dashTip" hidden>
         <div class="dash-tip-label"><span class="dot" id="dashTipDot"></span><span id="dashTipLabel"></span></div>
         <div class="dash-tip-value"><span id="dashTipValue"></span><small id="dashTipPct"></small></div>
+        <div class="dash-tip-note" id="dashTipNote" hidden></div>
     </div>
 </div>
 
@@ -328,7 +451,7 @@
     --dash-primary:        #176b87;
     --dash-primary-dark:   #0f526b;
     --dash-primary-soft:   #eef7f8;
-    --dash-primary-soft-2: #b8dde4;    /* untuk bar chart yang lebih pale */
+    --dash-primary-soft-2: #8fc3cf;    /* batang bulan yang tidak dipilih */
     --dash-ink:            #0f172a;
     --dash-muted:          #64748b;
     --dash-soft:           #94a3b8;
@@ -344,6 +467,10 @@
 @keyframes dashUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
 .dash [data-reveal] { animation:dashUp .55s cubic-bezier(.2,.7,.3,1) both; }
 @media (prefers-reduced-motion: reduce) { .dash [data-reveal] { animation:none; } }
+
+/* Tujuan tautan #okupansi / #distribusi-status tidak tertutup topbar yang menempel. */
+.dash-anchor { scroll-margin-top:6.25rem; }
+.dash-section-gap { margin:1.25rem 0 1.5rem; }
 
 /* ══════════════════════════════════════════════════════════════
    HERO — gradient teal clean (dari palet homepage, bukan biru+hijau).
@@ -376,6 +503,7 @@
 .dash-hero-title {
     font-family:'Plus Jakarta Sans',sans-serif; font-weight:800;
     font-size:1.75rem; margin:.4rem 0 .35rem; color:#fff; letter-spacing:-.025em;
+    overflow-wrap:anywhere;
 }
 .dash-hero-sub { margin:0; opacity:.9; font-size:.95rem; max-width:34rem; line-height:1.6; }
 
@@ -383,7 +511,7 @@
     display:inline-flex; align-items:center; justify-content:center;
     padding:.6rem 1.15rem; border-radius:.75rem;
     font-weight:700; font-size:.87rem; text-decoration:none;
-    border:1.5px solid transparent;
+    border:1.5px solid transparent; cursor:pointer;
     transition:transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
 }
 .dash-btn-light { background:#fff; color:var(--dash-primary-dark); box-shadow:0 10px 22px -8px rgba(0,0,0,.25); }
@@ -392,54 +520,26 @@
 .dash-btn-ghost:hover { background:rgba(255,255,255,.18); color:#fff; transform:translateY(-2px); }
 .dash-btn-outline { background:#fff; color:var(--dash-primary); border-color:var(--dash-line); }
 .dash-btn-outline:hover { border-color:var(--dash-primary); color:var(--dash-primary); background:var(--dash-primary-soft); }
-.dash-btn-sm { padding:.4rem .8rem; font-size:.78rem; }
+.dash-btn-sm { padding:.4rem .8rem; font-size:.78rem; white-space:nowrap; }
 
 /* ══════════════════════════════════════════════════════════════
-   STAT TILES — 6 status card putih dengan icon soft, di-scope per bulan.
+   NAVIGASI PERIODE ‹ label › — dipakai kepala kartu okupansi & donut.
    ══════════════════════════════════════════════════════════════ */
-.dash-tiles-head { display:flex; align-items:center; justify-content:space-between;
-    flex-wrap:wrap; gap:.75rem; margin-bottom:.85rem; }
-.dash-tiles-head-lbl { font-size:.8rem; font-weight:800; color:var(--dash-muted);
-    display:inline-flex; align-items:center; gap:.4rem; text-transform:uppercase; letter-spacing:.04em; }
-.dash-tiles-head-lbl i { color:var(--dash-primary); }
 .dash-month-nav { display:inline-flex; align-items:center; gap:.35rem;
-    background:#fff; border:1px solid var(--dash-line); border-radius:.7rem; padding:.3rem .5rem; }
-.dash-month-lbl { font-size:.85rem; font-weight:800; color:var(--dash-ink); min-width:7rem; text-align:center; }
+    background:#fff; border:1px solid var(--dash-line); border-radius:.7rem; padding:.25rem .4rem; }
+.dash-month-lbl { font-size:.82rem; font-weight:800; color:var(--dash-ink); min-width:6.75rem; text-align:center;
+    font-variant-numeric:tabular-nums; }
+.dash-month-lbl-tahun { min-width:3.25rem; }
 .dash-cal-nav-btn { display:grid; place-items:center; width:1.9rem; height:1.9rem;
     border-radius:.5rem; background:transparent; border:0; color:var(--dash-muted);
     text-decoration:none; font-size:.85rem; transition:all .15s ease; flex:none; }
 .dash-cal-nav-btn:hover { background:var(--dash-primary-soft); color:var(--dash-primary-dark); }
 
-.dash-tiles { display:grid; grid-template-columns:repeat(6, 1fr); gap:1rem; margin-bottom:1.5rem; }
-.dash-tile {
-    background:#fff; border:1px solid var(--dash-line);
-    border-radius:var(--dash-radius); padding:1.25rem 1.35rem;
-    box-shadow:var(--dash-shadow-sm);
-    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-}
-.dash-tile:hover { transform:translateY(-4px); box-shadow:var(--dash-shadow-md); border-color:transparent; }
-.dash-tile-head { display:flex; align-items:center; gap:.7rem; margin-bottom:1rem; }
-.dash-tile-ic {
-    display:grid; place-items:center;
-    width:2.4rem; height:2.4rem;
-    border-radius:.7rem; font-size:1.05rem;
-    flex:none;
-}
-.dash-tile-l { font-size:.85rem; font-weight:700; color:var(--dash-ink); }
-.dash-tile-v {
-    font-family:'Plus Jakarta Sans',sans-serif; font-weight:800;
-    font-size:2.1rem; line-height:1.05; color:var(--dash-ink); letter-spacing:-.025em;
-    margin-bottom:.5rem;
-}
-.dash-tile-foot { display:flex; align-items:baseline; gap:.5rem; font-size:.78rem; flex-wrap:wrap; }
-.dash-tile-pct { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.85rem; }
-.dash-tile-frac { color:var(--dash-muted); font-weight:500; }
-
 /* ══════════════════════════════════════════════════════════════
-   GRID 2 KOLOM (2 baris)
+   KARTU
    ══════════════════════════════════════════════════════════════ */
-.dash-grid-2  { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.5fr); gap:1.25rem; margin-bottom:1.25rem; align-items:stretch; }
-.dash-grid-2b { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.4fr); gap:1.25rem; align-items:start; }
+.dash-grid-2 { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.35fr); gap:1.25rem; align-items:start; }
+.dash-col { display:flex; flex-direction:column; gap:1.25rem; min-width:0; }
 
 .dash-card {
     background:#fff; border:1px solid var(--dash-line);
@@ -453,23 +553,163 @@
     font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; color:var(--dash-ink); font-size:.95rem;
     display:flex; justify-content:space-between; align-items:center; gap:.5rem;
 }
+.dash-card-head-wrap { flex-wrap:wrap; gap:.6rem; }
 .dash-card-head > span:first-child i { color:var(--dash-primary); margin-right:.5rem; }
 .dash-card-body { padding:1.3rem; flex:1; }
-/* Donut: donut di atas, legenda dipin ke bawah — supaya kartu yang di-stretch setinggi
-   kartu sebelahnya (tren 7 hari) tidak menyisakan ruang kosong di bawah legenda. */
-.dash-card-body-split { display:flex; flex-direction:column; justify-content:space-between; gap:1rem; }
+.dash-card-body-split { display:flex; flex-direction:column; gap:1rem; }
 .dash-pill {
     background:var(--dash-primary-soft); color:var(--dash-primary-dark);
     font-size:.72rem; font-weight:700;
-    padding:.35rem .75rem; border-radius:2rem;
+    padding:.35rem .75rem; border-radius:2rem; white-space:nowrap;
 }
+
+/* ═══ KARTU STATUS RESERVASI (per bulan) ═══ */
+.dash-status { margin-bottom:1.5rem; }
+.dash-tiles-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem; margin-bottom:.85rem; }
+.dash-tiles-head-lbl { font-size:.8rem; font-weight:800; color:var(--dash-muted); display:inline-flex; align-items:center; gap:.45rem;
+    text-transform:uppercase; letter-spacing:.04em; }
+.dash-tiles-head-lbl i { color:var(--dash-primary); }
+.dash-tiles { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:1rem; }
+.dash-tile { display:block; text-decoration:none; color:inherit; background:#fff; border:1px solid var(--dash-line);
+    border-radius:var(--dash-radius); padding:1.1rem 1rem; box-shadow:var(--dash-shadow-sm); min-width:0;
+    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+.dash-tile:hover { transform:translateY(-3px); box-shadow:var(--dash-shadow-md); border-color:var(--dash-primary-soft-2, var(--dash-line)); color:inherit; }
+.dash-tile:focus-visible { outline:2px solid var(--dash-primary); outline-offset:2px; }
+.dash-tile-head { display:flex; align-items:center; gap:.5rem; margin-bottom:.85rem; min-width:0; }
+.dash-tile-ic { display:grid; place-items:center; width:2.1rem; height:2.1rem; border-radius:.65rem; font-size:.95rem; flex:none; }
+.dash-tile-l { font-size:.82rem; font-weight:700; color:var(--dash-ink); line-height:1.2; min-width:0; }
+.dash-tiles-head-sub { font-size:.76rem; color:var(--dash-muted); margin:.2rem 0 0; }
+.dash-tile-v { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:2rem; line-height:1.05; color:var(--dash-ink);
+    letter-spacing:-.025em; margin-bottom:.45rem; }
+.dash-tile-foot { display:flex; align-items:baseline; gap:.4rem; font-size:.76rem; flex-wrap:wrap; }
+.dash-tile-pct { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.84rem; }
+.dash-tile-frac { color:var(--dash-muted); font-weight:500; }
+@media (max-width: 1199.98px) { .dash-tiles { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 575.98px) {
+    .dash-tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.65rem; }
+    .dash-tile { padding:.9rem .95rem; }
+    .dash-tile-v { font-size:1.6rem; }
+    .dash-tile-head { margin-bottom:.6rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DIAGRAM OKUPANSI PER BULAN
+   Batang 24px dengan ujung atas membulat, garis bantu tipis, teks memakai warna teks
+   (bukan warna batang). Bulan terpilih = teal pekat, bulan lain = teal muda.
+   ══════════════════════════════════════════════════════════════ */
+.dash-okup-scroll { overflow-x:auto; overflow-y:hidden; margin:0 -.25rem; padding:0 .25rem .25rem; }
+.dash-okup-plot { display:grid; grid-template-columns:2.6rem minmax(0, 1fr); min-width:35rem; }
+.dash-okup-axis, .dash-okup-svg { display:block; overflow:visible; }
+.dash-okup-axis { position:sticky; left:0; z-index:1; background:#fff; }
+.dash-okup-axis text { font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:600;
+    fill:var(--dash-soft); font-variant-numeric:tabular-nums; }
+.dash-okup-grid { stroke:var(--dash-line-soft); stroke-width:1; shape-rendering:crispEdges; }
+.dash-okup-grid.is-base { stroke:#cbd5e1; }
+
+.dash-okup-svg a { cursor:pointer; outline:none; text-decoration:none; }
+.dash-okup-svg text { text-decoration:none; }
+.dash-okup-band { fill:var(--dash-primary-soft); opacity:0; transition:opacity .15s ease; }
+.dash-okup-col:hover .dash-okup-band { opacity:.75; }
+.dash-okup-col.is-selected .dash-okup-band { opacity:1; }
+.dash-okup-svg a:focus-visible .dash-okup-band { opacity:1; stroke:var(--dash-primary); stroke-width:1.5; }
+
+.dash-okup-bar {
+    fill:var(--dash-primary-soft-2);
+    transition:fill .15s ease;
+    transform-box:fill-box; transform-origin:50% 100%;
+    animation:barGrow .6s cubic-bezier(.2,.8,.3,1) both;
+    animation-delay:calc(var(--i, 0) * 45ms);
+}
+.dash-okup-col:hover .dash-okup-bar { fill:#5fa6b8; }
+.dash-okup-col.is-selected .dash-okup-bar,
+.dash-okup-col.is-selected:hover .dash-okup-bar { fill:var(--dash-primary); }
+.dash-okup-col.is-empty .dash-okup-bar,
+.dash-okup-col.is-empty:hover .dash-okup-bar { fill:#d5dde6; animation:none; }
+@keyframes barGrow { from { transform:scaleY(0); opacity:.35; } to { transform:scaleY(1); opacity:1; } }
+@media (prefers-reduced-motion: reduce) { .dash-okup-bar { animation:none; } }
+
+.dash-okup-val { font-family:'Plus Jakarta Sans',sans-serif; font-size:11.5px; font-weight:700; fill:#475569;
+    font-variant-numeric:tabular-nums; }
+.dash-okup-col.is-empty .dash-okup-val { fill:var(--dash-soft); font-weight:600; }
+.dash-okup-col.is-selected .dash-okup-val { fill:var(--dash-ink); font-weight:800; }
+.dash-okup-lbl { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600; fill:var(--dash-muted); }
+.dash-okup-col.is-selected .dash-okup-lbl { fill:var(--dash-ink); font-weight:800; }
+.dash-okup-now { fill:var(--dash-primary); }
+
+.dash-okup-geser { display:none; margin:.35rem 0 0; text-align:center; font-size:.7rem; font-weight:600; color:var(--dash-soft); }
+@media (max-width: 767.98px) { .dash-okup-geser { display:block; } }
+.dash-okup-note { display:flex; gap:.5rem; align-items:flex-start; margin:.9rem 0 0;
+    font-size:.76rem; line-height:1.55; color:var(--dash-muted); }
+.dash-okup-note i { color:var(--dash-primary); margin-top:.12rem; flex:none; }
+
+/* ══════════════════════════════════════════════════════════════
+   OKUPANSI PER FASILITAS — ringkasan + kartu ringkas per lantai
+   ══════════════════════════════════════════════════════════════ */
+.dash-kpi { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.85rem; margin-bottom:1.15rem; }
+.dash-kpi-item { display:flex; flex-direction:column; gap:.2rem; min-width:0;
+    padding:.95rem 1.1rem; border-radius:.85rem; background:var(--dash-surface); border:1px solid var(--dash-line-soft); }
+.dash-kpi-l { font-size:.7rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--dash-muted); }
+.dash-kpi-v { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:1.6rem; line-height:1.15;
+    color:var(--dash-ink); letter-spacing:-.02em; }
+.dash-kpi-v small { font-size:.95rem; font-weight:700; color:var(--dash-soft); letter-spacing:0; }
+.dash-kpi-s { font-size:.76rem; color:var(--dash-muted); font-weight:500;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dash-kpi-s { white-space:normal; overflow:visible; text-overflow:clip; line-height:1.45; }
+
+.dash-floor-bar { display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap;
+    margin-bottom:.7rem; }
+.dash-floor-bar-l { font-size:.78rem; font-weight:700; color:var(--dash-muted); }
+
+.dash-floor { border:1px solid var(--dash-line); border-radius:.85rem; background:#fff; overflow:hidden; }
+.dash-floor + .dash-floor { margin-top:.6rem; }
+.dash-floor > summary { list-style:none; cursor:pointer; user-select:none;
+    display:flex; align-items:center; gap:.7rem; padding:.75rem 1rem;
+    transition:background .15s ease; }
+.dash-floor > summary::-webkit-details-marker { display:none; }
+.dash-floor > summary:hover { background:var(--dash-surface); }
+.dash-floor > summary:focus-visible { outline:2px solid var(--dash-primary); outline-offset:-2px; }
+.dash-floor[open] > summary { border-bottom:1px solid var(--dash-line-soft); }
+.dash-floor-dot { width:.7rem; height:.7rem; border-radius:.25rem; background:var(--fl); flex:none; }
+.dash-floor-name { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.9rem; color:var(--dash-ink); white-space:nowrap; }
+.dash-floor-meta { font-size:.76rem; color:var(--dash-muted); font-weight:500; flex:1; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dash-floor-avg { display:inline-flex; align-items:center; gap:.55rem; flex:none; }
+.dash-floor-avg b { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.85rem; color:var(--dash-ink);
+    min-width:2.6rem; text-align:right; font-variant-numeric:tabular-nums; }
+.dash-floor-track { width:5.5rem; height:.4rem; border-radius:1rem; overflow:hidden;
+    background:color-mix(in srgb, var(--fl) 16%, #fff); }
+.dash-floor-fill { display:block; height:100%; border-radius:1rem; background:var(--fl); }
+.dash-floor-caret { color:var(--dash-soft); font-size:.8rem; transition:transform .2s ease; flex:none; }
+.dash-floor[open] .dash-floor-caret { transform:rotate(180deg); }
+
+.dash-fac-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(9.5rem, 1fr)); gap:.55rem; padding:.85rem; }
+.dash-fac { display:flex; flex-direction:column; gap:.4rem; min-width:0;
+    padding:.65rem .75rem .7rem; border-radius:.7rem; border:1px solid var(--dash-line);
+    background:#fff; text-decoration:none; color:inherit;
+    transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.dash-fac:hover { border-color:var(--fl); box-shadow:var(--dash-shadow-sm); transform:translateY(-1px); color:inherit; }
+.dash-fac:focus-visible { outline:2px solid var(--dash-primary); outline-offset:1px; }
+.dash-fac-top { display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; }
+.dash-fac-kode { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.84rem; color:var(--dash-ink);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.dash-fac-pct { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:.84rem; color:var(--dash-ink);
+    font-variant-numeric:tabular-nums; flex:none; }
+.dash-fac-track { display:block; height:.35rem; border-radius:1rem; overflow:hidden;
+    background:color-mix(in srgb, var(--fl) 16%, #fff); }
+.dash-fac-fill { display:block; height:100%; border-radius:1rem; background:var(--fl); }
+.dash-fac-sub { font-size:.69rem; color:var(--dash-muted); font-weight:500; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
+.dash-fac.is-empty { background:var(--dash-surface); border-color:var(--dash-line-soft); }
+.dash-fac.is-empty .dash-fac-kode { color:#475569; }
+.dash-fac.is-empty .dash-fac-pct { color:var(--dash-soft); }
+.dash-fac.is-empty .dash-fac-track { background:#e8edf2; }
 
 /* ══════════════════════════════════════════════════════════════
    DONUT — cincin SVG animatif (stroke-dasharray), lebih besar & tajam.
    ══════════════════════════════════════════════════════════════ */
-.dash-donut-wrap { position:relative; display:grid; place-items:center; padding:.5rem 0 1.2rem; }
+.dash-donut-wrap { position:relative; display:grid; place-items:center; padding:.5rem 0 .6rem; }
 .dash-donut-svg {
-    width:210px; height:210px;
+    width:210px; height:210px; max-width:100%;
     filter:drop-shadow(0 10px 22px rgba(15,23,42,.14));
 }
 .donut-track { fill:none; stroke:var(--dash-line-soft); stroke-width:14; }
@@ -482,71 +722,30 @@
 .dash-donut-hole {
     position:absolute; inset:0; margin:auto;
     width:138px; height:138px; border-radius:50%; background:#fff;
-    display:grid; place-items:center; text-align:center;
+    display:grid; place-content:center; text-align:center;
     box-shadow:0 2px 14px rgba(15,23,42,.1);
     animation:donutPop .5s .3s cubic-bezier(.2,.9,.3,1.3) both;
 }
 @keyframes donutPop { from { transform:scale(.85); opacity:0; } to { transform:scale(1); opacity:1; } }
 .dash-donut-v {
     font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:1.9rem;
-    color:var(--dash-primary); line-height:1;
+    color:var(--dash-ink); line-height:1;
 }
 .dash-donut-hole small { color:var(--dash-muted); font-size:.72rem; font-weight:600; margin-top:.2rem; }
+.dash-donut-note { margin:0; font-size:.74rem; color:var(--dash-muted); text-align:center; }
 
-.dash-legend { display:grid; grid-template-columns:1fr 1fr; gap:.55rem .6rem; }
+.dash-legend { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.55rem .6rem; }
 .dash-legend-item {
-    display:flex; align-items:center; gap:.55rem;
+    display:flex; align-items:center; gap:.55rem; min-width:0;
     font-size:.83rem; color:var(--dash-ink); font-weight:600;
     padding:.45rem .65rem; border-radius:.7rem;
-    transition:transform .15s ease;
 }
-.dash-legend-item { cursor:pointer; }
-.dash-legend-item:hover { transform:translateY(-1px); }
 .dash-legend-item .dot { width:.6rem; height:.6rem; border-radius:50%; flex:none; }
-.dash-legend-item .lbl { flex:1; }
+.dash-legend-item .lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dash-legend-item .n { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; color:var(--dash-ink); }
 
 /* ══════════════════════════════════════════════════════════════
-   BAR CHART TREND 7 HARI
-   ══════════════════════════════════════════════════════════════ */
-.dash-chart { padding:.5rem 0 .3rem; }
-.dash-chart-svg { width:100%; max-width:560px; height:auto; aspect-ratio:100 / 72; display:block; margin:0 auto; }
-.dash-bar {
-    transition:filter .2s ease;
-    transform-box:fill-box; transform-origin:50% 100%;
-    animation:barGrow .65s cubic-bezier(.2,.8,.3,1) both;
-    animation-delay:calc(var(--i, 0) * 70ms);
-}
-.dash-bar:hover { filter:brightness(1.12); cursor:pointer; }
-@keyframes barGrow { from { transform:scaleY(0); opacity:.35; } to { transform:scaleY(1); opacity:1; } }
-@media (prefers-reduced-motion: reduce) { .dash-bar { animation:none; } }
-.dash-chart-foot {
-    display:flex; gap:1.5rem; justify-content:center;
-    margin-top:.8rem; font-size:.78rem; color:var(--dash-muted); font-weight:600;
-}
-.dash-chart-foot .dot { display:inline-block; width:.65rem; height:.65rem; border-radius:.25rem; margin-right:.4rem; vertical-align:middle; }
-
-/* ══════════════════════════════════════════════════════════════
-   TOGGLE PERIODE (Harian / Bulanan) — di head card Tren
-   ══════════════════════════════════════════════════════════════ */
-.dash-card-head-trend { flex-wrap:wrap; gap:.6rem; }
-.dash-toggle {
-    display:inline-flex; padding:.2rem; border-radius:2rem;
-    background:var(--dash-line-soft); gap:.15rem;
-}
-.dash-toggle-opt {
-    padding:.32rem .85rem; border-radius:1.6rem;
-    font-size:.76rem; font-weight:700; text-decoration:none;
-    color:var(--dash-muted); transition:all .15s ease; white-space:nowrap;
-}
-.dash-toggle-opt:hover { color:var(--dash-primary); }
-.dash-toggle-opt.active { background:var(--dash-primary); color:#fff; box-shadow:var(--dash-shadow-sm); }
-@media (max-width: 575.98px) {
-    .dash-toggle-opt { padding:.28rem .65rem; font-size:.72rem; }
-}
-
-/* ══════════════════════════════════════════════════════════════
-   FASILITAS AKTIF (progress bars)
+   RESERVASI AKTIF PER KATEGORI (progress bars)
    ══════════════════════════════════════════════════════════════ */
 .dash-meter { display:flex; align-items:center; gap:.9rem; padding:.55rem 0; }
 .dash-meter + .dash-meter { border-top:1px solid var(--dash-line-soft); padding-top:.9rem; }
@@ -555,9 +754,11 @@
     display:grid; place-items:center; font-size:1rem; flex:none;
 }
 .dash-meter-body { flex:1; min-width:0; }
-.dash-meter-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.4rem; }
-.dash-meter-name { font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; color:var(--dash-ink); font-size:.9rem; }
-.dash-meter-count { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:1.05rem; }
+.dash-meter-top { display:flex; justify-content:space-between; align-items:baseline; gap:.6rem; margin-bottom:.4rem; }
+.dash-meter-name { font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; color:var(--dash-ink); font-size:.9rem;
+    min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dash-meter-count { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:1.05rem; color:var(--dash-ink);
+    white-space:nowrap; flex:none; }
 .dash-meter-count small { font-size:.65rem; color:var(--dash-muted); font-weight:500; margin-left:.15rem; }
 .dash-meter-track { height:.5rem; border-radius:1rem; background:var(--dash-line-soft); overflow:hidden; }
 .dash-meter-fill { height:100%; border-radius:1rem; transition:width .6s cubic-bezier(.2,.7,.3,1); }
@@ -584,7 +785,8 @@
     box-shadow:inset 0 -2px 0 rgba(0,0,0,.12);
 }
 .dash-feed-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:.15rem; }
-.dash-feed-main { font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:.92rem; color:var(--dash-ink); }
+.dash-feed-main { font-family:'Plus Jakarta Sans',sans-serif; font-weight:700; font-size:.92rem; color:var(--dash-ink);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dash-feed-sub { font-size:.78rem; color:var(--dash-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dash-feed-sub .sep { margin:0 .35rem; color:var(--dash-soft); }
 .dash-feed-badge {
@@ -598,30 +800,50 @@
 /* ══════════════════════════════════════════════════════════════
    RESPONSIVE
    ══════════════════════════════════════════════════════════════ */
-@media (max-width: 1199.98px) {
-    .dash-tiles { grid-template-columns:repeat(3, 1fr); }
-}
 @media (max-width: 991.98px) {
-    .dash-grid-2, .dash-grid-2b { grid-template-columns:1fr; }
-    .dash-tiles { grid-template-columns:repeat(2, 1fr); }
+    .dash-grid-2 { grid-template-columns:1fr; }
     .dash-hero { padding:1.8rem 1.6rem; }
     .dash-hero-title { font-size:1.5rem; }
 }
+@media (max-width: 767.98px) {
+    .dash-kpi { grid-template-columns:1fr; gap:.6rem; }
+    .dash-kpi-item { flex-direction:row; flex-wrap:wrap; align-items:baseline; gap:.15rem .6rem; padding:.8rem 1rem; }
+    .dash-kpi-l { flex:1 1 100%; }
+    .dash-kpi-v { font-size:1.35rem; }
+    .dash-kpi-s { flex:1; min-width:0; }
+    .dash-floor-track { width:3.5rem; }
+}
 @media (max-width: 575.98px) {
-    .dash-tiles { grid-template-columns:1fr; }
+    .dash-hero { padding:1.4rem 1.2rem; margin-bottom:1.15rem; }
+    .dash-hero-title { font-size:1.3rem; }
+    .dash-hero-sub { font-size:.88rem; }
+    .dash-hero-body { gap:1rem; }
+    .dash-hero .dash-btn { flex:1 1 auto; }
     .dash-card-head { font-size:.88rem; padding:.9rem 1.1rem; }
     .dash-card-body { padding:1.1rem; }
-    .dash-feed-badge { display:none; }
+    .dash-floor > summary { flex-wrap:wrap; gap:.4rem .6rem; padding:.7rem .85rem; }
+    .dash-floor-meta { flex:1 1 auto; }
+    .dash-floor-avg { flex:1 1 100%; order:5; }
+    .dash-floor-track { flex:1; width:auto; }
+    .dash-floor-caret { order:4; }
+    .dash-fac-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); padding:.7rem; gap:.5rem; }
+    .dash-feed-row { padding:.85rem 1.1rem; gap:.7rem; }
+    .dash-feed-badge { font-size:.66rem; padding:.25rem .5rem; gap:.3rem; }
+    .dash-meter-count small { display:none; }
+}
+@media (max-width: 399.98px) {
+    .dash-legend { grid-template-columns:1fr; }
+    .dash-month-lbl { min-width:5.75rem; font-size:.78rem; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   TOOLTIP MENGAMBANG — donut, bar tren, & legenda.
+   TOOLTIP MENGAMBANG — batang okupansi, donut, & legenda.
    ══════════════════════════════════════════════════════════════ */
 .dash-tip {
     position:fixed; z-index:1080; pointer-events:none;
     background:#0f172a; color:#f1f5f9; border-radius:.85rem;
     padding:.7rem .95rem; min-width:9rem;
-    font-family:'DM Sans',sans-serif;
+    font-family:'Plus Jakarta Sans',sans-serif;
     box-shadow:0 16px 34px rgba(2,6,23,.32);
     opacity:0; transform:translateY(4px) scale(.97);
     transition:opacity .12s ease, transform .12s ease;
@@ -635,10 +857,11 @@
 }
 .dash-tip-label .dot { width:.55rem; height:.55rem; border-radius:50%; flex:none; box-shadow:0 0 0 3px rgba(255,255,255,.08); }
 .dash-tip-value {
-    font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:1.3rem; color:#fff;
+    font-weight:800; font-size:1.3rem; color:#fff;
     display:flex; align-items:baseline; gap:.4rem; white-space:nowrap;
 }
 .dash-tip-value small { font-size:.7rem; font-weight:700; color:#5eead4; }
+.dash-tip-note { margin-top:.2rem; font-size:.72rem; font-weight:500; color:#cbd5e1; white-space:nowrap; }
 </style>
 <script>
     // Cincin donut digambar dari 0 lalu ditransisikan ke panjang aslinya (data-dash)
@@ -649,13 +872,14 @@
         });
     });
 
-    // Tooltip mengambang, mengikuti kursor — donut, bar tren 7 hari, & legenda status.
+    // Tooltip mengambang, mengikuti kursor — batang okupansi, donut, & legenda status.
     (function () {
         const tip = document.getElementById('dashTip');
         const elDot = document.getElementById('dashTipDot');
         const elLabel = document.getElementById('dashTipLabel');
         const elValue = document.getElementById('dashTipValue');
         const elPct = document.getElementById('dashTipPct');
+        const elNote = document.getElementById('dashTipNote');
         if (!tip) return;
 
         const posisi = evt => {
@@ -665,15 +889,17 @@
             const rect = tip.getBoundingClientRect();
             if (x + rect.width > window.innerWidth - 8) x = evt.clientX - rect.width - pad;
             if (y + rect.height > window.innerHeight - 8) y = evt.clientY - rect.height - pad;
-            tip.style.left = x + 'px';
-            tip.style.top = y + 'px';
+            tip.style.left = Math.max(8, x) + 'px';
+            tip.style.top = Math.max(8, y) + 'px';
         };
 
         const tampilkan = (el, evt) => {
-            elDot.style.background = el.dataset.tipColor || '#0e6b7d';
+            elDot.style.background = el.dataset.tipColor || '#176b87';
             elLabel.textContent = el.dataset.tipLabel || '';
             elValue.textContent = el.dataset.tipValue || '0';
             elPct.textContent = el.dataset.tipPct ? el.dataset.tipPct + '%' : '';
+            elNote.textContent = el.dataset.tipNote || '';
+            elNote.hidden = !el.dataset.tipNote;
             tip.hidden = false;
             requestAnimationFrame(() => tip.classList.add('show'));
             posisi(evt);
@@ -688,6 +914,40 @@
             el.addEventListener('mousemove', posisi);
             el.addEventListener('mouseleave', sembunyikan);
         });
+    })();
+
+    // Layar sempit: diagram digulir mendatar — posisikan bulan terpilih di tengah saat dimuat.
+    (function () {
+        const wadah = document.querySelector('.dash-okup-scroll');
+        const terpilih = wadah?.querySelector('.dash-okup-col.is-selected');
+        if (!wadah || !terpilih || wadah.scrollWidth <= wadah.clientWidth) return;
+        const w = wadah.getBoundingClientRect();
+        const t = terpilih.getBoundingClientRect();
+        wadah.scrollLeft += (t.left + t.width / 2) - (w.left + w.width / 2);
+    })();
+
+    // Buka/tutup semua lantai pada rincian okupansi per fasilitas.
+    (function () {
+        const btn = document.getElementById('dashFloorToggle');
+        if (!btn) return;
+        const lantai = [...document.querySelectorAll('.dash-floor')];
+        // Di ponsel, lantai dengan banyak fasilitas dimulai tertutup supaya halaman tidak terlalu panjang.
+        if (window.matchMedia('(max-width: 575.98px)').matches) {
+            lantai.forEach(d => { if (d.querySelectorAll('.dash-fac').length > 8) d.open = false; });
+        }
+        const segarkan = () => {
+            const semuaTerbuka = lantai.every(d => d.open);
+            btn.dataset.mode = semuaTerbuka ? 'tutup' : 'buka';
+            btn.querySelector('span').textContent = semuaTerbuka ? 'Tutup semua' : 'Buka semua';
+            btn.querySelector('i').className = 'bi me-1 ' + (semuaTerbuka ? 'bi-arrows-collapse' : 'bi-arrows-expand');
+        };
+        btn.addEventListener('click', () => {
+            const buka = btn.dataset.mode === 'buka';
+            lantai.forEach(d => { d.open = buka; });
+            segarkan();
+        });
+        lantai.forEach(d => d.addEventListener('toggle', segarkan));
+        segarkan();
     })();
 </script>
 @endsection

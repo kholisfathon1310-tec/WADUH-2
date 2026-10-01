@@ -42,14 +42,19 @@
         .topnav .container-fluid { justify-content:center; }
         .topnav .nav-link { color:#4e5c70; font-weight:600; font-size:.9rem; border-radius:.8rem; padding:.55rem 1rem; transition:background .15s ease, color .15s ease; }
         .topnav .nav-link:hover, .topnav .nav-link.active { color:var(--primary); background:#eef6f9; }
-        .btn-cart { position:relative; color:#fff; border:none; border-radius:.85rem; font-weight:700; background:var(--primary); box-shadow:0 10px 22px -8px rgba(14,107,125,.5); transition:all .15s ease; }
-        .btn-cart:hover { color:#fff; background:var(--primary-dark); transform:translateY(-1px); }
-        .btn-cart .badge { position:absolute; top:-7px; right:-7px; background:#f59e0b; }
+        .btn-nav { color:#fff !important; background:var(--primary); border-radius:.75rem; padding:.6rem 1.2rem;
+            font-weight:700; font-size:.9rem; box-shadow:0 10px 22px -8px rgba(14,107,125,.55);
+            transition:transform .15s ease, background .15s ease; }
+        .btn-nav:hover { background:var(--primary-dark); transform:translateY(-1px); }
+        .topnav .dropdown-menu { border:1px solid var(--line); border-radius:1rem; box-shadow:0 14px 34px -14px rgba(15,23,42,.14); padding:.4rem; margin-top:.5rem !important; }
+        .topnav .dropdown-item { border-radius:.55rem; font-weight:600; font-size:.9rem; padding:.55rem .75rem; }
+        .topnav .dropdown-item:hover { background:var(--primary-soft); color:var(--primary-dark); }
+        .topnav .dropdown-item .dot { display:inline-block; width:.6rem; height:.6rem; border-radius:50%; margin-right:.6rem; background:var(--primary); }
 
         /* Stepper — pill progress yang lebih hidup */
         /* ══════════════════════════════════════════════════════════════
            STEPPER — centered container dengan max-width, kompak & rapi.
-           Berlaku di seluruh halaman yang menggunakan @section('stepper').
+           Berlaku di seluruh halaman yang mengisi section stepper.
            ══════════════════════════════════════════════════════════════ */
         .stepper-wrap { max-width: 780px; margin: 0 auto; }
         .stepper { display:flex; align-items:center; gap:.4rem; overflow-x:auto; padding:.4rem .2rem .8rem; }
@@ -118,6 +123,32 @@
         .catatan-salah { display:flex; align-items:center; gap:.3rem; color:#c02929; font-size:.78rem; font-weight:600; margin-top:.3rem; }
         /* SweetAlert2: matikan pointer-events overlay begitu animasi fade-out mulai, supaya klik berikutnya (mis. buka modal lagi) tidak tertelan. */
         .swal2-backdrop-hide { pointer-events: none !important; }
+
+        /* SweetAlert2 harus selalu di atas overlay form jadwal (1990) dan lightbox foto (2000). */
+        .swal2-container { z-index:3000 !important; }
+        .is-salah.tanpa-goyang { animation:none; }
+        /* Label mengambang punya latar putih — kolom yang ditandai jangan diberi latar merah
+           muda supaya tidak muncul "tambalan" putih di belakang label. */
+        .fl-field .fl-input.is-salah { background:#fff !important; }
+        .catatan-salah { align-items:flex-start; line-height:1.35; }
+        .catatan-salah i { flex:none; margin-top:.12rem; }
+
+        /* ─── RESPONSIF ───────────────────────────────────────── */
+        body { overflow-x:clip; }
+        .site-footer .container { row-gap:.35rem; }
+        @media (max-width: 991.98px) {
+            /* Menu terlipat (HP/tablet): daftar menu & tombol Masuk turun di bawah tombol burger. */
+            .topnav .container-fluid { justify-content:flex-start; }
+            .topnav .navbar-collapse { padding:.35rem .25rem .5rem; }
+            .topnav .btn-nav { display:inline-flex; align-items:center; margin-top:.4rem; }
+        }
+        @media (max-width: 575.98px) {
+            .nav-shell { top:.5rem; padding:0 .6rem; }
+            .topnav { border-radius:1.1rem; }
+            .site-footer { padding:1.4rem 0 1.25rem; font-size:.78rem; }
+            .site-footer .container { flex-direction:column; align-items:flex-start !important; }
+            .err-card { padding:.85rem .9rem !important; gap:.65rem !important; }
+        }
     </style>
 </head>
 <body>
@@ -128,36 +159,42 @@
                 <i class="bi bi-list fs-3"></i>
             </button>
             <div id="nav" class="collapse navbar-collapse">
-                <ul class="navbar-nav mx-auto gap-lg-1">
+                {{-- Menu SAMA dengan navbar beranda (home.blade.php) supaya bar atas tidak berubah
+                     saat berpindah dari beranda ke halaman publik lain seperti Cek Status. --}}
+                @php
+                    $navLantai = \App\Models\Lantai::with('fasilitas:id_fasilitas,id_lantai,kategori_fasilitas')
+                        ->orderBy('id_lantai')
+                        ->get()
+                        ->map(fn ($l) => [
+                            'id'       => $l->id_lantai,
+                            'nomor'    => $l->nomor_lantai,
+                            'kategori' => $l->fasilitas->countBy('kategori_fasilitas')->sortDesc()->keys()->first(),
+                        ])
+                        ->filter(fn ($l) => $l['kategori']);
+                @endphp
+                <ul class="navbar-nav mx-auto align-items-lg-center gap-lg-1">
                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ url('/') }}">Beranda</a></li>
-                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('reservasi.index') ? 'active' : '' }}" href="{{ route('reservasi.index') }}">Reservasi</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url('/') }}#tentang">Tentang BITC</a></li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs('fasilitas.*') ? 'active' : '' }}" href="{{ route('fasilitas.index') }}" role="button" data-bs-toggle="dropdown">Fasilitas</a>
-                        <ul class="dropdown-menu shadow border-0" style="border-radius:1rem">
-                            <li><a class="dropdown-item fw-semibold" href="{{ route('fasilitas.index') }}"><i class="bi bi-grid-3x3-gap me-2"></i>Semua Lantai</a></li>
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs('fasilitas.*') ? 'active' : '' }}" href="{{ route('reservasi.index') }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">Fasilitas</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ route('reservasi.index') }}"><i class="bi bi-grid-3x3-gap me-2"></i>Semua Lantai</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            @php
-                                $navLantai = \App\Models\Lantai::with(['fasilitas' => fn ($q) => $q->limit(1)])->orderBy('id_lantai')->get();
-                            @endphp
                             @foreach ($navLantai as $nl)
-                                @if ($nl->fasilitas->isNotEmpty())
-                                    <li>
-                                        <a class="dropdown-item fw-semibold" href="{{ route('fasilitas.denah', ['kategori' => $nl->fasilitas->first()->kategori_fasilitas, 'lantai' => $nl->id_lantai]) }}">
-                                            <span class="d-inline-block rounded-circle me-2" style="width:.6rem;height:.6rem;background:var(--primary)"></span>
-                                            Lantai {{ $nl->nomor_lantai }} · {{ $nl->fasilitas->first()->kategori_fasilitas }}
-                                        </a>
-                                    </li>
-                                @endif
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('reservasi.denah', ['kategori' => $nl['kategori'], 'lantai' => $nl['id']]) }}">
+                                        <span class="dot"></span>Lantai {{ $nl['nomor'] }} · {{ $nl['kategori'] }}
+                                    </a>
+                                </li>
                             @endforeach
                         </ul>
                     </li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url('/') }}#kontak">Kontak</a></li>
                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('cek-status.*') ? 'active' : '' }}" href="{{ route('cek-status.form') }}">Cek Status</a></li>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-nav" href="{{ auth('customer')->check() ? route('customer.dashboard') : route('customer.login') }}"><i class="bi bi-box-arrow-in-right me-1"></i> Masuk</a>
+                    </li>
                 </ul>
-                @php $cartN = app(\App\Services\CartService::class)->count(); @endphp
-                <a href="{{ route('reservasi.checkout.form') }}" class="btn btn-cart btn-sm px-3 py-2">
-                    <i class="bi bi-cart3 me-1"></i> Keranjang
-                    @if ($cartN > 0)<span class="badge rounded-pill">{{ $cartN }}</span>@endif
-                </a>
             </div>
         </div>
     </nav>
@@ -165,19 +202,18 @@
 
     <main class="container py-4 py-md-5">
         {{-- Tombol kembali global --}}
-        <button onclick="history.back()" class="btn btn-sm btn-brand-outline mb-3"><i class="bi bi-arrow-left me-1"></i>Kembali</button>
+        <button type="button" onclick="history.back()" class="btn btn-sm btn-brand-outline mb-3"><i class="bi bi-arrow-left me-1"></i>Kembali</button>
 
         @hasSection('stepper')
             <div class="stepper-wrap mb-4">@yield('stepper')</div>
         @endif
 
         @if ($errors->any())
-            <div class="err-card mb-3">
-                <span class="err-ic"><i class="bi bi-emoji-frown"></i></span>
+            <div class="err-card mb-3" role="alert">
+                <span class="err-ic"><i class="bi bi-exclamation-triangle"></i></span>
                 <div>
-                    <div class="fw-bold" style="color:#a12c2c">Ups, ada {{ $errors->count() }} hal yang perlu diperbaiki</div>
-                    <div class="small text-muted mb-1">Lengkapi dulu ya, biar reservasimu bisa diproses:</div>
-                    <ul class="err-list">
+                    <div class="fw-bold" style="color:#a12c2c">Mohon periksa kembali {{ $errors->count() }} isian berikut</div>
+                    <ul class="err-list mb-0 mt-1">
                         @foreach ($errors->all() as $e)<li><i class="bi bi-arrow-right-short"></i>{{ $e }}</li>@endforeach
                     </ul>
                 </div>
@@ -205,23 +241,23 @@
     <script>
         // Pop-up flash message — semua pakai modal penuh (bukan toast kecil di pojok).
         @if (session('success'))
-            Swal.fire({ icon: 'success', title: 'Berhasil!', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke' });
+            Swal.fire({ icon: 'success', title: 'Berhasil', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Tutup' });
         @endif
         @if (session('error'))
-            Swal.fire({ icon: 'error', title: 'Maaf, ada kendala', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Oke, mengerti' });
+            Swal.fire({ icon: 'error', title: 'Terjadi Kesalahan', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Mengerti' });
         @endif
         @if (session('checkout'))
             Swal.fire({
                 icon: 'success',
-                title: 'Reservasi Terkirim',
+                title: 'Reservasi Berhasil Dikirim',
                 html: 'Kode reservasi Anda:<br>'
                     + '<div style="display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap;margin-top:.3rem">'
                     + '<strong style="font-size:1.6rem;color:#176b87;letter-spacing:.08em">{{ session('checkout')['kode_transaksi'] ?? '' }}</strong>'
                     + '<button type="button" class="btn btn-sm btn-brand-outline" data-salin="{{ session('checkout')['kode_transaksi'] ?? '' }}"><i class="bi bi-clipboard me-1"></i>Salin</button>'
                     + '</div>'
-                    + '<small class="text-muted">Simpan kode ini untuk mengecek status reservasi.</small>',
+                    + '<small class="text-muted">Simpan kode ini untuk memantau status reservasi Anda.</small>',
                 confirmButtonColor: '#176b87',
-                confirmButtonText: 'Siap, sudah kusimpan',
+                confirmButtonText: 'Mengerti',
             });
         @endif
 
@@ -238,13 +274,13 @@
 
             const sukses = () => {
                 const asli = btn.innerHTML;
-                btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Tersalin!';
+                btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Tersalin';
                 btn.disabled = true;
                 setTimeout(() => { btn.innerHTML = asli; btn.disabled = false; }, 1800);
             };
             const gagal = () => {
                 const asli = btn.innerHTML;
-                btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Gagal, salin manual';
+                btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Gagal menyalin';
                 setTimeout(() => { btn.innerHTML = asli; }, 1800);
             };
             const salinFallback = () => {
@@ -268,46 +304,74 @@
             }
         });
 
-        // ===== Validasi klien yang ramah (mengganti bubble bawaan browser) =====
+        // ===== Validasi sisi klien (menggantikan balon bawaan browser) =====
+        // Satu pesan per kolom, selalu DI BAWAH kolomnya. Pembungkus yang dikenali:
+        //   .fl-field (label mengambang)  → pesan disisipkan setelah pembungkus, bukan di antara
+        //                                   <input> dan <label> (selector "input + label" tetap utuh);
+        //   .aj-field (form Atur Jadwal)  → pesan disisipkan tepat setelah kolom di dalam pembungkus;
+        //   .input-group / pemilih jam    → pesan disisipkan setelah pembungkus terluarnya.
         const labelDari = el => {
-            const wadah = el.closest('.mb-3, .mb-2, [class*="col-"]') || el.parentElement;
-            const lbl = wadah?.querySelector('.form-label');
-            return lbl ? lbl.textContent.replace('*', '').trim() : 'Kolom ini';
+            if (el.dataset.label) return el.dataset.label;
+            const wadah = el.closest('.fl-field, .aj-field, .mb-3, .mb-2, [class*="col-"]') || el.parentElement;
+            const lbl = wadah?.querySelector('.fl-label-txt, .aj-sublabel, .form-label, .aj-section-label');
+            const teks = lbl ? lbl.textContent.replace(/\(.*?\)/g, '').replace('*', '').replace(/\s+/g, ' ').trim() : '';
+            return teks || 'Kolom ini';
         };
         const pesanSalah = el => {
             const v = el.validity;
+            const nama = labelDari(el);
+            if (v.customError) return el.validationMessage;
             if (v.valueMissing) {
-                if (el.type === 'file') return 'Dokumen belum dilampirkan.';
-                if (el.tagName === 'SELECT') return labelDari(el) + ' belum dipilih.';
-                return labelDari(el) + ' belum diisi.';
+                if (el.type === 'file') return 'Dokumen wajib dilampirkan.';
+                if (el.tagName === 'SELECT' || el.type === 'hidden' || el.type === 'date') return nama + ' wajib dipilih.';
+                return nama + ' wajib diisi.';
             }
-            if (v.typeMismatch && el.type === 'email') return 'Format email belum benar (contoh: nama@email.com).';
-            if (v.rangeUnderflow) return labelDari(el) + ' minimal ' + el.min + '.';
-            if (v.rangeOverflow) return labelDari(el) + ' maksimal ' + el.max + '.';
-            if (v.tooLong) return labelDari(el) + ' terlalu panjang.';
-            return labelDari(el) + ' belum sesuai format.';
+            if (v.typeMismatch && el.type === 'email') return 'Format email tidak valid. Contoh: nama@email.com.';
+            if (v.patternMismatch && el.type === 'tel') return nama + ' hanya boleh berisi angka (8–20 digit).';
+            if (v.rangeUnderflow) return el.dataset.pesanMin || (nama + ' minimal ' + el.min + '.');
+            if (v.rangeOverflow) return el.dataset.pesanMaks || (nama + ' maksimal ' + el.max + '.');
+            if (v.tooShort) return nama + ' minimal ' + el.minLength + ' karakter.';
+            if (v.tooLong) return nama + ' maksimal ' + el.maxLength + ' karakter.';
+            if ((v.badInput || v.stepMismatch) && el.type === 'number') return nama + ' harus berupa angka bulat.';
+            return nama + ' tidak sesuai format.';
         };
-        // Input hidden (mis. pemilih jam custom) → tandai tombol/wadah yang terlihat.
-        const wakilTerlihat = el => {
-            if (el.type === 'hidden') return el.closest('[data-jampicker]')?.querySelector('.jam-btn') || el;
-            return el;
+        // Input tersembunyi (mis. pemilih jam) → yang ditandai adalah tombol yang terlihat.
+        const wakilTerlihat = el => el.type === 'hidden' ? (el.closest('[data-jampicker]')?.querySelector('.jam-btn') || el) : el;
+        const induk = el => el.closest('.fl-field, .input-group, .pf-input-group, .pw-input-group, [data-jampicker]') || el;
+        // Buang pesan lama milik kolom ini (pesan klien MAUPUN pesan server) supaya tidak dobel.
+        const hapusPesan = wadah => {
+            let n = wadah.nextElementSibling;
+            while (n && n.matches('.catatan-salah, .fl-err, .aj-field-err')) {
+                const berikut = n.nextElementSibling;
+                n.remove();
+                n = berikut;
+            }
         };
-        const tandai = el => {
+        const tandai = (el, goyang = true) => {
             const target = wakilTerlihat(el);
+            if (! target.parentElement) return;
             target.classList.add('is-salah');
-            const induk = target.closest('.input-group') || target.closest('[data-jampicker]') || target;
-            induk.parentElement.querySelector(':scope > .catatan-salah')?.remove();
+            target.classList.toggle('tanpa-goyang', ! goyang);
+            const wadah = induk(target);
+            hapusPesan(wadah);
             const note = document.createElement('div');
             note.className = 'catatan-salah';
-            note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>' + pesanSalah(el);
-            induk.insertAdjacentElement('afterend', note);
+            note.setAttribute('role', 'alert');
+            note.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>';
+            note.appendChild(document.createElement('span')).textContent = pesanSalah(el);
+            wadah.insertAdjacentElement('afterend', note);
         };
         const bersihkan = el => {
+            if (! el || ! el.classList || ! el.parentElement) return;
             const target = wakilTerlihat(el);
-            target.classList.remove('is-salah');
-            const induk = target.closest('.input-group') || target.closest('[data-jampicker]') || target;
-            induk.parentElement.querySelector(':scope > .catatan-salah')?.remove();
+            target.classList.remove('is-salah', 'tanpa-goyang', 'is-invalid');
+            const wadah = induk(target);
+            wadah.classList.remove('is-invalid');
+            hapusPesan(wadah);
         };
+        // Dipakai skrip halaman (mis. validasi langsung kata sandi) agar memakai tampilan yang sama.
+        window.WaduhValidasi = { tandai, bersihkan };
+
         document.querySelectorAll('form').forEach(f => {
             f.setAttribute('novalidate', '');
             f.addEventListener('submit', e => {
@@ -315,53 +379,64 @@
                 if (! salah.length) return;
                 e.preventDefault();
                 e.stopImmediatePropagation(); // jangan lanjut ke dialog konfirmasi
-                salah.forEach(tandai);
+                salah.forEach(el => tandai(el));
                 const pertama = wakilTerlihat(salah[0]);
                 pertama.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 setTimeout(() => pertama.focus({ preventScroll: true }), 350);
-                Swal.fire({ icon: 'warning', title: 'Periksa kembali', text: salah.length + ' isian belum lengkap.', confirmButtonColor: '#176b87', confirmButtonText: 'Oke' });
             }, true);
             f.addEventListener('input', e => bersihkan(e.target), true);
             f.addEventListener('change', e => bersihkan(e.target), true);
         });
-        @if ($errors->any())
-            Swal.fire({ icon: 'warning', title: 'Periksa kembali', text: '{{ $errors->count() }} isian belum benar.', confirmButtonColor: '#176b87', confirmButtonText: 'Oke' });
-        @endif
+
+        // Kolom nomor telepon/WhatsApp (input[type=tel]) — hanya menerima angka dan tanda "+" di depan.
+        document.addEventListener('input', (e) => {
+            if (e.target.tagName !== 'INPUT' || e.target.type !== 'tel') return;
+            const plus = e.target.value.startsWith('+') ? '+' : '';
+            const angka = e.target.value.replace(/[^0-9]/g, '');
+            e.target.value = plus + angka;
+        });
 
         // Dialog konfirmasi untuk form/tautan ber-atribut data-confirm — didelegasikan ke document
-        // supaya otomatis berlaku juga untuk konten yang disisipkan belakangan lewat AJAX.
+        // supaya berlaku juga untuk konten yang disisipkan belakangan lewat AJAX.
+        // Bila dialog muncul di atas modal Bootstrap yang sedang terbuka, penjaga fokus modal
+        // dimatikan sementara: tanpa itu fokus direbut kembali ke modal, sehingga menekan Enter
+        // pada dialog justru menutup modal dan form tidak terkirim.
+        const dialogKonfirmasi = sumber => {
+            const modal = document.querySelector('.modal.show');
+            const penjaga = modal && window.bootstrap ? bootstrap.Modal.getInstance(modal)?._focustrap : null;
+            penjaga?.deactivate();
+            return Swal.fire({
+                title: sumber.dataset.confirmTitle || 'Konfirmasi',
+                text: sumber.dataset.confirm,
+                icon: sumber.dataset.icon || 'question',
+                showCancelButton: true,
+                confirmButtonText: sumber.dataset.confirmText || 'Ya, lanjutkan',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: sumber.dataset.confirmColor || '#176b87',
+                cancelButtonColor: '#94a3b8',
+                reverseButtons: true,
+            }).then(r => {
+                if (! r.isConfirmed) penjaga?.activate();
+                return r;
+            });
+        };
+
         document.addEventListener('submit', e => {
             const f = e.target.closest('form[data-confirm]');
             if (!f || f.dataset.confirmed) return;
             e.preventDefault();
-            Swal.fire({
-                title: f.dataset.confirmTitle || 'Yakin?',
-                text: f.dataset.confirm,
-                icon: f.dataset.icon || 'question',
-                showCancelButton: true,
-                confirmButtonText: f.dataset.confirmText || 'Ya, lanjutkan',
-                cancelButtonText: 'Batal',
-                confirmButtonColor: f.dataset.confirmColor || '#176b87',
-                cancelButtonColor: '#8a97a5',
-                reverseButtons: true,
-            }).then(r => { if (r.isConfirmed) { f.dataset.confirmed = 1; f.submit(); } });
+            dialogKonfirmasi(f).then(r => {
+                if (! r.isConfirmed) return;
+                f.dataset.confirmed = 1;
+                f.submit();
+            });
         });
 
         document.addEventListener('click', e => {
             const a = e.target.closest('a[data-confirm]');
             if (!a) return;
             e.preventDefault();
-            Swal.fire({
-                title: a.dataset.confirmTitle || 'Yakin?',
-                text: a.dataset.confirm,
-                icon: a.dataset.icon || 'question',
-                showCancelButton: true,
-                confirmButtonText: a.dataset.confirmText || 'Ya, lanjutkan',
-                cancelButtonText: 'Batal',
-                confirmButtonColor: a.dataset.confirmColor || '#176b87',
-                cancelButtonColor: '#8a97a5',
-                reverseButtons: true,
-            }).then(r => { if (r.isConfirmed) window.location.href = a.href; });
+            dialogKonfirmasi(a).then(r => { if (r.isConfirmed) window.location.href = a.href; });
         });
     </script>
 </body>

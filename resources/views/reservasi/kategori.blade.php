@@ -27,12 +27,8 @@
         .lt-card .pill-habis { background:#fdeaea; color:#be123c; }
         .lt-card .btn-lantai { margin-top:auto; display:inline-flex; align-items:center; justify-content:center; gap:.5rem; padding:.7rem 1rem; border-radius:.85rem; background:var(--primary); color:#fff; font-weight:700; text-decoration:none; transition:background .15s ease; }
         .lt-card .btn-lantai:hover { background:var(--primary-dark); color:#fff; }
+        @media (max-width: 575.98px) { .lt-card .head { height:130px; } .lt-card .body { padding:1rem; } }
     </style>
-
-    <div class="page-head mb-4 p-4 p-md-5 rounded-4 text-white" style="background:linear-gradient(115deg,var(--primary-dark),var(--primary) 60%,var(--teal) 130%)" data-reveal>
-        <h1 class="h3 mb-1">Pilih Lantai</h1>
-        <p class="mb-0" style="opacity:.85">Lima lantai, tiga jenis ruang — pilih lantai untuk melihat denah &amp; detail tiap ruangannya.</p>
-    </div>
 
     <div class="row g-4" data-reveal>
         @foreach ($daftarLantai as $l)
@@ -63,7 +59,7 @@
                             @endif
                         </div>
                         <a href="{{ route('reservasi.denah', ['kategori' => $l['kategori'], 'lantai' => $l['id']]) }}" class="btn-lantai">
-                            <span>Lihat Detail Lantai {{ $l['nomor'] }}</span>
+                            <span>Lihat Denah Lantai {{ $l['nomor'] }}</span>
                             <i class="bi bi-arrow-right"></i>
                         </a>
                     </div>

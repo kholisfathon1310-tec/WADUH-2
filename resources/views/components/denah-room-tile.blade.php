@@ -13,7 +13,7 @@
         @if ($r['luas'])
             <span class="d-luas">{{ number_format($r['luas'], 2, ',', '.') }} m²</span>
         @endif
-        <span class="d-status {{ $r['status'] }}">{{ strtoupper($r['status']) }}</span>
+        <span class="d-status {{ $r['status'] }}">{{ strtoupper($r['statusSingkat']) }}</span>
     </a>
 @else
     <div class="{{ implode(' ', $r['classes']) }}" style="flex-grow: {{ $r['flexGrow'] }};"
@@ -28,8 +28,9 @@
             @if ($r['luas'])
                 <span class="d-luas">{{ number_format($r['luas'], 2, ',', '.') }} m²</span>
             @endif
-            <span class="d-status {{ $r['status'] }}">{{ strtoupper($r['status']) }}</span>
+            <span class="d-status {{ $r['status'] }}">{{ strtoupper($r['statusSingkat']) }}</span>
         @else
+
             <span class="d-label">{{ $r['label'] }}</span>
         @endif
     </div>
