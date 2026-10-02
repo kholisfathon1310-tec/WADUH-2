@@ -72,7 +72,8 @@ class SkenarioLengkapTest extends TestCase
         $rows = Reservasi::where('id_pemesan', $pemesan->id_pemesan)->get();
         $this->assertCount(2, $rows);
         $kode = $rows->first()->kode_transaksi;
-        $this->assertMatchesRegularExpression('/^RSV-[A-Z2-9]{4}$/', $kode);
+        $this->assertMatchesRegularExpression('/^[A-HJ-NP-Z]{2}[0-9]{3}$/', $kode);
+        $this->assertEqualsCanonicalizing([$kode.'A', $kode.'B'], $rows->pluck('kode_reservasi')->all());
         $this->assertSame([$kode], $rows->pluck('kode_transaksi')->unique()->values()->all());
         $this->assertSame(['Menunggu'], $rows->pluck('status_reservasi')->map->value->unique()->values()->all());
         $this->assertEmpty(session('reservasi_cart', []), 'keranjang kosong setelah checkout');

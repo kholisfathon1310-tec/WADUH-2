@@ -55,7 +55,7 @@ class HalamanRenderTest extends TestCase
         $kategori = $fasilitas->kategori_fasilitas;
 
         $this->get('/')->assertOk()->assertSee('WADUH');
-        $this->get('/cek-status')->assertOk()->assertSee('RSV-7K3M')->assertDontSee('TRX-');
+        $this->get('/cek-status')->assertOk()->assertSee('RS186')->assertDontSee('TRX-');
         $this->get('/cek-status/RSV-TIDAKADA')->assertOk()->assertSee('tidak ditemukan');
         $this->get('/fasilitas')->assertOk();
         $this->get(route('fasilitas.lantai', ['kategori' => $kategori]))->assertOk();

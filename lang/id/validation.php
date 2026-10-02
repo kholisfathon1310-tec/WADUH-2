@@ -165,7 +165,7 @@ return [
         // Reservasi.
         'tanggal_mulai'   => ['after_or_equal' => 'Tanggal mulai tidak boleh sebelum hari ini.'],
         'jumlah_pengguna' => ['integer' => 'Jumlah pengguna harus berupa angka.', 'min' => 'Jumlah pengguna minimal :min orang.'],
-        'kode'            => ['regex' => 'Format kode reservasi tidak valid, contoh: RSV-7K3M.'],
+        'kode'            => ['regex' => 'Format kode reservasi tidak valid, contoh: RS186.'],
     ],
 
     /*

@@ -1,5 +1,7 @@
 @extends('layouts.reservasi')
 @section('title', 'Cek Status Reservasi')
+{{-- Pesan kesalahan ditampilkan langsung di bawah kotak pencarian, bukan di ringkasan layout. --}}
+@section('pesan_error_sendiri', '1')
 
 @section('content')
 {{-- ══════════════════════════════════════════════════════════════
@@ -32,7 +34,7 @@
         background:linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
         border-radius:var(--radius-lg);
         color:#fff;
-        padding:3.5rem 2rem;
+        padding:3.5rem 2rem 4.25rem;
         position:relative; overflow:hidden;
         box-shadow:var(--shadow-lg);
     }
@@ -45,14 +47,7 @@
     .cs-hero::after  { width:14rem; height:14rem; bottom:-6rem; left:-4rem; }
     .cs-hero .inner { position:relative; z-index:1; max-width:680px; margin:0 auto; text-align:center; }
 
-    .cs-badge {
-        display:inline-flex; align-items:center; gap:.5rem;
-        background:rgba(255,255,255,.14); color:#d5f0f2;
-        font-size:.72rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
-        padding:.4rem .9rem; border-radius:2rem;
-        border:1px solid rgba(255,255,255,.2);
-    }
-    .cs-hero h1 { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:clamp(1.7rem, 3vw, 2.3rem); letter-spacing:-.03em; color:#fff; margin:1.1rem 0 .75rem; }
+    .cs-hero h1 { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:clamp(1.7rem, 3vw, 2.3rem); letter-spacing:-.03em; color:#fff; margin:0 0 .75rem; }
     .cs-hero p.sub { color:rgba(255,255,255,.85); font-size:1rem; line-height:1.7; margin:0 0 2rem; max-width:520px; margin-left:auto; margin-right:auto; }
 
     /* ────────── SEARCH FORM ────────── */
@@ -153,6 +148,10 @@
 
     .step-row { display:flex; gap:.9rem; align-items:flex-start; }
     .step-row + .step-row { margin-top:1.1rem; padding-top:1.1rem; border-top:1px solid var(--line-soft); }
+    .steps .step-row + .step-row { margin:0; padding:0; border:0; }
+    @media (max-width: 767.98px) {
+        .steps > div + div .step-row { padding-top:1rem; border-top:1px solid var(--line-soft); }
+    }
     .step-row .n {
         display:grid; place-items:center;
         width:2rem; height:2rem; border-radius:.5rem;
@@ -166,21 +165,36 @@
     }
     .step-row .body span { color:var(--muted); font-size:.86rem; line-height:1.55; }
 
-    .cs-page .btn-reservasi-baru {
-        display:inline-flex; align-items:center; gap:.5rem;
-        padding:.7rem 1.1rem; border-radius:.7rem;
-        color:var(--primary); background:#fff;
-        border:1.5px solid var(--line); font-weight:700; font-size:.9rem;
-        text-decoration:none;
-        transition:border-color .15s ease, color .15s ease, background .15s ease, transform .15s ease;
+    /* ────────── PESAN VALIDASI ──────────
+       Satu baris rapi tepat di bawah kotak pencarian (klien & server memakai tampilan sama).
+       Kotak pencarian sendiri yang diberi cincin merah, bukan input polos di dalamnya. */
+    .cs-search { transition:box-shadow .2s ease; }
+    .cs-search:has(.is-salah) { box-shadow:0 0 0 3px rgba(254,202,202,.95), 0 20px 44px -12px rgba(0,0,0,.35); animation:goyang .3s; }
+    .cs-search input.is-salah { border:0 !important; background:transparent !important; box-shadow:none !important; animation:none; }
+    .cs-search:has(.is-salah) .scan-ic { color:#c0392b; }
+    .cs-hero form { position:relative; }
+    .cs-page .cs-hero .catatan-salah {
+        position:absolute; top:100%; left:50%; transform:translateX(-50%);
+        display:flex; align-items:center; gap:.55rem; width:max-content; max-width:100%;
+        margin:.75rem 0 0; padding:.55rem .95rem .55rem .7rem;
+        background:#fff; color:#9f1d1d; border-radius:.75rem;
+        font-size:.86rem; font-weight:600; line-height:1.45; text-align:left;
+        box-shadow:0 10px 24px -12px rgba(0,0,0,.35);
+        animation:pesanMuncul .2s ease both;
     }
-    .cs-page .btn-reservasi-baru:hover { border-color:var(--primary); background:var(--primary-soft); transform:translateY(-1px); }
+    @keyframes pesanMuncul { from { opacity:0; margin-top:.35rem; } to { opacity:1; margin-top:.75rem; } }
+    .cs-page .cs-hero .catatan-salah i {
+        display:grid; place-items:center; flex:none; margin:0;
+        width:1.45rem; height:1.45rem; border-radius:50%;
+        background:#fde4e4; color:#c0392b; font-size:.8rem;
+    }
 
     .cs-search input { min-width:0; }
 
     /* ────────── LAYAR KECIL ────────── */
     @media (max-width: 575.98px) {
-        .cs-hero { padding:2.25rem 1.1rem; }
+        .cs-hero { padding:2.25rem 1.1rem 5rem; }
+        .cs-page .cs-hero .catatan-salah { width:100%; font-size:.82rem; }
         .cs-hero p.sub { font-size:.9rem; margin-bottom:1.4rem; }
         .cs-search input { font-size:.92rem; padding:.75rem .6rem; letter-spacing:.03em; }
         .cs-search input::placeholder { font-size:.8rem; letter-spacing:0; }
@@ -198,21 +212,23 @@
          ══════════════════════════════════════════════════════════════ --}}
     <div class="cs-hero" data-reveal>
         <div class="inner">
-            <span class="cs-badge"><i class="bi bi-shield-check"></i> Pelacakan Reservasi</span>
             <h1>Cek Status Reservasi</h1>
             <p class="sub">Masukkan kode reservasi untuk melihat status verifikasi, jadwal pemakaian, dan rincian biaya.</p>
 
             <form method="POST" action="{{ route('cek-status.cari') }}">
                 @csrf
-                <div class="cs-search">
+                <div class="cs-search" data-wadah-validasi>
 
-                    <input name="kode" class="text-uppercase" placeholder="Contoh: RSV-7K3M" aria-label="Kode reservasi"
-                           value="{{ old('kode') }}" maxlength="30" pattern="[Rr][Ss][Vv]-[A-Za-z0-9]{4}(-[0-9]+)?" data-pesan-pola="Format kode reservasi tidak valid, contoh: RSV-7K3M." data-label="Kode reservasi" autocomplete="off" autofocus required>
+                    <input name="kode" class="text-uppercase @error('kode') is-salah tanpa-goyang @enderror" placeholder="Contoh: RS186" aria-label="Kode reservasi"
+                           value="{{ old('kode') }}" maxlength="30" pattern="{{ \App\Models\Reservasi::POLA_KODE }}" data-pesan-pola="Format kode reservasi tidak valid, contoh: RS186." data-label="Kode reservasi" autocomplete="off" autofocus required @error('kode') aria-invalid="true" @enderror>
                     <button type="submit" class="btn-cek">
                         <i class="bi bi-search"></i>
                         <span class="label-full">Cek Status</span>
                     </button>
                 </div>
+                @error('kode')
+                    <div class="catatan-salah" role="alert"><i class="bi bi-exclamation-lg"></i><span>{{ $message }}</span></div>
+                @enderror
             </form>
         </div>
     </div>
@@ -243,48 +259,27 @@
     </div>
 
     {{-- ══════════════════════════════════════════════════════════════
-         PANDUAN — cara kerja + kode hilang
+         PANDUAN — cara mengecek status
          ══════════════════════════════════════════════════════════════ --}}
     <p class="eyebrow-line">Panduan Singkat</p>
-    <div class="row g-3" data-reveal>
-        <div class="col-lg-7">
-            <div class="guide-card">
-                <h2><i class="bi bi-signpost-2"></i>Cara Mengecek Status</h2>
-
-                <div class="step-row">
-                    <span class="n">1</span>
-                    <div class="body">
-                        <b>Masukkan kode reservasi</b>
-                        <span>Kode ditampilkan setelah reservasi dikirim dan tersimpan pada menu Reservasi Saya.</span>
+    <div class="guide-card" data-reveal>
+        <h2><i class="bi bi-signpost-2"></i>Cara Mengecek Status</h2>
+        <div class="row g-3 g-lg-4 steps">
+            @foreach ([
+                ['Masukkan kode reservasi', 'Kode ditampilkan setelah reservasi dikirim dan tersimpan pada menu Reservasi Saya.'],
+                ['Periksa status verifikasi', 'Pantau tahapan Diajukan → Diverifikasi → Disetujui beserta rincian jadwal dan biaya.'],
+                ['Batalkan bila diperlukan', 'Selama status masih Menunggu Verifikasi dan tanggal pemakaian belum terlewati, reservasi dapat dibatalkan dari halaman hasil.'],
+            ] as $i => [$judul, $desk])
+                <div class="col-12 col-md-4">
+                    <div class="step-row">
+                        <span class="n">{{ $i + 1 }}</span>
+                        <div class="body">
+                            <b>{{ $judul }}</b>
+                            <span>{{ $desk }}</span>
+                        </div>
                     </div>
                 </div>
-                <div class="step-row">
-                    <span class="n">2</span>
-                    <div class="body">
-                        <b>Periksa status verifikasi</b>
-                        <span>Pantau tahapan Diajukan → Diverifikasi → Disetujui beserta rincian jadwal dan biaya.</span>
-                    </div>
-                </div>
-                <div class="step-row">
-                    <span class="n">3</span>
-                    <div class="body">
-                        <b>Batalkan bila diperlukan</b>
-                        <span>Selama status masih Menunggu Verifikasi dan tanggal pemakaian belum terlewati, reservasi dapat dibatalkan dari halaman hasil.</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-5">
-            <div class="guide-card d-flex flex-column">
-                <h2><i class="bi bi-question-circle"></i>Lupa Kode Reservasi?</h2>
-                <p style="color:var(--muted); font-size:.9rem; line-height:1.65;">Kode reservasi dapat dilihat kembali kapan saja pada menu <strong>Reservasi Saya</strong> setelah Anda masuk ke akun. Apabila mengalami kendala, hubungi pengelola gedung BITC dengan menyebutkan <strong>nama pemesan</strong> dan <strong>tanggal sewa</strong>.</p>
-                <div class="mt-auto pt-2">
-                    <a href="{{ route('reservasi.index') }}" class="btn-reservasi-baru">
-                        <i class="bi bi-plus-circle"></i> Buat Reservasi Baru
-                    </a>
-                </div>
-            </div>
+            @endforeach
         </div>
     </div>
 

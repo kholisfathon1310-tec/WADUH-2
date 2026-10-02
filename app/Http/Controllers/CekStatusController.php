@@ -19,15 +19,15 @@ class CekStatusController extends Controller
     public function cari(Request $request): RedirectResponse
     {
         $data = $request->validate(
-            ['kode' => ['required', 'string', 'max:30', 'regex:/^RSV-[A-Z0-9]{4}(-[0-9]+)?$/i']],
+            ['kode' => ['required', 'string', 'max:30', 'regex:/^'.Reservasi::POLA_KODE.'$/']],
             [
-                'kode.required' => 'Kode reservasi wajib diisi, contoh: RSV-7K3M.',
+                'kode.required' => 'Kode reservasi wajib diisi, contoh: RS186.',
                 'kode.max'      => 'Kode reservasi terlalu panjang. Periksa kembali penulisannya.',
-                'kode.regex'    => 'Format kode reservasi tidak valid, contoh: RSV-7K3M.',
+                'kode.regex'    => 'Format kode reservasi tidak valid, contoh: RS186.',
             ],
         );
 
-        return redirect()->route('cek-status.hasil', ['kode' => trim($data['kode'])]);
+        return redirect()->route('cek-status.hasil', ['kode' => strtoupper(trim($data['kode']))]);
     }
 
     /** Cari reservasi by kode_transaksi (banyak baris) ATAU kode_reservasi tunggal. */

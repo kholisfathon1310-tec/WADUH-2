@@ -12,7 +12,7 @@
     $inst          = config('institusi')
     $kodeTransaksi = "TRX-XXXXXX"
     $pemesan       = "Nama Lengkap"
-    $items         = [ ['no'=>1,'kode'=>'RSV-xxxx','unit'=>'R1','nama'=>...,'kategori'=>...,
+    $items         = [ ['no'=>1,'kode'=>'RS186','unit'=>'R1','nama'=>...,'kategori'=>...,
                          'lantai'=>'1','tanggal'=>...,'waktu'=>...|null,'durasi'=>'2 Jam',
                          'total'=>200000], ... ]
     $total         = 200000

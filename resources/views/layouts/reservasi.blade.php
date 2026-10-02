@@ -161,34 +161,10 @@
             <div id="nav" class="collapse navbar-collapse">
                 {{-- Menu SAMA dengan navbar beranda (home.blade.php) supaya bar atas tidak berubah
                      saat berpindah dari beranda ke halaman publik lain seperti Cek Status. --}}
-                @php
-                    $navLantai = \App\Models\Lantai::with('fasilitas:id_fasilitas,id_lantai,kategori_fasilitas')
-                        ->orderBy('id_lantai')
-                        ->get()
-                        ->map(fn ($l) => [
-                            'id'       => $l->id_lantai,
-                            'nomor'    => $l->nomor_lantai,
-                            'kategori' => $l->fasilitas->countBy('kategori_fasilitas')->sortDesc()->keys()->first(),
-                        ])
-                        ->filter(fn ($l) => $l['kategori']);
-                @endphp
                 <ul class="navbar-nav mx-auto align-items-lg-center gap-lg-1">
                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ url('/') }}">Beranda</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url('/') }}#tentang">Tentang BITC</a></li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs('fasilitas.*') ? 'active' : '' }}" href="{{ route('reservasi.index') }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">Fasilitas</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ route('reservasi.index') }}"><i class="bi bi-grid-3x3-gap me-2"></i>Semua Lantai</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            @foreach ($navLantai as $nl)
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('reservasi.denah', ['kategori' => $nl['kategori'], 'lantai' => $nl['id']]) }}">
-                                        <span class="dot"></span>Lantai {{ $nl['nomor'] }} · {{ $nl['kategori'] }}
-                                    </a>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </li>
+                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('fasilitas.*', 'reservasi.*') ? 'active' : '' }}" href="{{ url('/') }}#fasilitas">Fasilitas</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url('/') }}#kontak">Kontak</a></li>
                     <li class="nav-item"><a class="nav-link {{ request()->routeIs('cek-status.*') ? 'active' : '' }}" href="{{ route('cek-status.form') }}">Cek Status</a></li>
                     <li class="nav-item ms-lg-2">
@@ -208,7 +184,9 @@
             <div class="stepper-wrap mb-4">@yield('stepper')</div>
         @endif
 
-        @if ($errors->any())
+        {{-- Halaman yang menampilkan pesan kesalahannya sendiri di dekat kolom (mis. Cek Status)
+             cukup mengisi section `pesan_error_sendiri` supaya ringkasan ini tidak dobel. --}}
+        @if ($errors->any() && ! View::hasSection('pesan_error_sendiri'))
             <div class="err-card mb-3" role="alert">
                 <span class="err-ic"><i class="bi bi-exclamation-triangle"></i></span>
                 <div>
@@ -338,7 +316,7 @@
         };
         // Input tersembunyi (mis. pemilih jam) → yang ditandai adalah tombol yang terlihat.
         const wakilTerlihat = el => el.type === 'hidden' ? (el.closest('[data-jampicker]')?.querySelector('.jam-btn') || el) : el;
-        const induk = el => el.closest('.fl-field, .input-group, .pf-input-group, .pw-input-group, .aj-input-suffix, [data-jampicker]') || el;
+        const induk = el => el.closest('[data-wadah-validasi], .fl-field, .input-group,.pf-input-group, .pw-input-group, .aj-input-suffix, [data-jampicker]') || el;
         // Buang pesan lama milik kolom ini (pesan klien MAUPUN pesan server) supaya tidak dobel.
         const hapusPesan = wadah => {
             let n = wadah.nextElementSibling;
@@ -382,8 +360,11 @@
                 e.stopImmediatePropagation(); // jangan lanjut ke dialog konfirmasi
                 salah.forEach(el => tandai(el));
                 const pertama = wakilTerlihat(salah[0]);
-                pertama.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => pertama.focus({ preventScroll: true }), 350);
+                // Gulir hanya bila kolomnya di luar layar, supaya halaman tidak meloncat tanpa perlu.
+                const kotak = pertama.getBoundingClientRect();
+                const terlihat = kotak.top >= 80 && kotak.bottom <= window.innerHeight - 20;
+                if (! terlihat) pertama.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => pertama.focus({ preventScroll: true }), terlihat ? 0 : 350);
             }, true);
             f.addEventListener('input', e => bersihkan(e.target), true);
             f.addEventListener('change', e => { if (! e.target.checkValidity || e.target.checkValidity()) bersihkan(e.target); }, true);

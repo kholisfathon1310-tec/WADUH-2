@@ -76,6 +76,39 @@ class Reservasi extends Model
         return in_array($this->status_reservasi->value, self::statusBuktiTersedia(), true);
     }
 
+    /** Huruf tanpa I & O supaya tidak tertukar dengan angka 1 & 0. */
+    public const HURUF_KODE = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+    /** Pola kode untuk validasi Cek Status: format baru (RS186, RS186A) dan format lama (RSV-7K3M, RSV-7K3M-1). */
+    public const POLA_KODE = '([A-Za-z]{2}[0-9]{3}[A-Za-z]{0,2}|[Rr][Ss][Vv]-[A-Za-z0-9]{4}(-[0-9]+)?)';
+
+    /** Kode dasar acak tanpa tanda hubung: 2 huruf + 3 angka, mis. RS186 atau KT085. */
+    public static function kodeAcak(): string
+    {
+        $huruf = self::HURUF_KODE;
+
+        return $huruf[random_int(0, 23)].$huruf[random_int(0, 23)].sprintf('%03d', random_int(0, 999));
+    }
+
+    /**
+     * Kode per baris/ruangan. Checkout satu ruangan memakai kode dasar apa adanya; checkout
+     * beberapa ruangan diberi huruf berurutan di belakang (RS186A, RS186B, ...) karena
+     * kode_reservasi UNIQUE per baris. Setelah Z lanjut AA, AB, ... (praktis tidak pernah tercapai).
+     */
+    public static function kodeRuangan(string $kodeDasar, int $index, bool $multi): string
+    {
+        if (! $multi) {
+            return $kodeDasar;
+        }
+
+        $sufiks = '';
+        for ($n = $index + 1; $n > 0; $n = intdiv($n - 1, 26)) {
+            $sufiks = chr(65 + ($n - 1) % 26).$sufiks;
+        }
+
+        return $kodeDasar.$sufiks;
+    }
+
     public function pemesan(): BelongsTo
     {
         return $this->belongsTo(Pemesan::class, 'id_pemesan', 'id_pemesan');

@@ -86,13 +86,17 @@ class LaporanController extends Controller
                 // Sewa per Jam: tanggal_mulai selalu sama dengan tanggal_selesai, jadi rentang
                 // tanggal tidak informatif — cukup satu tanggal plus jam mulai/selesai. Sewa
                 // Harian/Bulanan sebaliknya tidak punya jam, jadi tampilkan rentang tanggalnya.
+                // `tanggal` & `waktu` dipisah untuk tabel di layar (dua baris); `periode` gabungan untuk PDF.
+                $waktu = null;
                 if ($r->tarifSewa->jenisSewa->satuan->value === 'Jam') {
-                    $periode = $r->tanggal_mulai->translatedFormat('d M Y');
+                    $tanggal = $r->tanggal_mulai->translatedFormat('d M Y');
                     if ($r->jam_mulai) {
-                        $periode .= ', '.substr($r->jam_mulai, 0, 5).'–'.substr($r->jam_selesai, 0, 5).' WIB';
+                        $waktu = substr($r->jam_mulai, 0, 5).'–'.substr($r->jam_selesai, 0, 5).' WIB';
                     }
+                    $periode = $tanggal.($waktu ? ', '.$waktu : '');
                 } else {
-                    $periode = $r->tanggal_mulai->translatedFormat('d M Y').' – '.$r->tanggal_selesai->translatedFormat('d M Y');
+                    $tanggal = $r->tanggal_mulai->translatedFormat('d M Y').' – '.$r->tanggal_selesai->translatedFormat('d M Y');
+                    $periode = $tanggal;
                 }
 
                 return [
@@ -100,7 +104,12 @@ class LaporanController extends Controller
                     'kode_reservasi'  => $r->kode_reservasi,
                     'nama'            => $r->pemesan?->nama_lengkap,
                     'uraian'          => $fasilitas->nama_fasilitas.' (Lantai '.$fasilitas->lantai->nomor_lantai.')',
+                    'fasilitas'       => $fasilitas->nama_fasilitas,
+                    'lantai'          => $fasilitas->lantai->nomor_lantai,
+                    'jenis_sewa'      => 'Per '.$r->tarifSewa->jenisSewa->satuan->value,
                     'periode'         => $periode,
+                    'tanggal'         => $tanggal,
+                    'waktu'           => $waktu,
                     'total_harga'     => (float) $r->total_biaya,
                     'keterangan'      => 'Isi',
                     'volume'          => (float) $fasilitas->luas,

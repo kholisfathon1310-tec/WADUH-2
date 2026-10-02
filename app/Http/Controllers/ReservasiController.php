@@ -677,8 +677,8 @@ class ReservasiController extends Controller
                 return ['galat' => $galat];
             }
 
-            // 1. SATU kode simpel per checkout (mis. RSV-7K3M) untuk seluruh ruangan.
-            //    Baris ke-2 dst diberi suffix internal (-2, ...) karena kode_reservasi UNIQUE per baris,
+            // 1. SATU kode simpel per checkout (mis. RS186) untuk seluruh ruangan.
+            //    Bila lebih dari satu ruangan, tiap baris diberi huruf (RS186A, RS186B, ...) karena kode_reservasi UNIQUE per baris,
             //    tapi kode yang ditampilkan ke pemesan tetap satu: kode dasar (= kode_transaksi).
             $kodeDasar = $this->generateKode();
             $multi = count($items) > 1;
@@ -689,7 +689,7 @@ class ReservasiController extends Controller
                     'id_pemesan'       => $pemesan->id_pemesan,
                     'id_tarif_sewa'    => $item['id_tarif_sewa'],
                     'id_admin'         => null,
-                    'kode_reservasi'   => $multi ? $kodeDasar.'-'.($index + 1) : $kodeDasar,
+                    'kode_reservasi'   => Reservasi::kodeRuangan($kodeDasar, $index, $multi),
                     'kode_transaksi'   => $kodeDasar,
                     'tanggal_mulai'    => $item['tanggal_mulai'],
                     'tanggal_selesai'  => $item['tanggal_selesai'],
@@ -855,15 +855,13 @@ class ReservasiController extends Controller
     }
 
     /**
-     * Kode reservasi pendek & mudah dibaca: RSV- + 4 karakter tanpa huruf/angka membingungkan
-     * (tanpa O/0, I/L/1). Unik terhadap kode dasar maupun kode bersufiks (-1, -2, ...).
+     * Kode reservasi pendek & mudah dibaca tanpa tanda hubung: 2 huruf + 3 angka (mis. RS186).
+     * Unik terhadap kode dasar maupun kode per ruangan (RS186A, RS186B, ...).
      */
     private function generateKode(): string
     {
-        $charset = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-
         do {
-            $kode = 'RSV-'.substr(str_shuffle($charset), 0, 4);
+            $kode = Reservasi::kodeAcak();
         } while (
             Reservasi::where('kode_transaksi', $kode)
                 ->orWhere('kode_reservasi', 'like', $kode.'%')

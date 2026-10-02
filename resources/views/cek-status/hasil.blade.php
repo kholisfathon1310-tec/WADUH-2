@@ -246,7 +246,7 @@
         <div class="xcard p-5 text-center mx-auto" style="max-width:560px;">
             <div class="icon-tile mx-auto mb-3" style="background:#fff4d6; color:#9a6b00;"><i class="bi bi-search"></i></div>
             <h1 class="h5 mb-2">Kode <span style="color:var(--primary)">{{ $kode }}</span> tidak ditemukan</h1>
-            <p class="text-muted small mb-4">Pastikan kode ditulis lengkap beserta awalan <strong>RSV-</strong>, contoh <strong>RSV-7K3M</strong>. Huruf besar dan huruf kecil tidak berpengaruh, namun tanda hubung harus ikut ditulis.</p>
+            <p class="text-muted small mb-4">Pastikan kode ditulis lengkap, yaitu 2 huruf diikuti 3 angka, contoh <strong>RS186</strong>. Huruf besar dan huruf kecil tidak berpengaruh.</p>
             <div class="d-flex justify-content-center gap-2 flex-wrap">
                 <a href="{{ route('cek-status.form') }}" class="btn btn-brand px-4"><i class="bi bi-arrow-counterclockwise me-1"></i>Cari Kembali</a>
                 <a href="{{ route('reservasi.index') }}" class="btn btn-brand-outline px-4">Buat Reservasi Baru</a>

@@ -138,8 +138,8 @@ class AlurPemesanTest extends TestCase
         $this->assertSame('Menunggu', $baru->status_reservasi->value);
         $this->assertSame('pending_approval', $baru->lock_status->value);
         $this->assertNull($baru->id_admin);
-        // Kode simpel: RSV-XXXX, dan untuk checkout 1 item kode reservasi = kode dasar.
-        $this->assertMatchesRegularExpression('/^RSV-[A-Z2-9]{4}$/', $baru->kode_transaksi);
+        // Kode simpel tanpa tanda hubung: 2 huruf + 3 angka (mis. RS186), dan untuk checkout 1 item kode reservasi = kode dasar.
+        $this->assertMatchesRegularExpression('/^[A-HJ-NP-Z]{2}[0-9]{3}$/', $baru->kode_transaksi);
         $this->assertSame($baru->kode_transaksi, $baru->kode_reservasi);
         $this->assertEmpty(session('reservasi_cart', []), 'Keranjang harus kosong setelah checkout');
     }

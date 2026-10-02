@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\SatuanSewa;
 use App\Models\Fasilitas;
+use App\Models\Reservasi;
 use App\Services\CartService;
 use App\Services\StatusOtomatisService;
 use Illuminate\Database\Seeder;
@@ -266,7 +267,7 @@ class DataDummy2026Seeder extends Seeder
                 'id_pemesan'       => $p['id'],
                 'id_tarif_sewa'    => $tarif->id_tarif_sewa,
                 'id_admin'         => in_array($status, ['Disetujui', 'Selesai', 'Ditolak'], true) ? $idAdmin : null,
-                'kode_reservasi'   => $multi ? $kode.'-'.($i + 1) : $kode,
+                'kode_reservasi'   => Reservasi::kodeRuangan($kode, $i, $multi),
                 'kode_transaksi'   => $kode,
                 'tanggal_mulai'    => $slot['tanggal_mulai'],
                 'tanggal_selesai'  => $slot['tanggal_selesai'],
@@ -465,7 +466,7 @@ class DataDummy2026Seeder extends Seeder
         $pilih = array_slice($jenis, 0, mt_rand(1, 2));
 
         return array_map(function ($j) use ($kode) {
-            $nama = $j[0].'-'.strtolower(str_replace('RSV-', '', $kode)).'.pdf';
+            $nama = $j[0].'-'.strtolower($kode).'.pdf';
             $path = 'dokumen/dummy-2026/'.$nama;
             Storage::disk('public')->put($path, $this->pdfSederhana($j[1].' - '.$kode));
 
@@ -623,12 +624,8 @@ class DataDummy2026Seeder extends Seeder
 
     private function kodeBaru(): string
     {
-        $charset = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
         do {
-            $kode = 'RSV-';
-            for ($i = 0; $i < 4; $i++) {
-                $kode .= $charset[mt_rand(0, strlen($charset) - 1)];
-            }
+            $kode = Reservasi::kodeAcak();
         } while (in_array($kode, $this->kodeTerpakai, true));
         $this->kodeTerpakai[] = $kode;
 

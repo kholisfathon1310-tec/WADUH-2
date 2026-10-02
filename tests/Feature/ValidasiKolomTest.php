@@ -125,8 +125,11 @@ class ValidasiKolomTest extends TestCase
     public function test_kode_cek_status_wajib_berformat_rsv(): void
     {
         $this->post(route('cek-status.cari'), ['kode' => 'ABC123'])
-            ->assertSessionHasErrors(['kode' => 'Format kode reservasi tidak valid, contoh: RSV-7K3M.']);
+            ->assertSessionHasErrors(['kode' => 'Format kode reservasi tidak valid, contoh: RS186.']);
 
+        $this->post(route('cek-status.cari'), ['kode' => 'rs186'])->assertSessionHasNoErrors()->assertRedirect(route('cek-status.hasil', 'RS186'));
+        $this->post(route('cek-status.cari'), ['kode' => 'RS-186'])->assertSessionHasErrors('kode');
+        // Kode format lama tetap dapat dilacak.
         $this->post(route('cek-status.cari'), ['kode' => 'rsv-7k3m'])->assertSessionHasNoErrors();
     }
 }

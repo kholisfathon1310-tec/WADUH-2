@@ -44,7 +44,7 @@
             <a href="{{ route('admin.laporan') }}" class="btn btn-brand-outline wf-btn" data-filter-reset><i class="bi bi-calendar-check"></i>Bulan Ini</a>
         </div>
     </form>
-    {{-- Tombol Ekspor PDF dipindah ke bawah tabel --}}
+    {{-- Tombol Ekspor PDF ada di kaki kartu tabel --}}
 
     <div id="hasil-laporan" data-filter-hasil>
         @include('admin.laporan.partials.hasil')
@@ -60,7 +60,8 @@
             if (btn) btn.innerHTML = semuaTampil
                 ? '<i class="bi bi-chevron-double-up me-1"></i>Tampilkan 10 Data'
                 : '<i class="bi bi-chevron-double-down me-1"></i>Tampilkan Semua';
-            if (info) info.textContent = (semuaTampil ? 'seluruh ' : '10 dari ') + document.querySelectorAll('#hasil-laporan tbody tr:not(.fw-bold)').length + ' data';
+            const jumlah = document.querySelectorAll('#hasil-laporan tbody tr').length;
+            if (info) info.textContent = semuaTampil ? 'Menampilkan seluruh ' + jumlah + ' data' : 'Menampilkan 10 dari ' + jumlah + ' data';
         }
 
         (function () {
