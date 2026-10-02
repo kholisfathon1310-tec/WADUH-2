@@ -4,40 +4,44 @@
 @section('content')
     @include('admin.partials.filter-ui')
     <style>
-        .wf-grid-laporan { grid-template-columns:repeat(2, minmax(0, 15rem)); }
-        @media (max-width: 575.98px) { .wf-grid-laporan { grid-template-columns:minmax(0, 1.35fr) minmax(0, 1fr); } }
-
-        @media (max-width: 359.98px) { .wf-grid-laporan { grid-template-columns:minmax(0, 1fr); } }
+        /* Filter periode ringkas: judul di kiri, Bulan · Tahun · Bulan Ini dalam satu baris di kanan. */
+        .lp-filter { display:flex; align-items:center; justify-content:space-between; gap:.75rem 1.25rem; flex-wrap:wrap; padding:.9rem 1.15rem; }
+        .lp-filter .wf-filter-title { flex:none; }
+        .lp-filter-kontrol { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+        .lp-filter-kontrol .wf-field.bulan { width:11.5rem; }
+        .lp-filter-kontrol .wf-field.tahun { width:8.5rem; }
+        .lp-filter-kontrol .wf-btn { min-height:2.75rem; }
+        @media (max-width: 575.98px) {
+            .lp-filter-kontrol { width:100%; display:grid; grid-template-columns:minmax(0, 1.3fr) minmax(0, 1fr); }
+            .lp-filter-kontrol .wf-field.bulan, .lp-filter-kontrol .wf-field.tahun { width:auto; }
+            .lp-filter-kontrol .wf-btn { grid-column:1 / -1; }
+        }
     </style>
 
-    <form method="GET" action="{{ route('admin.laporan') }}" class="xcard wf-filter mb-4" data-filter-form data-reveal>
-        <div class="wf-filter-head">
-            <div class="wf-filter-title">
-                <span class="ic"><i class="bi bi-calendar-range"></i></span>
-                <div>Periode Laporan</div>
-            </div>
-            <div class="wf-filter-aksi">
-                <a href="{{ route('admin.laporan') }}" class="btn btn-brand-outline wf-btn" data-filter-reset><i class="bi bi-calendar-check"></i>Bulan Ini</a>
-            </div>
+    <form method="GET" action="{{ route('admin.laporan') }}" class="xcard wf-filter lp-filter mb-4" data-filter-form data-reveal>
+        <div class="wf-filter-title">
+            <span class="ic"><i class="bi bi-calendar-range"></i></span>
+            <div>Periode Laporan</div>
         </div>
 
-        <div class="wf-filter-grid wf-grid-laporan">
-            <div class="wf-field">
-                <label class="wf-label" for="fBulan">Bulan</label>
+        <div class="lp-filter-kontrol">
+            <div class="wf-field bulan">
+                <label class="visually-hidden" for="fBulan">Bulan</label>
                 <select id="fBulan" name="bulan" data-wf-select data-wf-netral data-ikon="bi-calendar3">
                     @foreach ($daftarBulan as $angka => $nama)
                         <option value="{{ $angka }}" @selected($bulan === $angka)>{{ $nama }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="wf-field">
-                <label class="wf-label" for="fTahun">Tahun</label>
+            <div class="wf-field tahun">
+                <label class="visually-hidden" for="fTahun">Tahun</label>
                 <select id="fTahun" name="tahun" data-wf-select data-wf-netral data-ikon="bi-calendar4">
-                    @foreach ($daftarTahun as $t)
-                        <option value="{{ $t }}" @selected($tahun === $t)>{{ $t }}</option>
+                    @foreach ($daftarTahun as $t => $jumlah)
+                        <option value="{{ $t }}" @selected($tahun === $t) @if($jumlah) data-keterangan="{{ $jumlah }} data" @endif>{{ $t }}</option>
                     @endforeach
                 </select>
             </div>
+            <a href="{{ route('admin.laporan') }}" class="btn btn-brand-outline wf-btn" data-filter-reset><i class="bi bi-calendar-check"></i>Bulan Ini</a>
         </div>
     </form>
     {{-- Tombol Ekspor PDF dipindah ke bawah tabel --}}

@@ -207,7 +207,7 @@
                 <div class="cs-search">
 
                     <input name="kode" class="text-uppercase" placeholder="Contoh: RSV-7K3M" aria-label="Kode reservasi"
-                           value="{{ old('kode') }}" maxlength="100" autocomplete="off" autofocus required>
+                           value="{{ old('kode') }}" maxlength="30" pattern="[Rr][Ss][Vv]-[A-Za-z0-9]{4}(-[0-9]+)?" data-pesan-pola="Format kode reservasi tidak valid, contoh: RSV-7K3M." data-label="Kode reservasi" autocomplete="off" autofocus required>
                     <button type="submit" class="btn-cek">
                         <i class="bi bi-search"></i>
                         <span class="label-full">Cek Status</span>

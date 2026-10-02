@@ -176,4 +176,76 @@ class PerbaruiStatusReservasiOtomatisTest extends TestCase
             Carbon::setTestNow();
         }
     }
+
+    /** Tanpa scheduler: akses halaman mana pun sudah cukup untuk memicu transisi otomatis. */
+    public function test_akses_web_memicu_status_otomatis_tanpa_scheduler(): void
+    {
+        Carbon::setTestNow(Carbon::today()->setTime(12, 0));
+
+        try {
+            $tarif = $this->tarifSatuan('Jam');
+            $tgl = Carbon::today()->toDateString();
+
+            $kadaluwarsa = $this->buatReservasi($tarif, [
+                'tanggal_mulai' => $tgl, 'tanggal_selesai' => $tgl,
+                'jam_mulai' => '09:00', 'jam_selesai' => '10:00', 'durasi' => 1,
+            ]);
+            $selesai = $this->buatReservasi($tarif, [
+                'tanggal_mulai' => $tgl, 'tanggal_selesai' => $tgl,
+                'jam_mulai' => '10:00', 'jam_selesai' => '11:00', 'durasi' => 1,
+                'status_reservasi' => StatusReservasi::Disetujui->value,
+                'lock_status' => 'confirmed',
+            ]);
+
+            $this->get(route('cek-status.hasil', $kadaluwarsa->kode_transaksi))
+                ->assertOk()
+                ->assertSee('Kadaluwarsa');
+
+            $this->assertSame('Kadaluwarsa', $kadaluwarsa->fresh()->status_reservasi->value);
+            $this->assertSame('Selesai', $selesai->fresh()->status_reservasi->value);
+            $this->assertSame(1, $selesai->riwayatStatus()->count());
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_versi_status_berubah_saat_status_berubah(): void
+    {
+        $tarif = $this->tarifSatuan('Hari');
+        $besok = Carbon::tomorrow()->toDateString();
+        $reservasi = $this->buatReservasi($tarif, [
+            'tanggal_mulai' => $besok, 'tanggal_selesai' => $besok, 'durasi' => 1,
+        ]);
+
+        $awal = $this->getJson(route('status-reservasi.versi'))->assertOk()->json('versi');
+        $this->assertSame($awal, $this->getJson(route('status-reservasi.versi'))->json('versi'));
+
+        $reservasi->status_reservasi = StatusReservasi::Dibatalkan;
+        $reservasi->save();
+
+        $this->assertNotSame($awal, $this->getJson(route('status-reservasi.versi'))->json('versi'));
+    }
+
+    public function test_pembatalan_setelah_batas_persetujuan_menjadi_kadaluwarsa(): void
+    {
+        Carbon::setTestNow(Carbon::today()->setTime(12, 0));
+
+        try {
+            $tarif = $this->tarifSatuan('Jam');
+            $tgl = Carbon::today()->toDateString();
+            $reservasi = $this->buatReservasi($tarif, [
+                'tanggal_mulai' => $tgl, 'tanggal_selesai' => $tgl,
+                'jam_mulai' => '09:00', 'jam_selesai' => '10:00', 'durasi' => 1,
+            ]);
+
+            // Middleware dilewati (jeda belum habis), jadi controller sendiri yang harus memeriksa batas.
+            \Illuminate\Support\Facades\Cache::put('reservasi:status-otomatis:terakhir', 1, 60);
+
+            $this->post(route('reservasi.batalkan', $reservasi->kode_reservasi))->assertRedirect();
+
+            $this->assertSame('Kadaluwarsa', $reservasi->fresh()->status_reservasi->value);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
 }

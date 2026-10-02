@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('kode', '429')
+@section('ikon', 'bi-hourglass-split')
+@section('judul', 'Terlalu Banyak Permintaan')
+@section('pesan', 'Permintaan dikirim terlalu sering. Silakan tunggu beberapa saat sebelum mencoba lagi.')

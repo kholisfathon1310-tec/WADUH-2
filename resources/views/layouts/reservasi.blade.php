@@ -326,8 +326,9 @@
                 if (el.tagName === 'SELECT' || el.type === 'hidden' || el.type === 'date') return nama + ' wajib dipilih.';
                 return nama + ' wajib diisi.';
             }
-            if (v.typeMismatch && el.type === 'email') return 'Format email tidak valid. Contoh: nama@email.com.';
-            if (v.patternMismatch && el.type === 'tel') return nama + ' hanya boleh berisi angka (8–20 digit).';
+            if (v.patternMismatch && el.dataset.pesanPola) return el.dataset.pesanPola;
+            if (el.type === 'email' && (v.typeMismatch || v.patternMismatch)) return 'Format email tidak valid, contoh: nama@email.com.';
+            if (v.patternMismatch && el.type === 'tel') return nama + ' harus berupa angka 10–15 digit.';
             if (v.rangeUnderflow) return el.dataset.pesanMin || (nama + ' minimal ' + el.min + '.');
             if (v.rangeOverflow) return el.dataset.pesanMaks || (nama + ' maksimal ' + el.max + '.');
             if (v.tooShort) return nama + ' minimal ' + el.minLength + ' karakter.';
@@ -337,7 +338,7 @@
         };
         // Input tersembunyi (mis. pemilih jam) → yang ditandai adalah tombol yang terlihat.
         const wakilTerlihat = el => el.type === 'hidden' ? (el.closest('[data-jampicker]')?.querySelector('.jam-btn') || el) : el;
-        const induk = el => el.closest('.fl-field, .input-group, .pf-input-group, .pw-input-group, [data-jampicker]') || el;
+        const induk = el => el.closest('.fl-field, .input-group, .pf-input-group, .pw-input-group, .aj-input-suffix, [data-jampicker]') || el;
         // Buang pesan lama milik kolom ini (pesan klien MAUPUN pesan server) supaya tidak dobel.
         const hapusPesan = wadah => {
             let n = wadah.nextElementSibling;
@@ -385,7 +386,7 @@
                 setTimeout(() => pertama.focus({ preventScroll: true }), 350);
             }, true);
             f.addEventListener('input', e => bersihkan(e.target), true);
-            f.addEventListener('change', e => bersihkan(e.target), true);
+            f.addEventListener('change', e => { if (! e.target.checkValidity || e.target.checkValidity()) bersihkan(e.target); }, true);
         });
 
         // Kolom nomor telepon/WhatsApp (input[type=tel]) — hanya menerima angka dan tanda "+" di depan.
@@ -439,5 +440,8 @@
             dialogKonfirmasi(a).then(r => { if (r.isConfirmed) window.location.href = a.href; });
         });
     </script>
+@hasSection('pantau_status')
+    @include('partials.pantau-status')
+@endif
 </body>
 </html>

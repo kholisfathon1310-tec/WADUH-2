@@ -296,4 +296,19 @@ class AlurAdminTest extends TestCase
         $this->assertStringStartsWith('%PDF', $response->getContent());
         $this->assertSame($before + 1, Laporan::count());
     }
+
+    public function test_filter_laporan_menyediakan_tahun_sebelumnya_dan_menolak_periode_tidak_valid(): void
+    {
+        $this->actingAs($this->admin(), 'admin');
+        $tahunIni = now()->year;
+
+        $this->get(route('admin.laporan'))
+            ->assertOk()
+            ->assertSee('value="'.($tahunIni - 5).'"', false)
+            ->assertSee('value="'.($tahunIni + 1).'"', false);
+
+        // Periode di luar rentang kembali ke bulan berjalan, bukan galat 500.
+        $this->get(route('admin.laporan', ['bulan' => 13, 'tahun' => 99999]))->assertOk();
+        $this->get(route('admin.laporan.pdf', ['bulan' => 0, 'tahun' => 'abc']))->assertOk();
+    }
 }

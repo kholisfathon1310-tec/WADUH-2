@@ -1,4 +1,5 @@
 @extends('layouts.reservasi')
+@section('pantau_status', '1')
 @section('title', 'Hasil Cek Status')
 
 @php

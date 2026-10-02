@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Concerns\VerifikasiOtpEmail;
 use App\Http\Controllers\Controller;
 use App\Services\OtpEmailService;
+use App\Support\AturanKolom;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class AkunController extends Controller
@@ -35,11 +35,9 @@ class AkunController extends Controller
         $pemesan = Auth::guard('customer')->user();
 
         $data = $request->validate([
-            'email' => ['required', 'email', 'max:150', Rule::unique('pemesan', 'email')->ignore($pemesan->id_pemesan, 'id_pemesan')],
+            'email' => [...AturanKolom::email(), Rule::unique('pemesan', 'email')->ignore($pemesan->id_pemesan, 'id_pemesan')],
         ], [
-            'email.required' => 'Email wajib diisi.',
-            'email.email'    => 'Format email tidak valid. Contoh: nama@email.com.',
-            'email.unique'   => 'Email tersebut sudah digunakan akun lain.',
+            'email.unique' => 'Email tersebut sudah digunakan akun lain.',
         ]);
 
         if (mb_strtolower($data['email']) === mb_strtolower($pemesan->email)) {
@@ -62,18 +60,14 @@ class AkunController extends Controller
         $pemesan = Auth::guard('customer')->user();
 
         $data = $request->validate([
-            'nama_lengkap' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s.\'-]+$/u'],
-            'alamat'       => ['required', 'string', 'max:500'],
-            'usia'         => ['required', 'integer', 'min:17', 'max:120'],
-            'pekerjaan'    => ['required', 'string', 'max:100'],
-            'no_telepon'   => ['required', 'string', 'regex:/^\+?[0-9]{8,20}$/'],
-            'email'        => ['required', 'email', 'max:150', Rule::unique('pemesan', 'email')->ignore($pemesan->id_pemesan, 'id_pemesan')],
+            'nama_lengkap' => AturanKolom::nama(),
+            'alamat'       => AturanKolom::alamat(),
+            'usia'         => AturanKolom::usia(),
+            'pekerjaan'    => AturanKolom::pekerjaan(),
+            'no_telepon'   => AturanKolom::telepon(),
+            'email'        => [...AturanKolom::email(), Rule::unique('pemesan', 'email')->ignore($pemesan->id_pemesan, 'id_pemesan')],
         ], [
-            'nama_lengkap.regex' => 'Nama lengkap hanya boleh berisi huruf, spasi, titik, apostrof, dan tanda hubung.',
-            'no_telepon.regex'   => 'No. telepon hanya boleh berisi angka (8–20 digit), contoh: 081234567890.',
-            'usia.min'           => 'Usia minimal 17 tahun.',
-            'usia.max'           => 'Usia maksimal 120 tahun.',
-            'email.unique'       => 'Email tersebut sudah digunakan akun lain.',
+            'email.unique' => 'Email tersebut sudah digunakan akun lain.',
         ]);
 
         // Email diganti → wajib verifikasi kode OTP yang dikirim ke email BARU.
@@ -108,14 +102,14 @@ class AkunController extends Controller
         // `same` (bukan `confirmed`) supaya pesan ketidakcocokan menempel pada kolom
         // konfirmasi itu sendiri, bukan pada kolom kata sandi baru.
         $data = $request->validate([
-            'password_lama'         => ['required', 'string'],
-            'password'              => ['required', 'string', Password::min(8)->letters()->numbers()],
+            'password_lama'         => ['required', 'string', 'max:100'],
+            'password'              => AturanKolom::sandiBaru(),
             'password_confirmation' => ['required', 'string', 'same:password'],
         ], [
             'password_lama.required'         => 'Kata sandi lama wajib diisi.',
             'password.required'              => 'Kata sandi baru wajib diisi.',
             'password_confirmation.required' => 'Konfirmasi kata sandi baru wajib diisi.',
-            'password_confirmation.same'     => 'Konfirmasi kata sandi tidak sama dengan kata sandi baru.',
+            'password_confirmation.same'     => 'Konfirmasi kata sandi tidak cocok.',
         ], [
             'password' => 'Kata sandi baru',
         ]);

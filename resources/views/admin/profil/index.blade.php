@@ -62,12 +62,6 @@
 
         .pf-info { padding-bottom:.35rem; min-width:0; }
         @media (max-width: 575.98px) { .pf-info { padding-top:.75rem; } }
-        .pf-id-chip { display:inline-flex; align-items:center; gap:.35rem;
-            background:var(--primary-soft); color:var(--primary-dark);
-            font-size:.72rem; font-weight:700; padding:.28rem .7rem;
-            border-radius:9999px; border:1px solid var(--primary-softer);
-            letter-spacing:.02em; margin-bottom:.45rem; }
-        .pf-id-chip i { font-size:.85em; color:var(--primary); }
         .pf-name { font-size:1.65rem; font-weight:800; color:var(--ink);
             margin:0 0 .6rem; letter-spacing:-.02em; line-height:1.15; }
         .pf-chips { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; }
@@ -76,8 +70,6 @@
             font-size:.72rem; font-weight:600; padding:.35rem .75rem;
             border-radius:.55rem; background:var(--surface); color:var(--muted); border:1px solid var(--line); }
         .pf-chip i { font-size:.85em; color:var(--soft); }
-        .pf-chip.verified { background:var(--emerald-soft); color:#047857; border-color:#a7f3d0; font-weight:700; }
-        .pf-chip.verified i { color:#059669; }
 
         /* ══════════════ INFO CARDS ══════════════ */
         .pf-info-grid { display:grid; gap:.85rem; margin-top:1.25rem; }
@@ -121,21 +113,9 @@
                 </div>
 
                 <div class="pf-info">
-                    <span class="pf-id-chip">
-                        <i class="bi bi-shield-check"></i>BITC-A-{{ str_pad($me->id_admin, 5, '0', STR_PAD_LEFT) }}
-                    </span>
                     <h1 class="pf-name">{{ $me->nama_admin }}</h1>
                     <div class="pf-chips">
                         <span class="pf-chip"><i class="bi bi-patch-check-fill"></i>Administrator</span>
-                        @if ($me->created_at)
-                            <span class="pf-chip">
-                                <i class="bi bi-calendar3"></i>
-                                Terdaftar sejak {{ $me->created_at->translatedFormat('d F Y') }}
-                            </span>
-                        @endif
-                        <span class="pf-chip verified">
-                            <i class="bi bi-patch-check-fill"></i>Terverifikasi
-                        </span>
                     </div>
                 </div>
             </div>
@@ -205,7 +185,8 @@
                         <div class="row g-3">
                             <div class="col-12">
                                 <div class="fl-field @error('nama_admin') is-invalid @enderror">
-                                    <input type="text" name="nama_admin" id="flNamaAdmin" class="fl-input" placeholder=" " maxlength="255"
+                                    <input type="text" name="nama_admin" id="flNamaAdmin" class="fl-input" placeholder=" " minlength="3" maxlength="100"
+                                           pattern="[\p{L}\s.'\-]+" data-pesan-pola="Nama hanya boleh berisi huruf."
                                            autocomplete="name" value="{{ old('nama_admin', $me->nama_admin) }}" required>
                                     <label for="flNamaAdmin"><span class="fl-label-txt">Nama</span></label>
                                 </div>
@@ -213,8 +194,8 @@
                             </div>
                             <div class="col-12">
                                 <div class="fl-field otp-field @error('email') is-invalid @enderror">
-                                    <input type="email" name="email" id="flEmailAdmin" class="fl-input" placeholder=" " maxlength="255"
-                                           autocomplete="email" value="{{ old('email', $me->email) }}" required>
+                                    <input type="email" name="email" id="flEmailAdmin" class="fl-input" placeholder=" " maxlength="150"
+                                           autocomplete="email" value="{{ old('email', $me->email) }}" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" data-pesan-pola="Format email tidak valid, contoh: nama@email.com." required>
                                     <label for="flEmailAdmin"><span class="fl-label-txt">Email</span></label>
                                     @include('partials.otp-email-tombol', ['emailId' => 'flEmailAdmin'])
                                 </div>
@@ -226,8 +207,8 @@
                             </div>
                             <div class="col-12">
                                 <div class="fl-field @error('no_whatsapp') is-invalid @enderror">
-                                    <input type="tel" name="no_whatsapp" id="flWhatsappAdmin" class="fl-input" inputmode="numeric" maxlength="20"
-                                           pattern="\+?[0-9]{8,20}" placeholder=" " autocomplete="tel"
+                                    <input type="tel" name="no_whatsapp" id="flWhatsappAdmin" class="fl-input" inputmode="numeric" maxlength="16"
+                                           pattern="\+?[0-9]{10,15}" data-pesan-pola="No. WhatsApp harus berupa angka 10–15 digit." placeholder=" " autocomplete="tel"
                                            value="{{ old('no_whatsapp', $me->no_whatsapp) }}" required>
                                     <label for="flWhatsappAdmin"><span class="fl-label-txt">No. WhatsApp</span></label>
                                 </div>
@@ -235,7 +216,7 @@
                             </div>
                             <div class="col-12">
                                 <div class="fl-field @error('alamat') is-invalid @enderror">
-                                    <textarea name="alamat" id="flAlamatAdmin" class="fl-input" rows="3" placeholder=" " maxlength="500" required>{{ old('alamat', $me->alamat) }}</textarea>
+                                    <textarea name="alamat" id="flAlamatAdmin" class="fl-input" rows="3" placeholder=" " minlength="10" maxlength="500" required>{{ old('alamat', $me->alamat) }}</textarea>
                                     <label for="flAlamatAdmin"><span class="fl-label-txt">Alamat</span></label>
                                 </div>
                                 @error('alamat') <div class="fl-err">{{ $message }}</div> @enderror

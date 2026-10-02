@@ -12,6 +12,7 @@ use App\Models\JenisSewa;
 use App\Models\Lantai;
 use App\Models\Reservasi;
 use App\Services\ReservasiApprovalService;
+use App\Services\StatusOtomatisService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,8 +22,10 @@ use Illuminate\View\View;
 
 class ReservasiAdminController extends Controller
 {
-    public function __construct(private readonly ReservasiApprovalService $approval)
-    {
+    public function __construct(
+        private readonly ReservasiApprovalService $approval,
+        private readonly StatusOtomatisService $statusOtomatis,
+    ) {
     }
 
     /** Daftar seluruh Reservasi, dikelompokkan per kode_transaksi, dengan search & filter. */
@@ -100,6 +103,10 @@ class ReservasiAdminController extends Controller
     {
         $reservasi = $this->cari($kodeReservasi);
 
+        // Pastikan ruangan yang sudah lewat batas persetujuannya berstatus Kadaluwarsa lebih
+        // dulu, supaya tidak ikut disetujui/ditolak walau halaman detail dibuka sebelum batasnya.
+        $this->statusOtomatis->kadaluwarsakanRuanganTerlambat();
+
         $pending = Reservasi::where('kode_transaksi', $reservasi->kode_transaksi)
             ->where('status_reservasi', StatusReservasi::Menunggu->value)
             ->orderBy('id_reservasi')
@@ -132,14 +139,19 @@ class ReservasiAdminController extends Controller
     public function tolak(Request $request, string $kodeReservasi): RedirectResponse
     {
         $data = $request->validate(
-            ['alasan' => ['required', 'string', 'max:1000']],
+            ['alasan' => ['required', 'string', 'min:10', 'max:1000']],
             [
                 'alasan.required' => 'Alasan penolakan wajib diisi. Alasan ini akan ditampilkan kepada pemesan pada riwayat status.',
+                'alasan.min'      => 'Alasan penolakan minimal 10 karakter.',
                 'alasan.max'      => 'Alasan penolakan maksimal 1000 karakter.',
             ],
         );
 
         $reservasi = $this->cari($kodeReservasi);
+
+        // Pastikan ruangan yang sudah lewat batas persetujuannya berstatus Kadaluwarsa lebih
+        // dulu, supaya tidak ikut disetujui/ditolak walau halaman detail dibuka sebelum batasnya.
+        $this->statusOtomatis->kadaluwarsakanRuanganTerlambat();
 
         $pending = Reservasi::where('kode_transaksi', $reservasi->kode_transaksi)
             ->where('status_reservasi', StatusReservasi::Menunggu->value)

@@ -17,6 +17,7 @@ use App\Models\Reservasi;
 use App\Models\TarifSewa;
 use App\Services\AvailabilityService;
 use App\Services\CartService;
+use App\Services\StatusOtomatisService;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -756,8 +757,11 @@ class ReservasiController extends Controller
      * pencarian awalnya dirender dari POST), supaya pemesan tidak "terlempar keluar" dan
      * reservasi yang baru dibatalkan tetap terlihat di tempatnya dengan status terbaru.
      */
-    public function batalkan(Request $request, string $kode_reservasi): RedirectResponse
+    public function batalkan(Request $request, string $kode_reservasi, StatusOtomatisService $statusOtomatis): RedirectResponse
     {
+        // Ruangan yang sudah lewat batas persetujuan menjadi Kadaluwarsa dulu, bukan Dibatalkan.
+        $statusOtomatis->kadaluwarsakanRuanganTerlambat();
+
         $reservasi = Reservasi::where('kode_reservasi', $kode_reservasi)->firstOrFail();
 
         // Dipanggil dari 2 tempat: Cek Status publik (default) dan "Reservasi Saya" (mengirim
@@ -778,6 +782,7 @@ class ReservasiController extends Controller
         // Observer otomatis mencatat Riwayat_Status (id_admin null = dibatalkan pemesan).
         $reservasi->keteranganRiwayat = 'Dibatalkan oleh pemesan';
         $reservasi->status_reservasi = StatusReservasi::Dibatalkan;
+        $reservasi->lock_status = LockStatus::Released;
         $reservasi->save();
 
         return redirect($kembaliKe)->with('success', "Reservasi {$reservasi->kode_reservasi} berhasil dibatalkan.");

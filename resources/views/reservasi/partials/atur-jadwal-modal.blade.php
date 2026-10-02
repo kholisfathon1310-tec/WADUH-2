@@ -121,7 +121,7 @@
                 <label class="aj-sublabel" for="ajKeperluan">Keperluan / Kegiatan</label>
                 <textarea name="keperluan" id="ajKeperluan" class="aj-input @error('keperluan') is-invalid @enderror" rows="2"
                           placeholder="Contoh: Rapat koordinasi tim pengembangan aplikasi"
-                          maxlength="1000" required>{{ old('keperluan', $editItem['keperluan'] ?? '') }}</textarea>
+                          minlength="5" maxlength="1000" required>{{ old('keperluan', $editItem['keperluan'] ?? '') }}</textarea>
                 @error('keperluan') <div class="aj-field-err">{{ $message }}</div> @enderror
             </div>
 
@@ -253,10 +253,6 @@
                         @foreach ($errJadwal as $p)<li>{{ $p }}</li>@endforeach
                     </ul>
                 </div>
-            </div>
-            <div class="aj-alert aj-alert-ok" id="ajJadwalOk" role="status" hidden>
-                <i class="bi bi-check-circle-fill"></i>
-                <div><b>Jadwal tersedia</b><span>Jadwal yang Anda pilih masih kosong dan dapat dipesan.</span></div>
             </div>
 
             {{-- ══════ RINCIAN BIAYA ══════ --}}
@@ -452,8 +448,6 @@
     .aj-alert ul { margin:.15rem 0 0; padding:0; list-style:none; }
     .aj-alert li + li { margin-top:.3rem; }
     .aj-alert span { display:block; }
-    .aj-alert.aj-alert-ok { background:var(--emerald-soft); border-color:#a7f3d0; color:#065f46; }
-    .aj-alert.aj-alert-ok > i { color:var(--emerald); }
     .aj-alert.goyang { animation:goyang .3s; }
 
     .aj-rincian { background:var(--surface); border:1px solid var(--line);
@@ -521,7 +515,6 @@
     const totalSub = document.getElementById('ajTotalSub');
     const alertBox = document.getElementById('ajJadwalAlert');
     const alertList = document.getElementById('ajJadwalAlertList');
-    const okBox = document.getElementById('ajJadwalOk');
 
     // ─── Util tanggal: murni aritmetika Y-m-d (tanpa objek Date lokal) supaya tidak
     //     bergeser sehari karena zona waktu. Perbandingan string ISO = perbandingan tanggal. ───
@@ -670,7 +663,6 @@
         alertList.innerHTML = '';
         pesan.forEach((p) => { const li = document.createElement('li'); li.textContent = p; alertList.appendChild(li); });
         alertBox.hidden = !bentrok;
-        okBox.hidden = bentrok || !data.lengkap;
         btnSubmit.disabled = bentrok;
 
         if (data.kondisi && tabs.length) {
@@ -714,7 +706,7 @@
             fetch(form.dataset.cekUrl + '?' + p.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, signal: cekCtrl.signal })
                 .then((r) => r.ok ? r.json() : Promise.reject(r.status))
                 .then((data) => tampilkanHasil({ ...data, lengkap: lengkap && validasiTanggal() }))
-                .catch((err) => { if (err?.name !== 'AbortError') { bentrok = false; btnSubmit.disabled = false; okBox.hidden = true; } });
+                .catch((err) => { if (err?.name !== 'AbortError') { bentrok = false; btnSubmit.disabled = false; } });
         }, 250);
     };
 

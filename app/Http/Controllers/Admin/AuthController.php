@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\AturanKolom;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,8 +19,8 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'admin_email'    => ['required', 'email'],
-            'admin_password' => ['required', 'string'],
+            'admin_email'    => AturanKolom::email(255),
+            'admin_password' => ['required', 'string', 'max:100'],
         ]);
         $credentials = ['email' => $data['admin_email'], 'password' => $data['admin_password']];
 

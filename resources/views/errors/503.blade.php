@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('kode', '503')
+@section('ikon', 'bi-cone-striped')
+@section('judul', 'Sistem Sedang Dalam Pemeliharaan')
+@section('pesan', 'WADUH sedang dalam pemeliharaan untuk peningkatan layanan. Silakan kembali beberapa saat lagi.')

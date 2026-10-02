@@ -148,13 +148,24 @@ return [
     */
 
     'custom' => [
-        'no_whatsapp' => ['regex' => ':attribute hanya boleh berisi angka, contoh: 081234567890.'],
-        'no_telepon'  => ['regex' => ':attribute hanya boleh berisi angka, contoh: 081234567890.'],
+        // Identitas — dipakai bersama form pemesan & admin (lihat App\Support\AturanKolom).
+        'nama_lengkap' => ['regex' => 'Nama lengkap hanya boleh berisi huruf.'],
+        'nama_admin'   => ['regex' => 'Nama hanya boleh berisi huruf.'],
+        'email'        => ['email' => 'Format email tidak valid, contoh: nama@email.com.'],
+        'admin_email'  => ['email' => 'Format email tidak valid, contoh: nama@email.com.'],
+        'no_telepon'   => ['regex' => 'No. telepon harus berupa angka 10–15 digit.'],
+        'no_whatsapp'  => ['regex' => 'No. WhatsApp harus berupa angka 10–15 digit.'],
+        'usia'         => ['integer' => 'Usia harus berupa angka.', 'min' => 'Usia minimal :min tahun.', 'max' => 'Usia maksimal :max tahun.'],
+        'pekerjaan'    => ['regex' => 'Pekerjaan hanya boleh berisi huruf.'],
+
+        // Kata sandi.
+        'password'      => ['confirmed' => 'Konfirmasi kata sandi tidak cocok.'],
         'password_baru' => ['confirmed' => 'Konfirmasi kata sandi baru tidak cocok.'],
-        'password' => ['confirmed' => 'Konfirmasi kata sandi tidak cocok.'],
-        'tanggal_mulai' => ['after_or_equal' => 'Tanggal mulai tidak boleh sebelum hari ini.'],
-        'usia' => ['min' => 'Usia minimal :min tahun.', 'max' => 'Usia maksimal :max tahun.'],
-        'jumlah_pengguna' => ['min' => 'Jumlah pengguna minimal :min orang.'],
+
+        // Reservasi.
+        'tanggal_mulai'   => ['after_or_equal' => 'Tanggal mulai tidak boleh sebelum hari ini.'],
+        'jumlah_pengguna' => ['integer' => 'Jumlah pengguna harus berupa angka.', 'min' => 'Jumlah pengguna minimal :min orang.'],
+        'kode'            => ['regex' => 'Format kode reservasi tidak valid, contoh: RSV-7K3M.'],
     ],
 
     /*

@@ -156,25 +156,51 @@
         }
 
         /* EMPTY STATE */
-        .ck-empty { padding:4rem 2rem; text-align:center; }
-        .ck-empty .ic-wrap { display:grid; place-items:center; width:5.5rem; height:5.5rem; margin:0 auto 1.5rem;
+        /* ─── KERANJANG KOSONG — selebar area konten, isi di tengah ─── */
+        .ck-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+            min-height:calc(100vh - 15rem); padding:3rem 2rem; }
+        .ck-empty .ic-wrap { display:grid; place-items:center; width:5.5rem; height:5.5rem; margin:0 auto 1.4rem;
             border-radius:1.4rem; background:var(--primary-soft); color:var(--primary);
-            font-size:2rem; border:1px solid var(--primary-softer); }
-        .ck-empty h2 { font-size:1.35rem; font-weight:800; color:var(--ink); margin:0 0 .5rem; }
-        .ck-empty p { font-size:.85rem; color:var(--muted); max-width:24rem; margin:0 auto 1.5rem; line-height:1.6; }
+            font-size:2.1rem; border:1px solid var(--primary-softer); }
+        .ck-empty h2 { font-size:1.5rem; font-weight:800; color:var(--ink); margin:0 0 .5rem; letter-spacing:-.01em; }
+        .ck-empty > p { font-size:.92rem; color:var(--muted); max-width:30rem; margin:0 auto 1.75rem; line-height:1.6; }
+        .ck-empty-aksi { display:flex; flex-wrap:wrap; justify-content:center; gap:.65rem; }
+        .ck-empty-aksi .btn { display:inline-flex; align-items:center; gap:.45rem; padding:.7rem 1.3rem; font-weight:700; }
+        .ck-empty-langkah { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.9rem;
+            width:100%; max-width:46rem; margin-top:2.5rem; padding-top:2rem; border-top:1px dashed var(--line); }
+        .ck-empty-langkah > div { display:flex; align-items:center; gap:.75rem; text-align:left; padding:.85rem 1rem;
+            border-radius:.9rem; background:var(--surface); border:1px solid var(--line); }
+        .ck-empty-langkah .n { display:grid; place-items:center; width:2rem; height:2rem; flex:none; border-radius:50%;
+            background:var(--primary); color:#fff; font-size:.8rem; font-weight:800; }
+        .ck-empty-langkah b { display:block; font-size:.85rem; color:var(--ink); }
+        .ck-empty-langkah small { display:block; font-size:.74rem; color:var(--muted); line-height:1.4; }
+        @media (max-width: 767.98px) {
+            .ck-empty { min-height:0; padding:2.5rem 1.25rem; }
+            .ck-empty-langkah { grid-template-columns:minmax(0, 1fr); margin-top:2rem; padding-top:1.5rem; }
+            .ck-empty-aksi { flex-direction:column; width:100%; }
+            .ck-empty-aksi .btn { justify-content:center; }
+        }
     </style>
 
     @if (count($items) === 0)
         {{-- ── EMPTY STATE ────────────────────────────── --}}
-        <div class="xcard ck-empty mx-auto" style="max-width:640px;" data-reveal>
+        <div class="xcard ck-empty" data-reveal>
             <div class="ic-wrap"><i class="bi bi-bag"></i></div>
             <h2>Keranjang Masih Kosong</h2>
-            <p>Anda belum memilih fasilitas untuk direservasi. Silakan pilih fasilitas yang tersedia melalui denah gedung BITC.</p>
-            <a href="{{ route('reservasi.index') }}" class="btn btn-brand">
-                <i class="bi bi-building me-1"></i>
-                Jelajahi Fasilitas &amp; Ruangan
-                <i class="bi bi-arrow-right ms-2"></i>
-            </a>
+            <p>Belum ada fasilitas yang dipilih. Pilih ruangan melalui denah gedung BITC untuk memulai reservasi.</p>
+            <div class="ck-empty-aksi">
+                <a href="{{ route('reservasi.index') }}" class="btn btn-brand">
+                    <i class="bi bi-building"></i>Jelajahi Fasilitas<i class="bi bi-arrow-right"></i>
+                </a>
+                <a href="{{ route('customer.reservasi-saya.index') }}" class="btn btn-brand-outline">
+                    <i class="bi bi-journal-text"></i>Reservasi Saya
+                </a>
+            </div>
+            <div class="ck-empty-langkah">
+                <div><span class="n">1</span><span><b>Pilih Ruangan</b><small>Melalui denah setiap lantai</small></span></div>
+                <div><span class="n">2</span><span><b>Atur Jadwal</b><small>Per jam, per hari, atau per bulan</small></span></div>
+                <div><span class="n">3</span><span><b>Kirim Reservasi</b><small>Periksa keranjang, lalu kirim</small></span></div>
+            </div>
         </div>
     @else
         <div class="row g-4">
@@ -290,13 +316,13 @@
                                     @endif
 
                                     <label class="ck-edit-label">Keperluan / Kegiatan</label>
-                                    <textarea name="keperluan" class="ck-edit-input" rows="2" maxlength="1000" required>{{ $sedangDiedit ? old('keperluan', $item['keperluan']) : $item['keperluan'] }}</textarea>
+                                    <textarea name="keperluan" data-label="Keperluan" class="ck-edit-input" rows="2" minlength="5" maxlength="1000" required>{{ $sedangDiedit ? old('keperluan', $item['keperluan']) : $item['keperluan'] }}</textarea>
                                     @if ($sedangDiedit) @error('keperluan') <div class="ck-edit-err">{{ $message }}</div> @enderror @endif
 
                                     @php $kapItem = $item['kapasitas'] ?? \App\Models\Fasilitas::whereKey($item['id_fasilitas'])->value('kapasitas'); @endphp
                                     <div class="ck-edit-field">
                                         <label class="ck-edit-label">Jumlah Pengguna</label>
-                                        <input type="number" name="jumlah_pengguna" class="ck-edit-input" inputmode="numeric" min="1" max="{{ $kapItem }}" step="1" required
+                                        <input type="number" name="jumlah_pengguna" data-label="Jumlah pengguna" class="ck-edit-input" inputmode="numeric" min="1" max="{{ $kapItem }}" step="1" required
                                                data-label="Jumlah pengguna"
                                                data-pesan-maks="Jumlah pengguna melebihi kapasitas maksimal {{ $kapItem }} orang."
                                                value="{{ $sedangDiedit ? old('jumlah_pengguna', $item['jumlah_pengguna']) : $item['jumlah_pengguna'] }}">

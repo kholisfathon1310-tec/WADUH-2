@@ -150,17 +150,17 @@
                 <div class="row">
                     <div class="col-md-8 mb-3">
                         <label class="form-label">Nama Lengkap</label>
-                        <input name="nama_lengkap" class="form-control" value="{{ old('nama_lengkap') }}" autocomplete="off" required>
+                        <input name="nama_lengkap" class="form-control" value="{{ old('nama_lengkap') }}" autocomplete="off" minlength="3" maxlength="100" pattern="[\p{L}\s.'\-]+" data-pesan-pola="Nama lengkap hanya boleh berisi huruf." required>
                         @error('nama_lengkap')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Usia</label>
-                        <input type="number" name="usia" class="form-control" min="17" max="120" value="{{ old('usia') }}" autocomplete="off" required>
+                        <input type="number" name="usia" class="form-control" min="17" max="100" step="1" inputmode="numeric" value="{{ old('usia') }}" autocomplete="off" data-pesan-min="Usia minimal 17 tahun." data-pesan-maks="Usia maksimal 100 tahun." required>
                         @error('usia')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label">Pekerjaan</label>
-                        <input name="pekerjaan" class="form-control" value="{{ old('pekerjaan') }}" autocomplete="off" required>
+                        <input name="pekerjaan" class="form-control" value="{{ old('pekerjaan') }}" autocomplete="off" minlength="3" maxlength="100" pattern="[\p{L}\s.,'\/&amp;\(\)\-]+" data-pesan-pola="Pekerjaan hanya boleh berisi huruf." required>
                         @error('pekerjaan')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                 </div>
@@ -170,7 +170,7 @@
                     <div class="col-12 mb-3">
                         <label class="form-label" for="regEmail">Email</label>
                         <div class="otp-field pw-wrap">
-                            <input type="email" name="email" id="regEmail" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" autocomplete="email" required>
+                            <input type="email" name="email" id="regEmail" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" autocomplete="email" maxlength="150" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" data-pesan-pola="Format email tidak valid, contoh: nama@email.com." required>
                             @include('partials.otp-email-tombol', ['emailId' => 'regEmail'])
                         </div>
                         @error('email')<div class="catatan-salah otp-galat-email"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
@@ -181,12 +181,12 @@
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label">No. Telepon</label>
-                        <input type="tel" name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" inputmode="numeric" pattern="\+?[0-9]{8,20}" autocomplete="off" required>
+                        <input type="tel" name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" inputmode="numeric" maxlength="16" pattern="\+?[0-9]{10,15}" data-pesan-pola="No. telepon harus berupa angka 10–15 digit." autocomplete="off" required>
                         @error('no_telepon')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label">Alamat</label>
-                        <textarea name="alamat" class="form-control" rows="2" autocomplete="off" required>{{ old('alamat') }}</textarea>
+                        <textarea name="alamat" class="form-control" rows="2" autocomplete="off" minlength="10" maxlength="500" required>{{ old('alamat') }}</textarea>
                         @error('alamat')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                 </div>
@@ -196,7 +196,7 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Kata Sandi</label>
                         <div class="pw-wrap">
-                            <input type="password" name="password" id="regPassword" class="form-control" minlength="8" autocomplete="new-password" required>
+                            <input type="password" name="password" id="regPassword" class="form-control" minlength="8" maxlength="100" pattern="(?=.*[A-Za-z])(?=.*[0-9]).{8,}" data-pesan-pola="Kata sandi minimal 8 karakter, berisi huruf dan angka." autocomplete="new-password" required>
                             <button type="button" class="pw-eye" data-pw-toggle-for="regPassword" aria-label="Tampilkan/sembunyikan kata sandi"><i class="bi bi-eye"></i></button>
                         </div>
                         @error('password')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
@@ -204,7 +204,7 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Konfirmasi Kata Sandi</label>
                         <div class="pw-wrap">
-                            <input type="password" name="password_confirmation" id="regPasswordConf" class="form-control" minlength="8" autocomplete="new-password" required>
+                            <input type="password" name="password_confirmation" id="regPasswordConf" class="form-control" maxlength="100" autocomplete="new-password" required>
                             <button type="button" class="pw-eye" data-pw-toggle-for="regPasswordConf" aria-label="Tampilkan/sembunyikan kata sandi"><i class="bi bi-eye"></i></button>
                         </div>
                     </div>
@@ -250,10 +250,14 @@
         const pesanKolom = el => {
             const v = el.validity, l = labelKolom(el);
             if (v.valueMissing) return l + ' wajib diisi.';
+            if (v.patternMismatch && el.dataset.pesanPola) return el.dataset.pesanPola;
+            if (el.type === 'email' && (v.typeMismatch || v.patternMismatch)) return 'Format email tidak valid, contoh: nama@email.com.';
             if (v.typeMismatch || v.patternMismatch) return 'Format ' + l.toLowerCase() + ' tidak valid.';
             if (v.tooShort) return l + ' minimal ' + el.minLength + ' karakter.';
-            if (v.rangeUnderflow) return l + ' minimal ' + el.min + '.';
-            if (v.rangeOverflow) return l + ' maksimal ' + el.max + '.';
+            if (v.tooLong) return l + ' maksimal ' + el.maxLength + ' karakter.';
+            if (v.rangeUnderflow) return el.dataset.pesanMin || (l + ' minimal ' + el.min + '.');
+            if (v.rangeOverflow) return el.dataset.pesanMaks || (l + ' maksimal ' + el.max + '.');
+            if (v.badInput || v.stepMismatch) return l + ' harus berupa angka.';
             return l + ' tidak valid.';
         };
         const wadahKolom = el => el.closest('.input-group, .pw-wrap') || el;
@@ -271,6 +275,12 @@
             note.querySelector('span').textContent = pesan;
             wadahKolom(el).insertAdjacentElement('afterend', note);
         };
+        document.addEventListener('input', e => {
+            if (e.target.tagName !== 'INPUT' || e.target.type !== 'tel') return;
+            const plus = e.target.value.startsWith('+') ? '+' : '';
+            e.target.value = plus + e.target.value.replace(/[^0-9]/g, '');
+        });
+
         document.querySelectorAll('form').forEach(f => {
             f.setAttribute('novalidate', '');
             f.addEventListener('submit', e => {
@@ -283,7 +293,15 @@
                 if (! salah.length && ! tidakCocok) {
                     f.dataset.mengirim = '1';
                     const tombol = f.querySelector('button.btn-login');
+                    const labelAsli = tombol?.innerHTML;
                     if (tombol) { tombol.disabled = true; tombol.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Memproses…'; }
+                    // Bila pengiriman dibatalkan pemeriksa lain (mis. email belum diverifikasi OTP),
+                    // kunci tombol dilepas lagi agar form dapat dikirim ulang.
+                    setTimeout(() => {
+                        if (! e.defaultPrevented) return;
+                        f.dataset.mengirim = '';
+                        if (tombol) { tombol.disabled = false; tombol.innerHTML = labelAsli; }
+                    }, 0);
                     return;
                 }
                 e.preventDefault();

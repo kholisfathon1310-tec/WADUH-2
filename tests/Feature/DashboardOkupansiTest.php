@@ -204,7 +204,7 @@ class DashboardOkupansiTest extends TestCase
         $this->get('/admin/dashboard?status_bulan='.$bulan)
             ->assertOk()
             ->assertViewHas('statistik', fn (array $s) => $s['menunggu'] === $awal + 2)
-            ->assertSee('Status Fasilitas Dipesan');
+            ->assertSee('id="ringkasan-status"', false);
     }
 
     public function test_dashboard_pemesan_terbuka(): void

@@ -1,4 +1,5 @@
 @extends('admin.layouts.app')
+@section('pantau_status', '1')
 @section('title', 'Dashboard')
 
 @php
@@ -103,10 +104,6 @@
          ═══════════════════════════════════════════════════════════ --}}
     <section class="dash-status" id="ringkasan-status" data-reveal>
         <div class="dash-tiles-head">
-            <div>
-                <span class="dash-tiles-head-lbl"><i class="bi bi-clipboard-data"></i>Status Fasilitas Dipesan</span>
-                <p class="dash-tiles-head-sub">Dihitung per fasilitas pada reservasi yang diajukan {{ $statBulanNav['label'] }} — satu reservasi berisi dua fasilitas dihitung dua.</p>
-            </div>
             <div class="dash-month-nav">
                 <a href="{{ route('admin.dashboard', array_merge(request()->except('status_bulan'), ['status_bulan' => $statBulanNav['prev']])) }}#ringkasan-status" class="dash-cal-nav-btn" aria-label="Bulan sebelumnya"><i class="bi bi-chevron-left"></i></a>
                 <span class="dash-month-lbl">{{ $statBulanNav['label'] }}</span>
@@ -210,11 +207,6 @@
             </div>
 
             <p class="dash-okup-geser"><i class="bi bi-arrow-left-right"></i> Geser untuk melihat bulan lainnya</p>
-            <p class="dash-okup-note">
-                <i class="bi bi-info-circle"></i>
-                Okupansi = hari kerja (Senin–Jumat) yang terisi reservasi Disetujui/Selesai dibanding seluruh hari kerja fasilitas aktif.
-                Pilih batang untuk melihat rincian per fasilitas.
-            </p>
 
             {{-- Tampilan tabel untuk pembaca layar --}}
             <table class="visually-hidden">
@@ -370,7 +362,6 @@
                             </div>
                         @endforeach
                     </div>
-                    <p class="dash-donut-note">Dihitung per fasilitas pada reservasi yang diajukan {{ $statBulanNav['label'] }}.</p>
                 </div>
             </div>
 
@@ -565,10 +556,8 @@
 
 /* ═══ KARTU STATUS RESERVASI (per bulan) ═══ */
 .dash-status { margin-bottom:1.5rem; }
-.dash-tiles-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem; margin-bottom:.85rem; }
-.dash-tiles-head-lbl { font-size:.8rem; font-weight:800; color:var(--dash-muted); display:inline-flex; align-items:center; gap:.45rem;
-    text-transform:uppercase; letter-spacing:.04em; }
-.dash-tiles-head-lbl i { color:var(--dash-primary); }
+/* Hanya navigasi bulan, rata kanan di atas kartu status. */
+.dash-tiles-head { display:flex; align-items:center; justify-content:flex-end; margin-bottom:.85rem; }
 .dash-tiles { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:1rem; }
 .dash-tile { display:block; text-decoration:none; color:inherit; background:#fff; border:1px solid var(--dash-line);
     border-radius:var(--dash-radius); padding:1.1rem 1rem; box-shadow:var(--dash-shadow-sm); min-width:0;
@@ -578,7 +567,6 @@
 .dash-tile-head { display:flex; align-items:center; gap:.5rem; margin-bottom:.85rem; min-width:0; }
 .dash-tile-ic { display:grid; place-items:center; width:2.1rem; height:2.1rem; border-radius:.65rem; font-size:.95rem; flex:none; }
 .dash-tile-l { font-size:.82rem; font-weight:700; color:var(--dash-ink); line-height:1.2; min-width:0; }
-.dash-tiles-head-sub { font-size:.76rem; color:var(--dash-muted); margin:.2rem 0 0; }
 .dash-tile-v { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:2rem; line-height:1.05; color:var(--dash-ink);
     letter-spacing:-.025em; margin-bottom:.45rem; }
 .dash-tile-foot { display:flex; align-items:baseline; gap:.4rem; font-size:.76rem; flex-wrap:wrap; }
@@ -638,9 +626,6 @@
 
 .dash-okup-geser { display:none; margin:.35rem 0 0; text-align:center; font-size:.7rem; font-weight:600; color:var(--dash-soft); }
 @media (max-width: 767.98px) { .dash-okup-geser { display:block; } }
-.dash-okup-note { display:flex; gap:.5rem; align-items:flex-start; margin:.9rem 0 0;
-    font-size:.76rem; line-height:1.55; color:var(--dash-muted); }
-.dash-okup-note i { color:var(--dash-primary); margin-top:.12rem; flex:none; }
 
 /* ══════════════════════════════════════════════════════════════
    OKUPANSI PER FASILITAS — ringkasan + kartu ringkas per lantai
@@ -732,7 +717,6 @@
     color:var(--dash-ink); line-height:1;
 }
 .dash-donut-hole small { color:var(--dash-muted); font-size:.72rem; font-weight:600; margin-top:.2rem; }
-.dash-donut-note { margin:0; font-size:.74rem; color:var(--dash-muted); text-align:center; }
 
 .dash-legend { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.55rem .6rem; }
 .dash-legend-item {

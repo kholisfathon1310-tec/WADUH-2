@@ -19,10 +19,11 @@ class CekStatusController extends Controller
     public function cari(Request $request): RedirectResponse
     {
         $data = $request->validate(
-            ['kode' => ['required', 'string', 'max:100']],
+            ['kode' => ['required', 'string', 'max:30', 'regex:/^RSV-[A-Z0-9]{4}(-[0-9]+)?$/i']],
             [
                 'kode.required' => 'Kode reservasi wajib diisi, contoh: RSV-7K3M.',
                 'kode.max'      => 'Kode reservasi terlalu panjang. Periksa kembali penulisannya.',
+                'kode.regex'    => 'Format kode reservasi tidak valid, contoh: RSV-7K3M.',
             ],
         );
 

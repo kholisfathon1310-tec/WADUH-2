@@ -31,7 +31,6 @@
             ->implode(', ');
 
         return match ($k['status']) {
-            'hijau'  => 'Belum ada jadwal pada tanggal ini. Seluruh jenis sewa dapat dipesan.',
             'kuning' => 'Sebagian jam sudah terisi'.($jam ? " ({$jam})" : '').'. Hanya dapat dipesan per jam pada jam yang masih kosong.',
             default  => 'Sudah terisi pada tanggal ini. Silakan periksa tanggal lain.',
         };
@@ -278,10 +277,13 @@
 
                     <p class="fd-desc">{{ $f->deskripsi ?: $fMeta['desk'] }}</p>
 
+                    {{-- Keterangan hanya untuk ruangan yang sudah (sebagian) terisi — kondisi Tersedia tidak perlu ditampilkan. --}}
+                    @if ($fKondisi['status'] !== 'hijau')
                     <div class="fd-avail {{ $fKondisi['status'] }}">
                         <span class="fd-status {{ $fKondisi['status'] }}"><i class="bi {{ $ikonStatus[$fKondisi['status']] }}"></i>{{ $fKondisi['label'] }}</span>
                         <p><b>{{ $tanggalAcuanC->translatedFormat('l, j F Y') }}.</b> {{ $ketKondisi($fKondisi) }}</p>
                     </div>
+                    @endif
 
                     <ul class="fd-tarif-list" aria-label="Tarif {{ $f->nama_fasilitas }}">
                         @foreach ($fTarif as $t)

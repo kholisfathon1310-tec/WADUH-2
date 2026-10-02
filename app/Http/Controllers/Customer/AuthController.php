@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\VerifikasiOtpEmail;
 use App\Http\Controllers\Controller;
 use App\Models\Pemesan;
 use App\Services\OtpEmailService;
+use App\Support\AturanKolom;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,8 +25,8 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'email'    => ['required', 'email'],
-            'password' => ['required', 'string'],
+            'email'    => AturanKolom::email(),
+            'password' => ['required', 'string', 'max:100'],
         ]);
 
         // Auth::attempt() memanggil Hash::check() di baliknya, yang MELEMPAR RuntimeException
@@ -68,10 +69,7 @@ class AuthController extends Controller
     public function kirimOtp(Request $request, OtpEmailService $otp): JsonResponse
     {
         $data = $request->validate([
-            'email' => ['required', 'email', 'max:150'],
-        ], [
-            'email.required' => 'Email wajib diisi.',
-            'email.email'    => 'Format email tidak valid. Contoh: nama@email.com.',
+            'email' => AturanKolom::email(),
         ]);
 
         if (Pemesan::where('email', $data['email'])->whereNotNull('password')->exists()) {
@@ -103,15 +101,13 @@ class AuthController extends Controller
         }
 
         $data = $request->validate([
-            'nama_lengkap' => ['required', 'string', 'max:150'],
-            'alamat'       => ['required', 'string', 'max:500'],
-            'usia'         => ['required', 'integer', 'min:17', 'max:120'],
-            'pekerjaan'    => ['required', 'string', 'max:100'],
-            'no_telepon'   => ['required', 'string', 'regex:/^[0-9+\-\s()]{8,20}$/'],
-            'email'        => ['required', 'email', 'max:150'],
-            'password'     => ['required', 'string', 'min:8', 'confirmed'],
-        ], [
-            'no_telepon.regex' => 'Nomor telepon hanya boleh berisi angka, contoh: 081234567890.',
+            'nama_lengkap' => AturanKolom::nama(),
+            'alamat'       => AturanKolom::alamat(),
+            'usia'         => AturanKolom::usia(),
+            'pekerjaan'    => AturanKolom::pekerjaan(),
+            'no_telepon'   => AturanKolom::telepon(),
+            'email'        => AturanKolom::email(),
+            'password'     => [...AturanKolom::sandiBaru(), 'confirmed'],
         ]);
 
         // Akun baru dibuat/diaktifkan HANYA bila email ini sudah diverifikasi dengan kode OTP

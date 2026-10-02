@@ -21,6 +21,7 @@
     — jadi filter AJAX tiap halaman tidak perlu tahu apa pun tentang komponen ini.
       - data-ikon="bi-…"        ikon di tombol pemicu
       - data-wf-netral          jangan tandai sebagai "filter aktif" (mis. Bulan/Tahun)
+      - <option data-keterangan="…"> teks kecil di sisi kanan opsi (hanya di panel, tidak di tombol)
       - <option data-dot="…">   titik warna status (menunggu|disetujui|ditolak|selesai|dibatalkan|kadaluwarsa)
       - data-wf-chip="Label"    ikutkan kolom ini pada chip filter aktif
     Menyegarkan tampilan setelah nilai diubah lewat skrip: select.dispatchEvent(new Event('wf:sync'))
@@ -51,7 +52,10 @@
     .wf-control:hover, .wf-select-btn:hover { border-color:#cbd5e1; }
     .wf-control:focus, .wf-select-btn:focus-visible, .wf-select.buka .wf-select-btn {
         outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(23,107,135,.14); }
-    input[type="date"].wf-control { min-width:0; }
+    /* display:flex membuat ikon kalender Chrome menempel tepat di belakang teks tanggal (bukan di
+       ujung kanan kotak), jadi kotak tanggal memakai display:block dengan tinggi yang sama. */
+    input[type="date"].wf-control { display:block; min-width:0; height:2.75rem; }
+    input[type="date"].wf-control::-webkit-datetime-edit { padding:0; }
     input[type="date"].wf-control::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.6; }
     input[type="search"].wf-control::-webkit-search-cancel-button { cursor:pointer; }
     .wf-input-ic { position:relative; }
@@ -89,6 +93,7 @@
         font-size:.85rem; font-weight:600; color:#334155; cursor:pointer; user-select:none; }
     .wf-opt + .wf-opt { margin-top:1px; }
     .wf-opt .teks { flex:1 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .wf-opt .ket { flex:none; font-size:.72rem; font-weight:600; color:var(--muted); background:var(--surface-2); padding:.12rem .5rem; border-radius:1rem; }
     .wf-opt .centang { flex:none; font-size:.95rem; color:var(--primary); visibility:hidden; }
     .wf-opt.fokus { background:var(--surface-2); color:var(--ink); }
     .wf-opt.terpilih { color:var(--primary-dark); font-weight:800; background:var(--primary-soft); }
@@ -226,6 +231,12 @@
                 teks.className = 'teks';
                 teks.textContent = opt.text;
                 el.appendChild(teks);
+                if (opt.dataset.keterangan) {
+                    const ket = document.createElement('span');
+                    ket.className = 'ket';
+                    ket.textContent = opt.dataset.keterangan;
+                    el.appendChild(ket);
+                }
                 const centang = document.createElement('i');
                 centang.className = 'bi bi-check-lg centang';
                 centang.setAttribute('aria-hidden', 'true');

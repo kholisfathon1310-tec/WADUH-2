@@ -222,6 +222,8 @@
                 if (!perluVerifikasi() || (emailTerverifikasi && emailTerverifikasi === nilai())) return;
                 e.preventDefault();
                 e.stopPropagation();
+                // Format email masih salah → cukup pesan format itu saja (satu pesan per kolom).
+                if (!email.checkValidity()) return;
                 tulis(emailTerkirim ? 'Masukkan kode OTP lalu tekan "Verifikasi" sebelum menyimpan.' : 'Verifikasi email terlebih dahulu: tekan "Kirim OTP", lalu masukkan kode dari email Anda.', 'galat', 'bi-exclamation-circle-fill', berlakuSampai > detikIni());
                 email.classList.add('is-salah');
                 (panel.hidden ? email : kode).focus();

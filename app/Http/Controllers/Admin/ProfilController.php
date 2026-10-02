@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\VerifikasiOtpEmail;
 use App\Http\Controllers\Controller;
 use App\Services\OtpEmailService;
+use App\Support\AturanKolom;
 use Illuminate\Http\JsonResponse;
 use App\Models\Admin;
 use Illuminate\Http\RedirectResponse;
@@ -12,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class ProfilController extends Controller
@@ -36,11 +36,9 @@ class ProfilController extends Controller
         $admin = Auth::guard('admin')->user();
 
         $data = $request->validate([
-            'email' => ['required', 'email', 'max:255', Rule::unique('admin', 'email')->ignore($admin->id_admin, 'id_admin')],
+            'email' => [...AturanKolom::email(), Rule::unique('admin', 'email')->ignore($admin->id_admin, 'id_admin')],
         ], [
-            'email.required' => 'Email wajib diisi.',
-            'email.email'    => 'Format email tidak valid. Contoh: nama@email.com.',
-            'email.unique'   => 'Email tersebut sudah digunakan akun lain.',
+            'email.unique' => 'Email tersebut sudah digunakan akun lain.',
         ]);
 
         if (mb_strtolower($data['email']) === mb_strtolower($admin->email)) {
@@ -65,13 +63,12 @@ class ProfilController extends Controller
         $admin = Auth::guard('admin')->user();
 
         $data = $request->validate([
-            'nama_admin'  => ['required', 'string', 'max:255'],
-            'email'       => ['required', 'email', 'max:255', Rule::unique('admin', 'email')->ignore($admin->id_admin, 'id_admin')],
-            'no_whatsapp' => ['required', 'string', 'max:20', 'regex:/^\+?[0-9]{8,20}$/'],
-            'alamat'      => ['required', 'string', 'max:500'],
+            'nama_admin'  => AturanKolom::nama(),
+            'email'       => [...AturanKolom::email(), Rule::unique('admin', 'email')->ignore($admin->id_admin, 'id_admin')],
+            'no_whatsapp' => AturanKolom::telepon(),
+            'alamat'      => AturanKolom::alamat(),
         ], [
-            'no_whatsapp.regex' => 'No. WhatsApp hanya boleh berisi angka (8–20 digit), contoh: 081234567890.',
-            'email.unique'      => 'Email tersebut sudah digunakan akun lain.',
+            'email.unique' => 'Email tersebut sudah digunakan akun lain.',
         ]);
 
         // Email diganti → wajib sudah diverifikasi dengan kode OTP yang dikirim ke email BARU.
@@ -103,14 +100,14 @@ class ProfilController extends Controller
         // `same` (bukan `confirmed`) supaya pesan ketidakcocokan menempel pada kolom
         // konfirmasi itu sendiri, bukan pada kolom kata sandi baru.
         $data = $request->validate([
-            'password_lama'              => ['required', 'string'],
-            'password_baru'              => ['required', 'string', Password::min(8)->letters()->numbers()],
+            'password_lama'              => ['required', 'string', 'max:100'],
+            'password_baru'              => AturanKolom::sandiBaru(),
             'password_baru_confirmation' => ['required', 'string', 'same:password_baru'],
         ], [
             'password_lama.required'              => 'Kata sandi lama wajib diisi.',
             'password_baru.required'              => 'Kata sandi baru wajib diisi.',
             'password_baru_confirmation.required' => 'Konfirmasi kata sandi baru wajib diisi.',
-            'password_baru_confirmation.same'     => 'Konfirmasi kata sandi tidak sama dengan kata sandi baru.',
+            'password_baru_confirmation.same'     => 'Konfirmasi kata sandi tidak cocok.',
         ]);
 
         // Hash::check() MELEMPAR RuntimeException (bukan sekadar false) kalau hash tersimpan

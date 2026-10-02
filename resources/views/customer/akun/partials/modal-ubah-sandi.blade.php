@@ -171,7 +171,7 @@
         };
         const aturKonf = () => {
             konf.setCustomValidity(konf.value && konf.value !== baru.value
-                ? 'Konfirmasi kata sandi tidak sama dengan kata sandi baru.' : '');
+                ? 'Konfirmasi kata sandi tidak cocok.' : '');
         };
         const tampilkan = (el) => {
             const V = window.WaduhValidasi;

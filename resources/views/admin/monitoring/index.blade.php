@@ -1,26 +1,29 @@
 @extends('admin.layouts.app')
+@section('pantau_status', '1')
 @section('title', 'Monitoring Lantai '.($lantai?->nomor_lantai ?? ''))
 
 @section('content')
     @include('admin.partials.filter-ui')
-    <form method="GET" class="xcard wf-filter mb-4" data-filter-form data-reveal>
+    <style>
+        /* Filter ringkas: kategori di kiri, tanggal pemantauan di kanan dalam satu baris. */
+        .mon-filter { display:flex; align-items:center; justify-content:space-between; gap:.75rem 1.25rem; flex-wrap:wrap; padding:.9rem 1.15rem; }
+        .mon-filter-tanggal { display:flex; align-items:center; gap:.6rem; }
+        .mon-filter-tanggal .wf-label { margin:0; }
+        .mon-filter-tanggal .wf-control { width:11.5rem; }
+        @media (max-width: 575.98px) {
+            .mon-filter-tanggal { width:100%; }
+            .mon-filter-tanggal .wf-control { width:auto; flex:1; }
+        }
+    </style>
+    <form method="GET" class="xcard wf-filter mon-filter mb-4" data-filter-form data-reveal>
         <input type="hidden" name="lantai" value="{{ $lantai?->id_lantai }}">
-        <div class="wf-filter-head">
-            <div class="wf-filter-title">
-                <span class="ic"><i class="bi bi-calendar-event"></i></span>
-                <div>{{ $fasilitas->first()?->kategori_fasilitas ?? 'Fasilitas' }}<small>{{ $fasilitas->count() }} ruangan · status mengikuti tanggal pemantauan</small></div>
-            </div>
-            <div class="wf-filter-aksi">
-                <span class="avail hijau"><i class="bi bi-check-circle"></i> Tersedia</span>
-                <span class="avail kuning"><i class="bi bi-exclamation-circle"></i> Sebagian Terisi</span>
-                <span class="avail merah"><i class="bi bi-x-circle"></i> Terisi</span>
-            </div>
+        <div class="wf-filter-title">
+            <span class="ic"><i class="bi bi-calendar-event"></i></span>
+            <div>{{ $fasilitas->first()?->kategori_fasilitas ?? 'Fasilitas' }}</div>
         </div>
-        <div class="wf-filter-grid" style="grid-template-columns:minmax(0, 15rem);">
-            <div class="wf-field">
-                <label class="wf-label" for="fTanggalPantau">Tanggal</label>
-                <input type="date" id="fTanggalPantau" name="tanggal_mulai" class="wf-control" value="{{ $slot['tanggal_mulai'] }}">
-            </div>
+        <div class="mon-filter-tanggal">
+            <label class="wf-label" for="fTanggalPantau">Tanggal</label>
+            <input type="date" id="fTanggalPantau" name="tanggal_mulai" class="wf-control" value="{{ $slot['tanggal_mulai'] }}">
         </div>
     </form>
 

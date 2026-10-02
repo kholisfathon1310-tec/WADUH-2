@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('kode', '404')
+@section('ikon', 'bi-search')
+@section('judul', 'Halaman Tidak Ditemukan')
+@section('pesan', 'Halaman atau data yang Anda cari tidak tersedia, sudah dihapus, atau alamatnya salah. Periksa kembali tautan yang Anda buka.')

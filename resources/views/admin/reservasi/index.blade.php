@@ -1,4 +1,5 @@
 @extends('admin.layouts.app')
+@section('pantau_status', '1')
 @section('title', 'Data Reservasi')
 
 @section('content')

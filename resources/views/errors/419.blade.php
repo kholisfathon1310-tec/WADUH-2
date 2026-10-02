@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('kode', '419')
+@section('ikon', 'bi-clock-history')
+@section('judul', 'Sesi Telah Berakhir')
+@section('pesan', 'Halaman terlalu lama dibiarkan sehingga sesi Anda berakhir demi keamanan. Muat ulang halaman, lalu coba kembali.')

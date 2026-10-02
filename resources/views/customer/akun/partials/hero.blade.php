@@ -1,8 +1,6 @@
 @php
     $user = $user ?? auth()->user();
     $role = $role ?? 'Pemesan';
-    $idPrefix = $idPrefix ?? 'BITC-P-';
-    $idField = $idField ?? 'id_pemesan';
     $routes = $routes ?? [];
 
     // Belum ada fitur unggah foto profil — avatar selalu memakai inisial nama.
@@ -11,7 +9,6 @@
     $modalEdit = $routes['modal_edit'] ?? 'modalEditProfil';
     $modalPassword = $routes['modal_password'] ?? 'modalUbahPassword';
 
-    $idFormatted = $idPrefix . str_pad($user->{$idField} ?? 0, 5, '0', STR_PAD_LEFT);
 @endphp
 
 <style>
@@ -82,13 +79,6 @@
     .pf-info { padding-bottom:.35rem; min-width:0; }
     @media (max-width: 575.98px) { .pf-info { padding-top:.75rem; } }
 
-    .pf-id-chip { display:inline-flex; align-items:center; gap:.35rem;
-        background:var(--primary-soft); color:var(--primary-dark);
-        font-size:.72rem; font-weight:700; padding:.28rem .7rem;
-        border-radius:9999px; border:1px solid var(--primary-softer);
-        letter-spacing:.02em; margin-bottom:.45rem; }
-    .pf-id-chip i { font-size:.85em; color:var(--primary); }
-
     .pf-name { font-size:1.65rem; font-weight:800; color:var(--ink);
         margin:0 0 .6rem; letter-spacing:-.02em; line-height:1.15; }
 
@@ -99,9 +89,6 @@
         border-radius:.55rem; background:var(--surface); color:var(--muted);
         border:1px solid var(--line); }
     .pf-chip i { font-size:.85em; color:var(--soft); }
-    .pf-chip.verified { background:var(--emerald-soft); color:#047857;
-        border-color:#a7f3d0; font-weight:700; }
-    .pf-chip.verified i { color:#059669; }
 
     /* ══════════════ INFO CARDS ══════════════ */
     .pf-info-grid { display:grid; gap:.85rem; margin-top:1.25rem; }
@@ -152,9 +139,6 @@
             </div>
 
             <div class="pf-info">
-                <span class="pf-id-chip">
-                    <i class="bi bi-shield-check"></i>{{ $idFormatted }}
-                </span>
                 <h1 class="pf-name">{{ $user->nama_lengkap }}</h1>
                 <div class="pf-chips">
                     <span class="pf-chip"><i class="bi bi-person-fill"></i>{{ $role }}</span>
@@ -164,9 +148,6 @@
                             Terdaftar sejak {{ $user->created_at->translatedFormat('d F Y') }}
                         </span>
                     @endif
-                    <span class="pf-chip verified">
-                        <i class="bi bi-patch-check-fill"></i>Terverifikasi
-                    </span>
                 </div>
             </div>
         </div>

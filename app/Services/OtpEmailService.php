@@ -97,7 +97,7 @@ class OtpEmailService
         $data = Cache::get($kunci);
 
         if (! $data) {
-            return 'Kode OTP belum dikirim ke email ini. Tekan "Kirim Kode OTP" terlebih dahulu.';
+            return 'Kode OTP belum dikirim ke email ini. Tekan "Kirim OTP" terlebih dahulu.';
         }
         if (now()->getTimestamp() > $data['kedaluwarsa']) {
             Cache::forget($kunci);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Customer;
 
+use App\Support\AturanKolom;
 use App\Http\Controllers\Controller;
 use App\Models\Pemesan;
 use Illuminate\Http\RedirectResponse;
@@ -20,10 +21,7 @@ class ForgotPasswordController extends Controller
     public function sendResetLinkEmail(Request $request): RedirectResponse
     {
         $request->validate([
-            'email' => ['required', 'email'],
-        ], [
-            'email.required' => 'Email wajib diisi.',
-            'email.email'    => 'Format email tidak valid.',
+            'email' => AturanKolom::email(255),
         ]);
 
         $status = Password::broker('pemesans')->sendResetLink(
@@ -48,15 +46,13 @@ class ForgotPasswordController extends Controller
     {
         $request->validate([
             'token'    => ['required'],
-            'email'    => ['required', 'email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'email'    => AturanKolom::email(255),
+            'password' => [...AturanKolom::sandiBaru(), 'confirmed'],
         ], [
-            'token.required'       => 'Tautan tidak valid.',
-            'email.required'       => 'Email wajib diisi.',
-            'email.email'          => 'Format email tidak valid.',
-            'password.required'    => 'Kata sandi baru wajib diisi.',
-            'password.min'         => 'Kata sandi baru minimal 8 karakter.',
-            'password.confirmed'   => 'Konfirmasi kata sandi baru tidak cocok.',
+            'token.required'     => 'Tautan tidak valid.',
+            'password.confirmed' => 'Konfirmasi kata sandi baru tidak cocok.',
+        ], [
+            'password' => 'Kata sandi baru',
         ]);
 
         $status = Password::broker('pemesans')->reset(

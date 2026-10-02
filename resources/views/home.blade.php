@@ -97,10 +97,6 @@
         }
         .btn-nav:hover { background:var(--primary-dark); transform:translateY(-1px); }
         .navbar-toggler { color:var(--ink); }
-        .dropdown-menu { border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-md); padding:.4rem; margin-top:.5rem !important; }
-        .dropdown-item { border-radius:.55rem; font-weight:600; font-size:.9rem; padding:.55rem .75rem; }
-        .dropdown-item:hover { background:var(--primary-soft); color:var(--primary-dark); }
-        .dropdown-item .dot { display:inline-block; width:.6rem; height:.6rem; border-radius:50%; margin-right:.6rem; background:var(--primary); }
         @media (max-width: 991.98px) {
             .navbar-collapse { background:rgba(255,255,255,.96); border:1px solid var(--line); border-radius:var(--radius); padding:.85rem; margin-top:.75rem; backdrop-filter:blur(16px); box-shadow:var(--shadow-md); }
             .nav-link, .navbar.scrolled .nav-link { text-shadow:none; }
@@ -424,21 +420,7 @@
             <ul class="navbar-nav align-items-lg-center gap-lg-1">
                 <li class="nav-item"><a class="nav-link active" href="#beranda">Beranda</a></li>
                 <li class="nav-item"><a class="nav-link" href="#tentang">Tentang BITC</a></li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="{{ route('reservasi.index') }}" role="button" data-bs-toggle="dropdown">Fasilitas</a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ route('reservasi.index') }}"><i class="bi bi-grid-3x3-gap me-2"></i>Semua Lantai</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        @foreach ($daftarLantai as $l)
-                            <li>
-                                <a class="dropdown-item" href="{{ route('reservasi.denah', ['kategori' => $l['kategori'], 'lantai' => $l['id']]) }}">
-                                    <span class="dot"></span>
-                                    Lantai {{ $l['nomor'] }} · {{ $l['kategori'] }}
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
-                </li>
+                <li class="nav-item"><a class="nav-link" href="#fasilitas">Fasilitas</a></li>
                 <li class="nav-item"><a class="nav-link" href="#kontak">Kontak</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('cek-status.form') }}">Cek Status</a></li>
                 @auth('customer')
@@ -517,9 +499,7 @@
                     <div class="info-card">
                         <div class="info-card-head"><i class="bi bi-clock"></i> Jam Operasional Gedung BITC</div>
                         <div class="info-row"><span>Senin – Jumat</span><b>08:00 – 16:00 WIB</b></div>
-                        <div class="info-row"><span>Sewa Per Jam</span><b>08:00 – 16:00 WIB</b></div>
-                        <div class="info-row"><span>Sabtu – Minggu</span><b class="text-muted">Tutup (kecuali acara khusus)</b></div>
-                        <div class="info-row"><span>Hari Libur Nasional</span><b class="text-muted">Tutup</b></div>
+                        <div class="info-row"><span>Sabtu – Minggu</span><b class="text-muted">Tutup</b></div>
                     </div>
                 </div>
             </div>
@@ -635,35 +615,35 @@
             <div class="section-head center mb-5" data-reveal>
                 <p class="eyebrow">Cara Kerja</p>
                 <h2>Reservasi dalam 4 langkah singkat.</h2>
-                <p class="text-muted mb-0">Masuk sebagai Pemesan untuk memulai. Seluruh proses reservasi diselesaikan dalam 4 langkah.</p>
+                <p class="text-muted mb-0">Seluruh proses reservasi dilakukan secara daring melalui akun Pemesan.</p>
             </div>
             <div class="row g-4">
                 <div class="col-md-6 col-lg-3" data-reveal>
                     <div class="step-card">
                         <span class="n">1</span>
-                        <h3>Pilih Ruang</h3>
-                        <p>Masuk atau daftar, kemudian pilih ruangan pada denah interaktif setiap lantai.</p>
+                        <h3>Pilih Ruangan</h3>
+                        <p>Masuk ke akun Pemesan, lalu pilih ruangan melalui denah setiap lantai.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3" data-reveal>
                     <div class="step-card">
                         <span class="n">2</span>
                         <h3>Atur Jadwal</h3>
-                        <p>Sewa per jam, per hari, atau per bulan, dapat mencakup beberapa ruangan sekaligus.</p>
+                        <p>Tentukan sewa per jam, per hari, atau per bulan sesuai kebutuhan.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3" data-reveal>
                     <div class="step-card">
                         <span class="n">3</span>
                         <h3>Kirim Reservasi</h3>
-                        <p>Periksa keranjang, kirim reservasi, dan terima kode reservasi.</p>
+                        <p>Kirim reservasi dan simpan kode serta bukti reservasi Anda.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3" data-reveal>
                     <div class="step-card">
                         <span class="n">4</span>
-                        <h3>Pantau &amp; Gunakan</h3>
-                        <p>Pantau status persetujuan dengan kode reservasi, lalu gunakan ruangan sesuai jadwal.</p>
+                        <h3>Pantau Status</h3>
+                        <p>Pantau persetujuan admin melalui Reservasi Saya atau Cek Status.</p>
                     </div>
                 </div>
             </div>
@@ -751,6 +731,24 @@
 
     const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .12 });
     document.querySelectorAll('[data-reveal]').forEach(el => io.observe(el));
+
+    // Menu bagian (#beranda, #tentang, #fasilitas, #kontak): tutup menu ponsel setelah diklik,
+    // dan tandai menu yang bagiannya sedang terlihat.
+    const menuBagian = [...document.querySelectorAll('#navbarMenu .nav-link[href^="#"]')];
+    const navMenu = document.getElementById('navbarMenu');
+    menuBagian.forEach(a => a.addEventListener('click', () => {
+        if (navMenu.classList.contains('show')) bootstrap.Collapse.getOrCreateInstance(navMenu).hide();
+    }));
+    const tandaiMenu = () => {
+        const batas = window.scrollY + 120;
+        let aktif = menuBagian[0];
+        menuBagian.forEach(a => {
+            const bagian = document.querySelector(a.getAttribute('href'));
+            if (bagian && bagian.offsetTop <= batas) aktif = a;
+        });
+        menuBagian.forEach(a => a.classList.toggle('active', a === aktif));
+    };
+    tandaiMenu(); window.addEventListener('scroll', tandaiMenu, { passive: true });
 </script>
 </body>
 </html>

@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('kode', '500')
+@section('ikon', 'bi-tools')
+@section('judul', 'Terjadi Kesalahan Sistem')
+@section('pesan', 'Maaf, sistem sedang mengalami gangguan. Silakan coba beberapa saat lagi atau hubungi admin BITC.')

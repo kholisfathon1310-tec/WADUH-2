@@ -128,7 +128,7 @@
                     <label class="form-label">Email</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                        <input type="email" name="email" id="customerEmail" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" autocomplete="off" readonly data-lepas-readonly required autofocus>
+                        <input type="email" name="email" id="customerEmail" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" autocomplete="off" readonly data-lepas-readonly required autofocus pattern="[^@\s]+@[^@\s]+\.[^@\s]+" data-pesan-pola="Format email tidak valid, contoh: nama@email.com.">
                     </div>
                     @error('email')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                 </div>
@@ -177,10 +177,14 @@
         const pesanKolom = el => {
             const v = el.validity, l = labelKolom(el);
             if (v.valueMissing) return l + ' wajib diisi.';
+            if (v.patternMismatch && el.dataset.pesanPola) return el.dataset.pesanPola;
+            if (el.type === 'email' && (v.typeMismatch || v.patternMismatch)) return 'Format email tidak valid, contoh: nama@email.com.';
             if (v.typeMismatch || v.patternMismatch) return 'Format ' + l.toLowerCase() + ' tidak valid.';
             if (v.tooShort) return l + ' minimal ' + el.minLength + ' karakter.';
-            if (v.rangeUnderflow) return l + ' minimal ' + el.min + '.';
-            if (v.rangeOverflow) return l + ' maksimal ' + el.max + '.';
+            if (v.tooLong) return l + ' maksimal ' + el.maxLength + ' karakter.';
+            if (v.rangeUnderflow) return el.dataset.pesanMin || (l + ' minimal ' + el.min + '.');
+            if (v.rangeOverflow) return el.dataset.pesanMaks || (l + ' maksimal ' + el.max + '.');
+            if (v.badInput || v.stepMismatch) return l + ' harus berupa angka.';
             return l + ' tidak valid.';
         };
         const wadahKolom = el => el.closest('.input-group, .pw-wrap') || el;
@@ -210,7 +214,15 @@
                 if (! salah.length && ! tidakCocok) {
                     f.dataset.mengirim = '1';
                     const tombol = f.querySelector('button.btn-login');
+                    const labelAsli = tombol?.innerHTML;
                     if (tombol) { tombol.disabled = true; tombol.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Memproses…'; }
+                    // Bila pengiriman dibatalkan pemeriksa lain (mis. email belum diverifikasi OTP),
+                    // kunci tombol dilepas lagi agar form dapat dikirim ulang.
+                    setTimeout(() => {
+                        if (! e.defaultPrevented) return;
+                        f.dataset.mengirim = '';
+                        if (tombol) { tombol.disabled = false; tombol.innerHTML = labelAsli; }
+                    }, 0);
                     return;
                 }
                 e.preventDefault();

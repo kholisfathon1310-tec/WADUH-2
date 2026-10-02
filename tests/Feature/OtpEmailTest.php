@@ -129,10 +129,10 @@ class OtpEmailTest extends TestCase
     {
         $pemesan = Pemesan::factory()->create([
             'email' => 'lama@contoh.test', 'password' => 'Rahasia123', 'nama_lengkap' => 'Pemesan Uji',
-            'alamat' => 'Jl. Uji', 'usia' => 30, 'pekerjaan' => 'Penguji', 'no_telepon' => '081200000000',
+            'alamat' => 'Jl. Uji Coba No. 1', 'usia' => 30, 'pekerjaan' => 'Penguji', 'no_telepon' => '081200000000',
         ]);
         $this->actingAs($pemesan, 'customer');
-        $profil = ['nama_lengkap' => 'Pemesan Uji', 'alamat' => 'Jl. Uji', 'usia' => 30, 'pekerjaan' => 'Penguji', 'no_telepon' => '081200000000'];
+        $profil = ['nama_lengkap' => 'Pemesan Uji', 'alamat' => 'Jl. Uji Coba No. 1', 'usia' => 30, 'pekerjaan' => 'Penguji', 'no_telepon' => '081200000000'];
 
         $this->put(route('customer.akun.profil.update'), $profil + ['email' => 'baru@contoh.test'])->assertSessionHasErrors('email');
         $this->assertSame('lama@contoh.test', $pemesan->fresh()->email);
@@ -155,7 +155,7 @@ class OtpEmailTest extends TestCase
         $admin = Admin::firstOrFail();
         $emailLama = $admin->email;
         $this->actingAs($admin, 'admin');
-        $profil = ['nama_admin' => $admin->nama_admin, 'no_whatsapp' => '081200000001', 'alamat' => 'Jl. Admin'];
+        $profil = ['nama_admin' => $admin->nama_admin, 'no_whatsapp' => '081200000001', 'alamat' => 'Jl. Admin No. 10'];
 
         $this->put(route('admin.profil.update'), $profil + ['email' => 'admin.baru@contoh.test'])->assertSessionHasErrors('email');
         $this->assertSame($emailLama, $admin->fresh()->email);

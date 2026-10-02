@@ -1,4 +1,5 @@
 @extends('layouts.customer')
+@section('pantau_status', '1')
 @section('title', 'Dashboard')
 
 @php
@@ -79,13 +80,6 @@
         .db-hero-inner { display:grid; grid-template-columns:1fr auto; gap:2rem; align-items:center; }
         @media (max-width: 991.98px) { .db-hero-inner { grid-template-columns:1fr; } }
 
-        .db-hero-chips { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
-        .db-hero-chip { display:inline-flex; align-items:center; gap:.4rem;
-            font-size:.68rem; font-weight:800; letter-spacing:.06em; padding:.4rem .8rem;
-            border-radius:9999px; background:rgba(255,255,255,.12); color:#dcfce7;
-            border:1px solid rgba(255,255,255,.2); }
-        .db-hero-chip .dot { width:.45rem; height:.45rem; border-radius:50%; background:#34d399;
-            box-shadow:0 0 0 3px rgba(52,211,153,.25); }
         .db-hero h1 { font-size:1.85rem; font-weight:800; color:#fff; margin:0 0 .5rem;
             letter-spacing:-.02em; line-height:1.2; }
         .db-hero .lead { font-size:.92rem; color:#a7f3d0; max-width:38rem; line-height:1.6; margin:0; }
@@ -95,7 +89,7 @@
         .db-hero-btn { display:inline-flex; align-items:center; gap:.55rem; padding:.85rem 1.25rem;
             font-size:.88rem; font-weight:800; border-radius:.9rem; text-decoration:none;
             transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
-            justify-content:center; }
+            justify-content:flex-start; }
         .db-hero-btn.primary { background:#fff; color:var(--primary-darker);
             box-shadow:0 8px 20px -6px rgba(0,0,0,.25); }
         .db-hero-btn.primary:hover { transform:translateY(-2px); color:var(--primary-darker);
@@ -209,10 +203,6 @@
 
     {{-- ══════════════ HERO ══════════════ --}}
     <div class="db-hero" data-reveal>
-        <div class="db-hero-chips">
-            <span class="db-hero-chip"><span class="dot"></span>Tenant Aktif · Gedung BITC</span>
-            <span class="db-hero-chip">ID: BITC-P-{{ str_pad($pemesan->id_pemesan, 5, '0', STR_PAD_LEFT) }}</span>
-        </div>
         <div class="db-hero-inner">
             <div>
                 <h1>Selamat Datang, {{ $pemesan->nama_lengkap }}</h1>

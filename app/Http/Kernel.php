@@ -36,6 +36,9 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\AbaikanQueryArray::class,
+            // Status Selesai/Kadaluwarsa diperbarui saat ada akses, tanpa bergantung pada cron.
+            \App\Http\Middleware\JalankanStatusOtomatis::class,
         ],
 
         'api' => [

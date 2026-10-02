@@ -81,7 +81,7 @@ class HalamanRenderTest extends TestCase
         $this->followingRedirects()->from('/customer/daftar')->post('/customer/daftar', ['email' => 'bukan-email'])
             ->assertOk()
             ->assertSee('catatan-salah', false)
-            ->assertSee('Format Email tidak valid.');
+            ->assertSee('Format email tidak valid, contoh: nama@email.com.');
 
         $this->followingRedirects()->from('/admin/login')->post('/admin/login', ['admin_email' => '', 'admin_password' => ''])
             ->assertOk()

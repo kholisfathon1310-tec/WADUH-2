@@ -78,12 +78,17 @@ class MonitoringController extends Controller
     /** Bangun slot dari input admin: pakai jam kalau diisi, kalau tidak evaluasi harian. */
     private function slot(Request $request): array
     {
-        $mulai = $request->input('tanggal_mulai', Carbon::today()->toDateString());
-        $selesai = $request->input('tanggal_selesai') ?: $mulai;
-        $jamMulai = $request->input('jam_mulai');
-        $jamSelesai = $request->input('jam_selesai');
+        // Nilai dari URL bisa saja diutak-atik: tanggal/jam yang tidak valid diabaikan
+        // (kembali ke hari ini / evaluasi harian) alih-alih memicu galat.
+        $mulai = $this->tanggalValid($request->input('tanggal_mulai')) ?? Carbon::today()->toDateString();
+        $selesai = $this->tanggalValid($request->input('tanggal_selesai')) ?? $mulai;
+        if ($selesai < $mulai) {
+            $selesai = $mulai;
+        }
+        $jamMulai = $this->jamValid($request->input('jam_mulai'));
+        $jamSelesai = $this->jamValid($request->input('jam_selesai'));
 
-        $pakaiJam = $jamMulai && $jamSelesai;
+        $pakaiJam = $jamMulai && $jamSelesai && $jamMulai < $jamSelesai;
 
         return [
             'tanggal_mulai'   => $mulai,
@@ -91,5 +96,22 @@ class MonitoringController extends Controller
             'jam_mulai'       => $pakaiJam ? $jamMulai : null,
             'jam_selesai'     => $pakaiJam ? $jamSelesai : null,
         ];
+    }
+
+    /** Tanggal berformat Y-m-d yang benar-benar ada (mis. bukan 2026-13-45), atau null. */
+    private function tanggalValid(mixed $nilai): ?string
+    {
+        if (! is_string($nilai) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $nilai)) {
+            return null;
+        }
+        [$t, $b, $h] = array_map('intval', explode('-', $nilai));
+
+        return checkdate($b, $h, $t) ? $nilai : null;
+    }
+
+    /** Jam berformat HH:MM yang valid, atau null. */
+    private function jamValid(mixed $nilai): ?string
+    {
+        return is_string($nilai) && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $nilai) ? $nilai : null;
     }
 }

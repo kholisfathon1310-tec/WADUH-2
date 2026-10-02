@@ -1,4 +1,5 @@
 @extends('admin.layouts.app')
+@section('pantau_status', '1')
 @section('title', 'Detail Fasilitas')
 
 @section('actions')
@@ -36,11 +37,21 @@
         .df-tarif .satuan { font-size:.76rem; color:var(--muted); font-weight:600; }
         .df-tarif .harga { font-weight:800; color:var(--primary-dark); font-size:.92rem; }
 
-        .df-table thead th { position:sticky; top:0; background:#fbfdfe; color:var(--muted); font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:.85rem 1rem; border-bottom:1px solid var(--line); white-space:nowrap; }
-        .df-table tbody td { padding:.8rem 1rem; border-bottom:1px solid var(--line); vertical-align:middle; }
-        .df-table tbody tr:last-child td { border-bottom:none; }
-        .df-table tbody tr.df-clickrow { cursor:pointer; }
-        .df-table tbody tr.df-clickrow:hover { background:var(--surface); }
+        /* Daftar reservasi aktif — baris kartu (bukan tabel 6 kolom) supaya kode, nama, dan
+           status tidak terpotong/terdorong keluar pada kolom kanan yang sempit. */
+        .df-list { max-height:560px; overflow-y:auto; }
+        .df-item { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.15fr) auto; align-items:center; column-gap:1rem; row-gap:.35rem;
+                   padding:.9rem 1.25rem; border-bottom:1px solid var(--line); color:inherit; text-decoration:none; transition:background .15s ease; }
+        .df-item:last-child { border-bottom:none; }
+        .df-item:hover { background:var(--surface); color:inherit; }
+        .df-item-utama, .df-item-periode { display:flex; flex-direction:column; min-width:0; gap:.15rem; }
+        .df-kode { font-weight:800; color:var(--primary); white-space:nowrap; font-size:.92rem; }
+        .df-pemesan, .df-tgl { font-size:.82rem; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .df-pemesan i, .df-tgl i { color:var(--muted); }
+        .df-sub { font-size:.74rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .df-item-status { justify-self:end; white-space:nowrap; }
+        .df-item-keperluan { grid-column:1 / -1; font-size:.76rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .df-item-keperluan span { font-weight:700; }
 
         .df-pill { display:inline-flex; align-items:center; font-size:.7rem; font-weight:700; padding:.28rem .7rem; border-radius:2rem; }
         .df-pill.success { background:#e2f7ef; color:#0d8a5f; }
@@ -50,11 +61,14 @@
         .df-empty { text-align:center; padding:3.2rem 1rem; color:var(--muted); }
         .df-empty i { font-size:1.8rem; opacity:.4; display:block; margin-bottom:.6rem; }
 
-        .df-keperluan { display:block; max-width:12rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         @media (max-width: 575.98px) {
             .df-hero { height:170px; }
             .df-hero-caption { flex-wrap:wrap; left:1rem; right:1rem; }
-            .df-table thead th, .df-table tbody td { padding:.65rem .75rem; }
+            /* Ponsel: kode + status di baris atas, pemesan/periode di bawahnya. */
+            .df-item { grid-template-columns:minmax(0, 1fr) auto; padding:.8rem 1rem; }
+            .df-item-utama { grid-column:1; grid-row:1; }
+            .df-item-status { grid-column:2; grid-row:1; align-self:start; }
+            .df-item-periode { grid-column:1 / -1; }
             .df-lightbox { padding:1rem; }
         }
 
@@ -135,49 +149,30 @@
                     </span>
                 </div>
 
-                <div class="table-responsive" style="max-height:520px; overflow-y:auto">
-                    <table class="table df-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Kode</th>
-                                <th>Pemesan</th>
-                                <th>Periode</th>
-                                <th>Pengguna</th>
-                                <th>Keperluan</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @forelse ($reservasiAktif as $r)
-                            <tr class="df-clickrow" data-href="{{ route('admin.reservasi.show', $r->kode_reservasi) }}" title="Lihat detail reservasi {{ $r->kode_reservasi }}">
-                                <td class="fw-bold" style="color:var(--primary)">{{ $r->kode_reservasi }}</td>
-                                <td class="small fw-semibold">{{ $r->pemesan->nama_lengkap }}</td>
-                                <td class="small">
-                                    <span class="text-nowrap">{{ $r->tanggal_mulai->translatedFormat('d M Y') }}</span>
-                                    @if($r->jam_mulai)
-                                        <span class="cell-sub d-block text-nowrap">{{ \Illuminate\Support\Str::substr($r->jam_mulai,0,5) }}–{{ \Illuminate\Support\Str::substr($r->jam_selesai,0,5) }} WIB</span>
-                                    @elseif($r->tanggal_selesai->ne($r->tanggal_mulai))
-                                        <span class="cell-sub d-block text-nowrap">s.d. {{ $r->tanggal_selesai->translatedFormat('d M Y') }}</span>
-                                    @endif
-                                </td>
-                                <td class="small text-nowrap">{{ $r->jumlah_pengguna }} orang</td>
-                                <td class="small"><span class="df-keperluan" title="{{ $r->keperluan }}">{{ $r->keperluan }}</span></td>
-                                <td>
-                                    <span class="df-pill {{ $r->status_reservasi->value === 'Disetujui' ? 'success' : 'warning' }}">{{ $r->status_reservasi->value }}</span>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="border-0">
-                                    <div class="df-empty">
-                                        <i class="bi bi-calendar-x"></i>
-                                        Tidak ada reservasi aktif pada tanggal ini.
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                        </tbody>
-                    </table>
+                <div class="df-list">
+                    @forelse ($reservasiAktif as $r)
+                        <a class="df-item" href="{{ route('admin.reservasi.show', $r->kode_reservasi) }}" title="Lihat detail reservasi {{ $r->kode_reservasi }}">
+                            <div class="df-item-utama">
+                                <span class="df-kode">{{ $r->kode_reservasi }}</span>
+                                <span class="df-pemesan"><i class="bi bi-person me-1"></i>{{ $r->pemesan->nama_lengkap }}</span>
+                            </div>
+                            <div class="df-item-periode">
+                                <span class="df-tgl"><i class="bi bi-calendar3 me-1"></i>{{ $r->tanggal_mulai->translatedFormat('d M Y') }}@if(! $r->jam_mulai && $r->tanggal_selesai->ne($r->tanggal_mulai)) – {{ $r->tanggal_selesai->translatedFormat('d M Y') }}@endif</span>
+                                <span class="df-sub">
+                                    @if($r->jam_mulai){{ \Illuminate\Support\Str::substr($r->jam_mulai,0,5) }}–{{ \Illuminate\Support\Str::substr($r->jam_selesai,0,5) }} WIB · @endif{{ $r->jumlah_pengguna }} orang
+                                </span>
+                            </div>
+                            <span class="df-pill df-item-status {{ $r->status_reservasi->value === 'Disetujui' ? 'success' : 'warning' }}">{{ $r->status_reservasi->value }}</span>
+                            @if ($r->keperluan)
+                                <div class="df-item-keperluan"><span>Keperluan:</span> {{ $r->keperluan }}</div>
+                            @endif
+                        </a>
+                    @empty
+                        <div class="df-empty">
+                            <i class="bi bi-calendar-x"></i>
+                            Tidak ada reservasi aktif pada tanggal ini.
+                        </div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -193,11 +188,6 @@
 
     <script>
         (function () {
-            // Baris reservasi: seluruh baris bisa diklik menuju detail.
-            document.querySelectorAll('.df-clickrow[data-href]').forEach((row) => {
-                row.addEventListener('click', () => { window.location.href = row.dataset.href; });
-            });
-
             // Lightbox foto fasilitas.
             const box = document.querySelector('[data-lightbox]');
             const trigger = document.querySelector('[data-lightbox-trigger]');

@@ -6,8 +6,6 @@
     @include('customer.akun.partials.hero', [
         'user' => $pemesan,
         'role' => 'Pemesan',
-        'idPrefix' => 'BITC-P-',
-        'idField' => 'id_pemesan',
         'routes' => [
             'modal_edit'     => 'modalEditProfil',
             'modal_password' => 'modalUbahPassword',
@@ -87,7 +85,8 @@
                         <div class="row g-3">
                             <div class="col-12">
                                 <div class="fl-field @error('nama_lengkap') is-invalid @enderror">
-                                    <input type="text" name="nama_lengkap" id="flNamaLengkap" class="fl-input" placeholder=" " maxlength="150"
+                                    <input type="text" name="nama_lengkap" id="flNamaLengkap" class="fl-input" placeholder=" " minlength="3" maxlength="100"
+                                           pattern="[\p{L}\s.'\-]+" data-pesan-pola="Nama lengkap hanya boleh berisi huruf."
                                            autocomplete="name" value="{{ old('nama_lengkap', $pemesan->nama_lengkap) }}" required>
                                     <label for="flNamaLengkap"><span class="fl-label-txt">Nama Lengkap</span></label>
                                 </div>
@@ -96,7 +95,7 @@
                             <div class="col-12">
                                 <div class="fl-field otp-field @error('email') is-invalid @enderror">
                                     <input type="email" name="email" id="flEmailPemesan" class="fl-input" placeholder=" " maxlength="150"
-                                           autocomplete="email" value="{{ old('email', $pemesan->email) }}" required>
+                                           autocomplete="email" value="{{ old('email', $pemesan->email) }}" pattern="[^@\s]+@[^@\s]+\.[^@\s]+" data-pesan-pola="Format email tidak valid, contoh: nama@email.com." required>
                                     <label for="flEmailPemesan"><span class="fl-label-txt">Email</span></label>
                                     @include('partials.otp-email-tombol', ['emailId' => 'flEmailPemesan'])
                                 </div>
@@ -108,8 +107,8 @@
                             </div>
                             <div class="col-12">
                                 <div class="fl-field @error('no_telepon') is-invalid @enderror">
-                                    <input type="tel" name="no_telepon" id="flNoTelepon" class="fl-input" inputmode="numeric" maxlength="21"
-                                           pattern="\+?[0-9]{8,20}" placeholder=" " autocomplete="tel"
+                                    <input type="tel" name="no_telepon" id="flNoTelepon" class="fl-input" inputmode="numeric" maxlength="16"
+                                           pattern="\+?[0-9]{10,15}" data-pesan-pola="No. telepon harus berupa angka 10–15 digit." placeholder=" " autocomplete="tel"
                                            value="{{ old('no_telepon', $pemesan->no_telepon) }}" required>
                                     <label for="flNoTelepon"><span class="fl-label-txt">No. Telepon</span></label>
                                 </div>
@@ -117,16 +116,17 @@
                             </div>
                             <div class="col-12">
                                 <div class="fl-field @error('usia') is-invalid @enderror">
-                                    <input type="number" name="usia" id="flUsia" class="fl-input" placeholder=" " min="17" max="120" step="1"
+                                    <input type="number" name="usia" id="flUsia" class="fl-input" placeholder=" " min="17" max="100" step="1"
                                            inputmode="numeric" value="{{ old('usia', $pemesan->usia) }}" required
-                                           data-pesan-min="Usia minimal 17 tahun." data-pesan-maks="Usia maksimal 120 tahun.">
+                                           data-pesan-min="Usia minimal 17 tahun." data-pesan-maks="Usia maksimal 100 tahun.">
                                     <label for="flUsia"><span class="fl-label-txt">Usia</span></label>
                                 </div>
                                 @error('usia') <div class="fl-err">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-12">
                                 <div class="fl-field @error('pekerjaan') is-invalid @enderror">
-                                    <input type="text" name="pekerjaan" id="flPekerjaan" class="fl-input" placeholder=" " maxlength="100"
+                                    <input type="text" name="pekerjaan" id="flPekerjaan" class="fl-input" placeholder=" " minlength="3" maxlength="100"
+                                           pattern="[\p{L}\s.,'\/&amp;\(\)\-]+" data-pesan-pola="Pekerjaan hanya boleh berisi huruf."
                                            value="{{ old('pekerjaan', $pemesan->pekerjaan) }}" required>
                                     <label for="flPekerjaan"><span class="fl-label-txt">Pekerjaan / Instansi</span></label>
                                 </div>
@@ -134,7 +134,7 @@
                             </div>
                             <div class="col-12">
                                 <div class="fl-field @error('alamat') is-invalid @enderror">
-                                    <textarea name="alamat" id="flAlamatPemesan" class="fl-input" rows="3" placeholder=" " maxlength="500" required>{{ old('alamat', $pemesan->alamat) }}</textarea>
+                                    <textarea name="alamat" id="flAlamatPemesan" class="fl-input" rows="3" placeholder=" " minlength="10" maxlength="500" required>{{ old('alamat', $pemesan->alamat) }}</textarea>
                                     <label for="flAlamatPemesan"><span class="fl-label-txt">Alamat Domisili</span></label>
                                 </div>
                                 @error('alamat') <div class="fl-err">{{ $message }}</div> @enderror

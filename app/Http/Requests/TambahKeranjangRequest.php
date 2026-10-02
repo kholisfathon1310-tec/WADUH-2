@@ -57,7 +57,7 @@ class TambahKeranjangRequest extends FormRequest
             ],
             'tanggal_mulai'   => ['required', 'date', 'after_or_equal:today'],
             'jumlah_pengguna' => ['required', 'integer', 'min:1'],
-            'keperluan'       => ['required', 'string', 'max:1000'],
+            'keperluan'       => ['required', 'string', 'min:5', 'max:1000'],
             'edit_index'      => ['nullable', 'integer', 'min:0'],
 
             // Data diri Pemesan — diisi di form yang sama supaya keranjang sudah "siap" sebelum checkout.
@@ -260,7 +260,11 @@ class TambahKeranjangRequest extends FormRequest
             'jumlah_pengguna.integer'      => 'Jumlah pengguna harus berupa angka.',
             'jumlah_pengguna.min'          => 'Jumlah pengguna minimal 1 orang.',
             'keperluan.required'           => 'Keperluan wajib diisi.',
+            'keperluan.min'                => 'Keperluan minimal 5 karakter.',
             'keperluan.max'                => 'Keperluan maksimal 1000 karakter.',
+            'jam_mulai.date_format'        => 'Format jam mulai tidak valid.',
+            'jam_selesai.date_format'      => 'Format jam selesai tidak valid.',
+            'no_telepon.regex'             => 'Nomor telepon pada profil tidak valid. Perbarui profil Anda terlebih dahulu.',
             'nama_lengkap.required'        => 'Nama lengkap pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
             'alamat.required'              => 'Alamat pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
             'usia.required'                => 'Usia pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',

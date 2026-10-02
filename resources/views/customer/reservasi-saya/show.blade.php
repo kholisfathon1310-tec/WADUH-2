@@ -1,4 +1,5 @@
 @extends('layouts.customer')
+@section('pantau_status', '1')
 @section('title', 'Detail Reservasi')
 
 @php

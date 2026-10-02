@@ -26,6 +26,12 @@ class LaporanController extends Controller
         7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
     ];
 
+    /** Banyaknya tahun ke belakang yang selalu tersedia di filter, walau belum ada datanya. */
+    private const RENTANG_TAHUN_LALU = 5;
+
+    /** Batas bawah tahun yang diterima dari query string. */
+    private const TAHUN_MINIMUM = 2000;
+
     public function index(Request $request): View
     {
         $data = $this->build($request);
@@ -62,8 +68,7 @@ class LaporanController extends Controller
      */
     private function build(Request $request): array
     {
-        $bulan = (int) ($request->input('bulan') ?: now()->month);
-        $tahun = (int) ($request->input('tahun') ?: now()->year);
+        [$bulan, $tahun] = $this->periode($request);
 
         // Hanya reservasi yang SUDAH DISETUJUI (atau sudah Selesai — tetap tercatat pernah
         // disetujui) yang masuk laporan; Menunggu/Ditolak/Dibatalkan tidak dianggap "sudah dipesan".
@@ -114,13 +119,54 @@ class LaporanController extends Controller
         ];
     }
 
-    /** Rentang tahun untuk dropdown filter: dari tahun reservasi pertama sampai tahun sekarang (+1). */
+    /**
+     * Bulan & tahun dari query string. Nilai di luar rentang (mis. ?bulan=13 atau tahun asal)
+     * dikembalikan ke bulan berjalan supaya tidak memicu galat indeks BULAN_ID.
+     *
+     * @return array{0:int, 1:int}
+     */
+    private function periode(Request $request): array
+    {
+        $bulan = (int) $request->input('bulan');
+        $tahun = (int) $request->input('tahun');
+
+        if ($bulan < 1 || $bulan > 12) {
+            $bulan = now()->month;
+        }
+        if ($tahun < self::TAHUN_MINIMUM || $tahun > now()->year + 1) {
+            $tahun = now()->year;
+        }
+
+        return [$bulan, $tahun];
+    }
+
+    /**
+     * Pilihan tahun untuk filter, terbaru di atas: minimal RENTANG_TAHUN_LALU tahun ke belakang
+     * (atau sejak reservasi pertama bila lebih lama) sampai tahun depan. Nilainya jumlah
+     * reservasi yang masuk laporan pada tahun itu, untuk keterangan di pilihan.
+     *
+     * @return array<int, int> [tahun => jumlah reservasi]
+     */
     private function daftarTahun(): array
     {
-        $awal = Reservasi::min('tanggal_mulai');
-        $tahunAwal = $awal ? Carbon::parse($awal)->year : now()->year;
-        $tahunAkhir = now()->year + 1;
+        $jumlahPerTahun = Reservasi::query()
+            ->whereIn('status_reservasi', [StatusReservasi::Disetujui->value, StatusReservasi::Selesai->value])
+            ->selectRaw('YEAR(tanggal_mulai) AS tahun, COUNT(*) AS jumlah')
+            ->groupBy('tahun')
+            ->pluck('jumlah', 'tahun');
 
-        return range($tahunAkhir, $tahunAwal);
+        $awal = Reservasi::min('tanggal_mulai');
+        $tahunAwal = min(
+            $awal ? Carbon::parse($awal)->year : now()->year,
+            now()->year - self::RENTANG_TAHUN_LALU,
+        );
+        $tahunAwal = max($tahunAwal, self::TAHUN_MINIMUM);
+
+        $daftar = [];
+        foreach (range(now()->year + 1, $tahunAwal) as $t) {
+            $daftar[$t] = (int) ($jumlahPerTahun[$t] ?? 0);
+        }
+
+        return $daftar;
     }
 }

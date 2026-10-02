@@ -448,7 +448,8 @@ class AturanReservasiTest extends TestCase
             ->assertSee('Jumlah Pengguna')
             ->assertSee('Kapasitas maksimal')
             ->assertSee('8 orang')
-            ->assertSee('Tersedia');
+            // Kondisi Tersedia sengaja tidak ditampilkan (hanya Sebagian Terisi/Terisi).
+            ->assertDontSee('Belum ada jadwal pada tanggal ini');
 
         // Multi-ruangan: kedua ruangan tampil, kapasitas = yang terkecil, harga = total.
         $this->get(route('reservasi.fasilitas.show', ['fasilitas' => $a->id_fasilitas, 'antrian' => $b->id_fasilitas]))
