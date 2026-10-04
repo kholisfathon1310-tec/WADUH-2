@@ -45,29 +45,8 @@ class ReservasiController extends Controller
      */
     public function index(): View
     {
-        $lantai = Lantai::with('fasilitas')
-            ->orderBy('id_lantai')
-            ->get()
-            ->map(function (Lantai $l) {
-                $aktif = $l->fasilitas->where('status_aktif', StatusAktif::Aktif);
-
-                // Lantai bisa campur kategori (mis. 3A/3B) — pakai kategori dengan jumlah
-                // ruangan terbanyak, sama seperti HomeController.
-                $kategoriUtama = $l->fasilitas
-                    ->countBy('kategori_fasilitas')
-                    ->sortDesc()
-                    ->keys()
-                    ->first();
-
-                return [
-                    'id'       => $l->id_lantai,
-                    'nomor'    => $l->nomor_lantai,
-                    'kategori' => $kategoriUtama ?? '-',
-                    'total'    => $l->fasilitas->count(),
-                    'tersedia' => $aktif->count(),
-                    'kapasitas_maks' => $aktif->max('kapasitas'),
-                ];
-            });
+        // Angka unit tersedia & kapasitas sama persis dengan Beranda (satu sumber data).
+        $lantai = \App\Support\RingkasanLantai::semua();
 
         return view('reservasi.kategori', [
             'daftarLantai' => $lantai,
@@ -184,7 +163,7 @@ class ReservasiController extends Controller
         // dari jadwal reservasi tersimpan + hold keranjang session lain — menentukan jenis sewa
         // mana yang masih dapat dipesan (lihat AvailabilityService::bisaDipesan()).
         $sessionId = $request->session()->getId();
-        $tanggalAcuan = $this->tanggalValid($request->input('tanggal_mulai'), $editItem['tanggal_mulai'] ?? null);
+        $tanggalAcuan = $this->hariKerja($this->tanggalValid($request->input('tanggal_mulai'), $editItem['tanggal_mulai'] ?? null));
         // Multi-pilih dari denah (?antrian=id2,id3): satu jadwal berlaku untuk semua ruangan,
         // jadi kondisi gabungannya = kondisi terburuk di antara ruangan terpilih.
         $semuaRuangan = $this->ruanganDariRequest($request, $fasilitas);
@@ -400,6 +379,25 @@ class ReservasiController extends Controller
     }
 
     /** Tanggal Y-m-d yang valid dari input bebas; selain itu pakai cadangan / hari ini. */
+    /**
+     * Tanggal acuan untuk denah/detail: tidak boleh sudah lewat dan harus hari kerja.
+     * Tanggal lampau diganti hari ini; Sabtu/Minggu digeser ke Senin berikutnya — gedung
+     * tutup di akhir pekan, jadi ketersediaan hari itu tidak bermakna. (Di peramban, pilihan
+     * seperti itu sudah ditolak dengan pesan sebelum sampai ke server.)
+     */
+    private function hariKerja(string $tanggal): string
+    {
+        $t = Carbon::parse($tanggal)->startOfDay();
+        if ($t->lt(Carbon::today())) {
+            $t = Carbon::today();
+        }
+        while ($t->isWeekend()) {
+            $t->addDay();
+        }
+
+        return $t->toDateString();
+    }
+
     private function tanggalValid(mixed $nilai, ?string $cadangan = null, bool $defaultHariIni = true): ?string
     {
         foreach ([$nilai, $cadangan] as $kandidat) {
@@ -762,14 +760,18 @@ class ReservasiController extends Controller
         // Ruangan yang sudah lewat batas persetujuan menjadi Kadaluwarsa dulu, bukan Dibatalkan.
         $statusOtomatis->kadaluwarsakanRuanganTerlambat();
 
-        $reservasi = Reservasi::where('kode_reservasi', $kode_reservasi)->firstOrFail();
+        // Hanya pemilik reservasi yang boleh membatalkan; milik orang lain diperlakukan
+        // seperti tidak ada (404) supaya tidak membocorkan keberadaan kode tersebut.
+        $reservasi = Reservasi::where('kode_reservasi', $kode_reservasi)
+            ->where('id_pemesan', Auth::guard('customer')->id())
+            ->firstOrFail();
 
-        // Dipanggil dari 2 tempat: Cek Status publik (default) dan "Reservasi Saya" (mengirim
-        // `kembali` berisi path lokal supaya kembali ke halamannya sendiri, bukan Cek Status).
+        // Kembali ke halaman detail di Reservasi Saya. `kembali` hanya diterima bila berupa
+        // path lokal (bukan //domain-lain) agar tidak bisa dipakai untuk mengalihkan ke situs luar.
         $kembaliInput = $request->input('kembali');
-        $kembaliKe = (is_string($kembaliInput) && str_starts_with($kembaliInput, '/'))
+        $kembaliKe = (is_string($kembaliInput) && str_starts_with($kembaliInput, '/') && ! str_starts_with($kembaliInput, '//'))
             ? $kembaliInput
-            : route('cek-status.hasil', ['kode' => $request->input('kode', $kode_reservasi)]);
+            : route('customer.reservasi-saya.show', $reservasi->kode_transaksi ?: $reservasi->kode_reservasi);
 
         // Hanya boleh dibatalkan selama masih proses verifikasi (Menunggu) dan belum lewat tanggal.
         $bolehStatus = $reservasi->status_reservasi === StatusReservasi::Menunggu;
@@ -822,7 +824,7 @@ class ReservasiController extends Controller
     private function slotDariRequest(Request $request, ?SatuanSewa $satuan): array
     {
         if ($satuan === SatuanSewa::Jam) {
-            $tanggal = $this->tanggalValid($request->input('tanggal_mulai'));
+            $tanggal = $this->hariKerja($this->tanggalValid($request->input('tanggal_mulai')));
 
             // Per Jam selalu dinilai terhadap SELURUH jam operasional (08.00–16.00) hari itu.
             return [
@@ -834,7 +836,7 @@ class ReservasiController extends Controller
         }
 
 
-        $mulai = $this->tanggalValid($request->input('tanggal_mulai'));
+        $mulai = $this->hariKerja($this->tanggalValid($request->input('tanggal_mulai')));
         // Sewa Bulan: jendela default = durasi minimum (mis. 3 bulan) sejak tanggal mulai.
         $minBulan = max(1, (int) JenisSewa::where('satuan', SatuanSewa::Bulan->value)->value('durasi_minimum'));
         $defaultSelesai = $satuan === SatuanSewa::Bulan

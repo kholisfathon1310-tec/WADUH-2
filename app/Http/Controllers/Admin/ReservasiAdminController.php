@@ -14,6 +14,7 @@ use App\Models\Reservasi;
 use App\Services\ReservasiApprovalService;
 use App\Services\StatusOtomatisService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,9 @@ class ReservasiAdminController extends Controller
         private readonly StatusOtomatisService $statusOtomatis,
     ) {
     }
+
+    /** Jumlah kode reservasi per halaman pada Data Reservasi. */
+    private const PER_HALAMAN = 10;
 
     /** Daftar seluruh Reservasi, dikelompokkan per kode_transaksi, dengan search & filter. */
     public function index(Request $request): View
@@ -50,16 +54,28 @@ class ReservasiAdminController extends Controller
             ->latest('created_at')
             ->get();
 
-        // Kelompokkan per kode_transaksi mempertahankan urutan terbaru.
-        $grup = $reservasi->groupBy('kode_transaksi');
+        // Kelompokkan per kode_transaksi mempertahankan urutan terbaru, lalu dibagi per halaman
+        // (satu halaman = PER_HALAMAN kode reservasi; ruangan dalam satu kode tidak terpisah).
+        $semuaGrup = $reservasi->groupBy('kode_transaksi');
+        $halaman = max(1, (int) $request->query('page', 1));
+        $halaman = min($halaman, max(1, (int) ceil($semuaGrup->count() / self::PER_HALAMAN)));
+        $grup = new LengthAwarePaginator(
+            $semuaGrup->forPage($halaman, self::PER_HALAMAN),
+            $semuaGrup->count(),
+            self::PER_HALAMAN,
+            $halaman,
+            ['path' => route('admin.reservasi.index'), 'query' => $request->except('page')],
+        );
+        $ringkasan = ['reservasi' => $semuaGrup->count(), 'ruangan' => $reservasi->count()];
 
         // Filter/pencarian interaktif: request AJAX cukup dibalas fragmen hasil, tanpa layout.
         if ($request->ajax()) {
-            return view('admin.reservasi.partials.hasil', compact('grup'));
+            return view('admin.reservasi.partials.hasil', compact('grup', 'ringkasan'));
         }
 
         return view('admin.reservasi.index', [
             'grup'          => $grup,
+            'ringkasan'     => $ringkasan,
             'daftarLantai'  => Lantai::orderBy('id_lantai')->get(),
             'daftarKategori' => Fasilitas::select('kategori_fasilitas')->distinct()->orderBy('kategori_fasilitas')->pluck('kategori_fasilitas'),
             'daftarJenis'   => JenisSewa::orderBy('id_jenis_sewa')->get(),
@@ -227,6 +243,19 @@ class ReservasiAdminController extends Controller
             ->update(['status_verifikasi' => $data['status_verifikasi']]);
 
         return back()->with('success', 'Status verifikasi dokumen berhasil diperbarui.');
+    }
+
+    /**
+     * Tampilkan berkas dokumen persyaratan (khusus admin yang login). Berkas disimpan di disk
+     * "public" tetapi tidak diakses lewat /storage publik — dokumen seperti KTP penanggung
+     * jawab tidak boleh bisa dibuka siapa pun yang mengetahui alamat berkasnya.
+     */
+    public function lihatDokumen(DokumenPersyaratan $dokumen): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $disk = Storage::disk('public');
+        abort_unless($dokumen->lokasi_file && $disk->exists($dokumen->lokasi_file), 404, 'Berkas dokumen tidak ditemukan.');
+
+        return $disk->response($dokumen->lokasi_file, $dokumen->nama_file);
     }
 
     /** @param array<int,string> $with */

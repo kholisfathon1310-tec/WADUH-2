@@ -57,9 +57,12 @@ class HalamanRenderTest extends TestCase
         $this->get('/')->assertOk()->assertSee('WADUH');
         $this->get('/cek-status')->assertOk()->assertSee('RS186')->assertDontSee('TRX-');
         $this->get('/cek-status/RSV-TIDAKADA')->assertOk()->assertSee('tidak ditemukan');
-        $this->get('/fasilitas')->assertOk();
-        $this->get(route('fasilitas.lantai', ['kategori' => $kategori]))->assertOk();
-        $this->get(route('fasilitas.denah', ['kategori' => $kategori, 'lantai' => $fasilitas->id_lantai]))->assertOk();
+        // Jelajah fasilitas publik sudah dihapus: denah & detail hanya bisa dibuka setelah login.
+        $this->get('/fasilitas')->assertNotFound();
+        $this->get('/fasilitas/'.rawurlencode($kategori).'/denah/'.$fasilitas->id_lantai)->assertNotFound();
+        $this->get('/fasilitas/detail/'.$fasilitas->id_fasilitas)->assertNotFound();
+        $this->get('/denah-preview')->assertNotFound();
+        $this->get(route('reservasi.denah', ['kategori' => $kategori, 'lantai' => $fasilitas->id_lantai]))->assertRedirect(route('customer.login'));
     }
 
     public function test_halaman_auth_merender(): void

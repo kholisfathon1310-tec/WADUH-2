@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\StatusAktif;
-use App\Enums\StatusReservasi;
 use App\Models\Admin;
-use App\Models\Lantai;
-use App\Models\Reservasi;
+use App\Support\RingkasanLantai;
 use Illuminate\View\View;
 
 class HomeController extends Controller
@@ -17,54 +14,9 @@ class HomeController extends Controller
      */
     public function __invoke(): View
     {
-        // "Tersedia" HARUS mencerminkan kondisi HARI INI (bukan sekadar aktif/tidaknya
-        // fasilitas) — fasilitas dengan reservasi Menunggu/Disetujui yang mencakup tanggal
-        // hari ini dianggap sedang terpakai, jadi tidak dihitung sebagai "tersedia".
-        $hariIni = now()->toDateString();
-        $idFasilitasTerisiHariIni = Reservasi::whereIn('status_reservasi', [
-                StatusReservasi::Menunggu->value,
-                StatusReservasi::Disetujui->value,
-            ])
-            ->whereDate('tanggal_mulai', '<=', $hariIni)
-            ->whereDate('tanggal_selesai', '>=', $hariIni)
-            ->with('tarifSewa:id_tarif_sewa,id_fasilitas')
-            ->get()
-            ->pluck('tarifSewa.id_fasilitas')
-            ->unique();
+        $lantai = RingkasanLantai::semua();
 
-        $lantai = Lantai::with('fasilitas')
-            ->orderBy('id_lantai')
-            ->get()
-            ->map(function (Lantai $l) use ($idFasilitasTerisiHariIni) {
-                $aktif = $l->fasilitas->where('status_aktif', StatusAktif::Aktif);
-
-                // Lantai bisa campur kategori (mis. 3A/3B: mayoritas Co-Working + beberapa
-                // Working Space) — tampilkan kategori dengan jumlah ruangan terbanyak, bukan
-                // sekadar baris pertama yang urutannya bisa acak.
-                $kategoriUtama = $l->fasilitas
-                    ->countBy('kategori_fasilitas')
-                    ->sortDesc()
-                    ->keys()
-                    ->first();
-
-                // Kapasitas yang ditampilkan mengikuti kategori utama saja (bukan seluruh
-                // ruangan di lantai itu) — kalau tidak, sisa ruangan kategori minoritas
-                // (mis. Working Space di lantai yang mayoritas Co-Working) ikut melebarkan
-                // rentang kapasitas jadi tidak mencerminkan kategori yang ditampilkan.
-                $aktifKategoriUtama = $aktif->where('kategori_fasilitas', $kategoriUtama);
-
-                return [
-                    'id'           => $l->id_lantai,
-                    'nomor'        => $l->nomor_lantai,
-                    'kategori'     => $kategoriUtama ?? '-',
-                    'total'        => $l->fasilitas->count(),
-                    'tersedia'     => $aktif->whereNotIn('id_fasilitas', $idFasilitasTerisiHariIni)->count(),
-                    'kap_min'      => $aktifKategoriUtama->min('kapasitas'),
-                    'kap_maks'     => $aktifKategoriUtama->max('kapasitas'),
-                ];
-            });
-
-        // Kontak WhatsApp/alamat di section Kontak diambil dari biodata admin (halaman Profil),
+        // Nomor WhatsApp di section Kontak diambil dari biodata admin (halaman Profil),
         // supaya tombol WA pemesan langsung ke nomor admin yang sebenarnya, bukan placeholder.
         $admin = Admin::orderBy('id_admin')->first();
 

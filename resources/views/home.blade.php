@@ -491,15 +491,19 @@
                     <div class="section-head">
                         <p class="eyebrow">Tentang BITC</p>
                         <h2>Baros Information Technology Creative Centre.</h2>
-                        <p class="lead">Gedung <strong>BITC</strong> di  Jl. HMS Mintareja Sarjana Hukum, Baros, Kec. Cimahi Tengah, Kota Cimahi, Jawa Barat dikelola oleh <strong>UPTD Cimahi Techno Park</strong> sebagai pusat pengembangan industri teknologi informasi dan ekonomi kreatif Kota Cimahi. Di dalamnya tersedia unit hunian usaha yang dapat disewa: ruang kerja privat, ruang rapat, kubikal co-working, hingga convention hall untuk acara berskala besar.</p>
+                        <p class="lead">Gedung <strong>BITC</strong> di {{ config('institusi.alamat_gedung') }} dikelola oleh <strong>UPTD Cimahi Techno Park</strong> sebagai pusat pengembangan industri teknologi informasi dan ekonomi kreatif Kota Cimahi. Di dalamnya tersedia unit hunian usaha yang dapat disewa: ruang kerja privat, ruang rapat, kubikal co-working, hingga convention hall untuk acara berskala besar.</p>
                         <p class="text-muted mt-3" style="line-height:1.85"><strong>WADUH (Wadah Akses Digital Unit Hunian)</strong> hadir agar seluruh proses mulai dari melihat ketersediaan per lantai, mengajukan reservasi, hingga pengecekan status reservasi dapat dilakukan dari mana saja.</p>
                     </div>
                 </div>
                 <div class="col-lg-6" data-reveal>
                     <div class="info-card">
                         <div class="info-card-head"><i class="bi bi-clock"></i> Jam Operasional Gedung BITC</div>
-                        <div class="info-row"><span>Senin – Jumat</span><b>08:00 – 16:00 WIB</b></div>
-                        <div class="info-row"><span>Sabtu – Minggu</span><b class="text-muted">Tutup</b></div>
+                        @foreach (['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'] as $hari)
+                            <div class="info-row"><span>{{ $hari }}</span><b>08:00 – 16:00 WIB</b></div>
+                        @endforeach
+                        @foreach (['Sabtu', 'Minggu'] as $hari)
+                            <div class="info-row"><span>{{ $hari }}</span><b class="text-muted">Tutup</b></div>
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -510,7 +514,7 @@
                     <div class="feature-card">
                         <span class="ic"><i class="bi bi-geo-alt-fill"></i></span>
                         <h3>Lokasi Strategis</h3>
-                        <p> Jl. HMS Mintareja Sarjana Hukum, Baros, Kec. Cimahi Tengah, Kota Cimahi, Jawa Barat. Akses mudah dari tol Baros.</p>
+                        <p>{{ config('institusi.alamat_gedung') }}. Akses mudah dari tol Baros.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3" data-reveal>
@@ -655,11 +659,12 @@
          ══════════════════════════════════════════════════════════════ --}}
     <section id="kontak" class="section">
         @php
-            // Nomor & alamat kontak diambil dari biodata admin (halaman Profil admin), dengan
-            // fallback ke config('institusi') kalau admin belum mengisi biodatanya.
+            // Nomor WhatsApp diambil dari biodata admin (halaman Profil admin), dengan fallback ke
+            // config('institusi'). Alamat yang ditampilkan adalah alamat GEDUNG BITC (sama dengan
+            // bagian Tentang), bukan alamat pribadi/biodata admin.
             $waNomor = $adminKontak?->no_whatsapp ?: ('+'.config('institusi.whatsapp'));
             $waDigit = preg_replace('/\D/', '', $waNomor);
-            $kontakAlamat = $adminKontak?->alamat ?: 'Jl. Raya Baros No. 78, Cimahi Selatan';
+            $kontakAlamat = config('institusi.alamat_gedung');
         @endphp
         <div class="container">
             <div class="row gy-5 align-items-center">

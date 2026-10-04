@@ -47,6 +47,11 @@
         @include('reservasi.partials.denah-hasil')
     </div>
 
+    <style>
+        .dn-filter-galat { display:flex; align-items:flex-start; gap:.4rem; margin-top:.75rem; padding:.6rem .8rem; border-radius:.65rem; background:#fff1f2; border:1px solid #fecdd3; color:#be123c; font-size:.8rem; font-weight:600; line-height:1.45; }
+        .dn-filter-galat[hidden] { display:none; }
+        .dn-filter-galat i { margin-top:.1rem; flex:none; }
+    </style>
     <script>
         (function () {
             const form = document.querySelector('[data-filter-form]');
@@ -85,11 +90,45 @@
                     });
             };
 
+            // ── Validasi tanggal: tidak boleh lampau (termasuk yang diketik manual) dan harus
+            //    hari kerja. Pilihan yang ditolak dikembalikan ke nilai sebelumnya, denah tidak berubah. ──
+            const hariIni = form.querySelector('input[type="date"]')?.min || '';
+            const akhirPekan = (v) => { const [y, m, d] = v.split('-').map(Number); const h = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); return h === 0 || h === 6; };
+            let galat = form.querySelector('[data-filter-galat]');
+            if (!galat) {
+                galat = document.createElement('div');
+                galat.className = 'dn-filter-galat'; galat.dataset.filterGalat = ''; galat.setAttribute('role', 'alert'); galat.hidden = true;
+                form.appendChild(galat);
+            }
+            const tampilGalat = (pesan) => { galat.innerHTML = pesan ? '<i class="bi bi-exclamation-circle-fill"></i><span></span>' : ''; if (pesan) galat.querySelector('span').textContent = pesan; galat.hidden = !pesan; };
+            const pesanTanggal = (el) => {
+                const v = el.value;
+                if (!v) return el.name === 'tanggal_mulai' ? 'Tanggal wajib dipilih.' : '';
+                if (hariIni && v < hariIni) return 'Tanggal yang sudah lewat tidak dapat dipilih. Pilih hari ini atau tanggal sesudahnya.';
+                if (akhirPekan(v)) return 'Gedung tidak beroperasi pada hari Sabtu dan Minggu. Silakan pilih hari kerja (Senin–Jumat).';
+                const mulai = form.querySelector('[name="tanggal_mulai"]')?.value;
+                if (el.name === 'tanggal_selesai' && mulai && v < mulai) return 'Tanggal selesai tidak boleh sebelum tanggal mulai.';
+                return '';
+            };
+            const tanggalSah = () => {
+                for (const el of form.querySelectorAll('input[type="date"]')) {
+                    const p = pesanTanggal(el);
+                    if (p) { tampilGalat(p); return false; }
+                }
+                tampilGalat('');
+                return true;
+            };
+
             form.querySelectorAll('input[type="date"]').forEach((el) => {
-                el.addEventListener('change', terapkan);
+                el.dataset.nilaiSah = el.value;
+                el.addEventListener('change', () => {
+                    if (!tanggalSah()) { el.value = el.dataset.nilaiSah || ''; return; }
+                    form.querySelectorAll('input[type="date"]').forEach((x) => { x.dataset.nilaiSah = x.value; });
+                    terapkan();
+                });
             });
 
-            form.addEventListener('submit', (e) => { e.preventDefault(); terapkan(); });
+            form.addEventListener('submit', (e) => { e.preventDefault(); if (tanggalSah()) terapkan(); });
         })();
     </script>
 @endsection

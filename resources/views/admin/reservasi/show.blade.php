@@ -262,7 +262,7 @@
                                 <span class="rd-doc-ic"><i class="bi bi-file-earmark-text"></i></span>
                                 <div class="min-w-0">
                                     <div class="rd-doc-nama">{{ $dok->jenis_dokumen }}<span class="rd-doc-badge {{ strtok($stDok, ' ') }}">{{ $stDok }}</span></div>
-                                    <a href="{{ \Illuminate\Support\Facades\Storage::url($dok->lokasi_file) }}" target="_blank" class="rd-doc-file">{{ $dok->nama_file }} <i class="bi bi-box-arrow-up-right"></i></a>
+                                    <a href="{{ route('admin.reservasi.dokumen.lihat', $dok->id_dokumen) }}" target="_blank" rel="noopener" class="rd-doc-file">{{ $dok->nama_file }} <i class="bi bi-box-arrow-up-right"></i></a>
                                 </div>
                             </div>
                             @if ($stDok === 'Menunggu')

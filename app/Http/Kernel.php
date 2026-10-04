@@ -37,6 +37,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\AbaikanQueryArray::class,
+            \App\Http\Middleware\PertahankanFlashNavReplace::class,
             // Status Selesai/Kadaluwarsa diperbarui saat ada akses, tanpa bergantung pada cron.
             \App\Http\Middleware\JalankanStatusOtomatis::class,
         ],

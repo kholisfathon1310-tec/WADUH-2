@@ -94,6 +94,13 @@
                 <div class="alert alert-danger py-2 small mb-3" role="alert">{{ $galatLain->first() }}</div>
             @endif
 
+            @if (! ($tautanBerlaku ?? true))
+                <div class="alert alert-warning small mb-3" role="alert">
+                    <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Tautan tidak berlaku</div>
+                    Tautan pengaturan ulang kata sandi ini sudah digunakan, sudah kedaluwarsa (lebih dari 60 menit), atau tidak valid. Silakan minta tautan baru.
+                </div>
+                <a href="{{ route('customer.password.request') }}" class="btn btn-login w-100"><i class="bi bi-send me-1"></i> Minta Tautan Baru</a>
+            @else
             <form method="POST" action="{{ route('customer.password.update') }}">
                 @csrf
                 <input type="hidden" name="token" value="{{ $token }}">
@@ -123,10 +130,13 @@
                 </div>
                 <button class="btn btn-login w-100"><i class="bi bi-check-circle me-1"></i> Ubah Kata Sandi</button>
             </form>
+            @endif
             <p class="text-center text-muted small login-foot mb-0"><a href="{{ route('customer.login') }}" class="text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Kembali ke Halaman Masuk</a></p>
         </div>
     </div>
     <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <link href="{{ asset('vendor/waduh/popup.css') }}?v={{ filemtime(public_path('vendor/waduh/popup.css')) }}" rel="stylesheet">
+    <script src="{{ asset('vendor/waduh/popup.js') }}?v={{ filemtime(public_path('vendor/waduh/popup.js')) }}"></script>
     <script>
         @if (session('success'))
             Swal.fire({ icon: 'success', title: 'Berhasil', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Tutup' });

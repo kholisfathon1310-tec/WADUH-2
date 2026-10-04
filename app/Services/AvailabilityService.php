@@ -137,12 +137,15 @@ class AvailabilityService
     // Deteksi bentrok
     // ---------------------------------------------------------------------
 
-    /** Ada Reservasi aktif yang bentrok dengan slot yang diminta? */
-    public function hasReservationConflict(int $fasilitasId, array $slot, ?int $ignoreReservasiId = null): bool
+    /**
+     * Ada Reservasi aktif yang bentrok dengan slot yang diminta?
+     * $status: status yang dianggap menempati jadwal (default Menunggu + Disetujui).
+     */
+    public function hasReservationConflict(int $fasilitasId, array $slot, ?int $ignoreReservasiId = null, ?array $status = null): bool
     {
         $rows = Reservasi::query()
             ->whereHas('tarifSewa', fn ($q) => $q->where('id_fasilitas', $fasilitasId))
-            ->whereIn('status_reservasi', self::statusAktif())
+            ->whereIn('status_reservasi', $status ?? self::statusAktif())
             ->whereDate('tanggal_mulai', '<=', $slot['tanggal_selesai'])
             ->whereDate('tanggal_selesai', '>=', $slot['tanggal_mulai'])
             ->when($ignoreReservasiId, fn ($q) => $q->where('id_reservasi', '!=', $ignoreReservasiId))

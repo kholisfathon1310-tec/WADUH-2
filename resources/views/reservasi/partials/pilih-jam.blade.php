@@ -80,6 +80,7 @@
     .jam-opt:hover:not(:disabled) { border-color:var(--primary); background:var(--primary-soft); color:var(--primary-dark); }
     .jam-opt.aktif { background:var(--primary); border-color:var(--primary); color:#fff; }
     .jam-opt:disabled { cursor:not-allowed; color:#a3adba; background:var(--surface); }
+    .jam-opt.opt-bentrok { color:#b45309; text-decoration:line-through; background:#fff7ed; border-color:#fed7aa; cursor:not-allowed; }
     .jam-opt.opt-terisi:disabled { color:#b45309; text-decoration:line-through;
         background:repeating-linear-gradient(45deg, #fff7ed, #fff7ed 4px, #ffedd5 4px, #ffedd5 8px); border-color:#fed7aa; }
     .jam-legend { display:flex; align-items:center; gap:.35rem; font-size:.66rem; font-weight:600; color:var(--muted); margin-top:.55rem; }
@@ -136,23 +137,30 @@
                 let pilihanGugur = false;
                 picker.querySelectorAll('.jam-opt').forEach((opt) => {
                     const v = opt.dataset.val;
-                    let terisi, lain;
+                    let terisi, lain, bentrok = false;
                     if (nama === 'jam_mulai') {
                         terisi = g.terisi.some((r) => v >= r.mulai && v < r.selesai);
                         lain = v >= '16:00' || (adalahHariIni && v < jamSekarang);
                     } else {
-                        // Rentang [mulai, v] tidak boleh menabrak blok terisi mana pun.
+                        // Rentang [mulai, v] tidak boleh menabrak blok terisi mana pun. Bila jam mulai
+                        // sudah dipilih, jam selesai yang membuat rentang melewati blok terisi tetap bisa
+                        // diklik tetapi DITOLAK dengan pesan jadwal bentrok (lihat handler klik).
                         terisi = mulai
-                            ? g.terisi.some((r) => r.mulai < v && r.selesai > mulai)
+                            ? false
                             : g.terisi.some((r) => v > r.mulai && v <= r.selesai);
+                        bentrok = !!mulai && v > mulai && g.terisi.some((r) => r.mulai < v && r.selesai > mulai);
                         lain = v <= '08:00' || (mulai && v <= mulai) || (adalahHariIni && v <= jamSekarang);
                     }
-                    opt.disabled = terisi || lain;
+                    opt.disabled = terisi || (lain && !bentrok);
                     opt.classList.toggle('opt-terisi', terisi);
-                    opt.title = terisi ? 'Sudah terisi reservasi lain'
+                    opt.classList.toggle('opt-bentrok', bentrok);
+                    if (bentrok) opt.dataset.bentrok = g.terisi.filter((r) => r.mulai < v && r.selesai > mulai).map((r) => titik(r.mulai) + '–' + titik(r.selesai)).join(', ');
+                    else delete opt.dataset.bentrok;
+                    opt.title = bentrok ? 'Rentang jam bentrok dengan jadwal yang sudah terisi'
+                        : terisi ? 'Sudah terisi reservasi lain'
                         : (nama === 'jam_mulai' && v >= '16:00' ? 'Pukul 16.00 adalah batas jam selesai'
                         : (nama === 'jam_selesai' && v <= '08:00' ? 'Pukul 08.00 adalah jam mulai paling awal' : ''));
-                    if (opt.disabled && opt.classList.contains('aktif')) pilihanGugur = true;
+                    if ((opt.disabled || bentrok) && opt.classList.contains('aktif')) pilihanGugur = true;
                 });
 
                 const hint = picker.querySelector('[data-jam-terisi-hint]');
@@ -198,6 +206,16 @@
                     opt.addEventListener('click', (e) => {
                         e.stopPropagation();
                         if (opt.disabled) return;
+                        if (opt.dataset.bentrok) {
+                            // Jadwal ditolak: rentang melewati jam yang sudah dipesan.
+                            const mulaiDipilih = g.pickers.jam_mulai?.querySelector('input[type="hidden"]').value || '';
+                            const pesan = 'Jadwal ' + titik(mulaiDipilih) + '–' + titik(opt.dataset.val) + ' WIB bentrok dengan jadwal yang sudah terisi ('
+                                + opt.dataset.bentrok + ' WIB). Silakan pilih jam selesai sebelum jam yang terisi, atau jam lain yang masih kosong.';
+                            tutupSemua();
+                            if (window.Swal) Swal.fire({ icon: 'warning', title: 'Jadwal Bentrok', text: pesan, confirmButtonColor: '#176b87', confirmButtonText: 'Mengerti' });
+                            else alert(pesan);
+                            return;
+                        }
                         hidden.value = opt.dataset.val;
                         label.textContent = titik(opt.dataset.val);
                         tombol.classList.remove('jam-kosong');

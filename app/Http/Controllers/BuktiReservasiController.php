@@ -6,11 +6,12 @@ use App\Models\Reservasi;
 use App\Support\Denah;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Bukti Reservasi (bukan faktur/invoice pembayaran — lihat Admin\FakturController untuk itu):
- * dokumen ringkas yang bisa diunduh pemesan sendiri dari halaman Cek Status, langsung
+ * dokumen ringkas yang bisa diunduh pemesan (wajib login) dari menu Reservasi Saya, langsung
  * tersedia begitu reservasi dibuat (tidak menunggu persetujuan admin), untuk ditunjukkan
  * sebagai bukti reservasi saat survei lapangan di lokasi BITC. Fokus pada kode reservasi
  * yang besar & jelas, bukan rincian pembayaran maupun status persetujuan.
@@ -27,17 +28,18 @@ class BuktiReservasiController extends Controller
 
     public function unduh(string $kodeReservasi): Response|RedirectResponse
     {
-        $ref = Reservasi::where('kode_reservasi', $kodeReservasi)->first();
+        // Hanya pemilik reservasi (pemesan yang login) yang dapat mengunduh buktinya.
+        $ref = Reservasi::where('kode_reservasi', $kodeReservasi)
+            ->where('id_pemesan', Auth::guard('customer')->id())
+            ->first();
 
-        if (! $ref) {
-            return redirect()->route('cek-status.form')->with('error', 'Kode reservasi tidak ditemukan.');
-        }
+        abort_if(! $ref, 404, 'Reservasi tidak ditemukan.');
 
         // Bukti hanya diterbitkan untuk reservasi yang masih Menunggu atau sudah Disetujui.
         $pesanTidakTersedia = "Bukti reservasi tidak dapat diunduh karena status reservasi {$ref->kode_reservasi} adalah "
             .$ref->status_reservasi->value.'. Bukti hanya tersedia untuk reservasi yang menunggu verifikasi atau sudah disetujui.';
         if (! $ref->buktiTersedia()) {
-            return redirect()->to(url()->previous(route('cek-status.form')))->with('error', $pesanTidakTersedia);
+            return redirect()->route('customer.reservasi-saya.show', $ref->kode_transaksi ?: $ref->kode_reservasi)->with('error', $pesanTidakTersedia);
         }
 
         // Ruangan lain pada transaksi yang sama yang sudah ditolak/dibatalkan/selesai/kedaluwarsa

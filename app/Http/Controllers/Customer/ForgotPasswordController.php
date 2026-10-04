@@ -17,7 +17,7 @@ class ForgotPasswordController extends Controller
         return view('customer.auth.forgot-password');
     }
 
-    /** Kirim email berisi tautan ubah kata sandi. Pop up "gagal" muncul kalau email tidak terdaftar. */
+    /** Kirim email berisi tautan ubah kata sandi (hanya bila email terdaftar). */
     public function sendResetLinkEmail(Request $request): RedirectResponse
     {
         $request->validate([
@@ -28,16 +28,29 @@ class ForgotPasswordController extends Controller
             $request->only('email')
         );
 
-        return $status === Password::RESET_LINK_SENT
-            ? back()->with('success', 'Tautan pengaturan ulang kata sandi telah dikirim ke email Anda.')
-            : back()->withInput()->with('error', 'Email tidak terdaftar sebagai akun pemesan.');
+        // Email terdaftar maupun tidak mendapat jawaban yang SAMA, supaya halaman ini tidak bisa
+        // dipakai menebak email mana yang terdaftar. Email hanya benar-benar dikirim bila terdaftar.
+        if ($status === Password::RESET_THROTTLED) {
+            return back()->withInput()->with('error', 'Tautan baru saja dikirim. Silakan tunggu sekitar 1 menit sebelum meminta tautan lagi.');
+        }
+
+        return back()->with('success', 'Apabila email tersebut terdaftar, tautan pengaturan ulang kata sandi telah dikirim ke email Anda. Periksa kotak masuk atau folder spam.');
     }
 
     public function showResetForm(Request $request, string $token): View
     {
+        $email = $request->query('email');
+
+        // Tautan yang sudah dipakai, kedaluwarsa (lebih dari 60 menit), atau tidak cocok
+        // dengan email langsung ditolak saat dibuka — formulir tidak ditampilkan.
+        $broker = Password::broker('pemesans');
+        $akun = is_string($email) ? $broker->getUser(['email' => $email]) : null;
+        $tautanBerlaku = $akun && $broker->tokenExists($akun, $token);
+
         return view('customer.auth.reset-password', [
-            'token' => $token,
-            'email' => $request->query('email'),
+            'token'         => $token,
+            'email'         => $email,
+            'tautanBerlaku' => $tautanBerlaku,
         ]);
     }
 

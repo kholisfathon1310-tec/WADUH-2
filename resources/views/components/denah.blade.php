@@ -108,7 +108,7 @@
         } elseif ($isRuang && $rawStatus === 'kuning') {
             $status = 'kuning';
             $statusLabel = 'Sebagian Terisi';
-            $statusSingkat = 'Sebagian';
+            $statusSingkat = 'Sebagian Terisi';
         } else {
             $status = 'kosong';
             $statusLabel = 'Tersedia';
@@ -341,6 +341,9 @@
         .d-status.kosong { color: var(--dl-green-dk);  border: 1px solid var(--dl-green);  background: var(--dl-green-bg); }
         .d-status.terisi { color: #a0392b;             border: 1px solid var(--dl-red);    background: var(--dl-red-bg); }
         .d-status.kuning { color: var(--dl-yellow-dk); border: 1px solid var(--dl-yellow); background: var(--dl-yellow-bg); }
+        /* "SEBAGIAN TERISI" lebih panjang: boleh dua baris di kotak kubikal yang sempit. */
+        .d-room .d-status.kuning { text-align: center; line-height: 1.2; max-width: 100%; }
+        .d-room.is-kroom .d-status.kuning { padding: 1px 4px; letter-spacing: 0; }
 
         /* Kompas */
         .dl-compass {

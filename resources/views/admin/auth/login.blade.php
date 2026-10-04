@@ -51,6 +51,8 @@
         .btn-login { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border-color:var(--primary); color:#fff; font-weight:700; border-radius:.8rem; padding:.72rem; transition:background .15s ease, box-shadow .15s ease, transform .15s ease; }
         .btn-login:hover { color:#fff; box-shadow:0 10px 22px -8px rgba(23,107,135,.5); transform:translateY(-1px); }
         .input-group-text { background:#f4f8fa; border-color:var(--line); color:var(--muted); border-radius:.75rem 0 0 .75rem; }
+        .input-group-text.pw-eye { border-radius:0 .75rem .75rem 0; cursor:pointer; }
+        .input-group-text.pw-eye:hover { color:var(--primary); }
         .login-foot { border-top:1px solid #eef2f5; margin-top:1.1rem; padding-top:1rem; }
         .is-salah { border-color:#d95757 !important; background:#fffafa !important; animation:goyang .3s; }
         @keyframes goyang { 25% { transform:translateX(-4px); } 75% { transform:translateX(4px); } }
@@ -146,6 +148,7 @@
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
                         <input type="password" name="admin_password" id="adminPassword" class="form-control" placeholder="Masukkan kata sandi" autocomplete="off" readonly data-lepas-readonly required>
+                        <button type="button" class="input-group-text pw-eye" data-pw-toggle-for="adminPassword" aria-label="Tampilkan atau sembunyikan kata sandi" title="Tampilkan atau sembunyikan kata sandi"><i class="bi bi-eye"></i></button>
                     </div>
                     @error('admin_password')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                 </div>
@@ -162,6 +165,8 @@
         </div>
     </div>
     <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <link href="{{ asset('vendor/waduh/popup.css') }}?v={{ filemtime(public_path('vendor/waduh/popup.css')) }}" rel="stylesheet">
+    <script src="{{ asset('vendor/waduh/popup.js') }}?v={{ filemtime(public_path('vendor/waduh/popup.js')) }}"></script>
     <script>
         // Notifikasi hasil login, ditampilkan setelah pengalihan dari proses masuk atau keluar.
         @if (session('success'))
@@ -171,6 +176,17 @@
             Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Mengerti' });
         @endif
 
+        // Ikon mata: tampilkan / sembunyikan kata sandi.
+        document.querySelectorAll('.pw-eye').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(btn.dataset.pwToggleFor);
+                const icon = btn.querySelector('i');
+                const tampil = input.type === 'password';
+                input.type = tampil ? 'text' : 'password';
+                icon.classList.toggle('bi-eye', ! tampil);
+                icon.classList.toggle('bi-eye-slash', tampil);
+            });
+        });
         // Kolom masuk dibuat readonly saat halaman dimuat agar tidak diisi otomatis oleh peramban,
         // lalu dilepas sesaat kemudian sehingga ketukan pertama langsung dapat dipakai mengetik.
         document.querySelectorAll('[data-lepas-readonly]').forEach(el => {

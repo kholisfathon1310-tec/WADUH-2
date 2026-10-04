@@ -23,6 +23,9 @@ return [
     'penandatangan_nama'      => 'INDRA NUGRAHA, S.E., MIL',
     'penandatangan_nip'       => '19831212 200604 1 006',
 
+    // Alamat Gedung BITC (lokasi ruangan yang disewakan) — dipakai Beranda bagian Tentang & Kontak.
+    'alamat_gedung'           => 'Jl. HMS Mintareja Sarjana Hukum, Baros, Kec. Cimahi Tengah, Kota Cimahi, Jawa Barat',
+
     // Nomor WhatsApp admin BITC (dipakai halaman Kontak) — GANTI dengan nomor resmi.
     'whatsapp'                => '6281234567890',
 ];

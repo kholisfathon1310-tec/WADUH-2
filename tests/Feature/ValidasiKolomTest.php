@@ -42,7 +42,7 @@ class ValidasiKolomTest extends TestCase
     {
         foreach (['08123abc4567', '0812-3456-7890', '(0812) 34567890', '++6281234567', '081234'] as $nilai) {
             $this->kirimProfilPemesan(['no_telepon' => $nilai])
-                ->assertSessionHasErrors(['no_telepon' => 'No. telepon harus berupa angka 10–15 digit.']);
+                ->assertSessionHasErrors(['no_telepon' => 'No. telepon tidak valid. Gunakan angka 10–15 digit, contoh 081234567890.']);
         }
 
         $this->kirimProfilPemesan(['no_telepon' => '+6281234567890'])->assertSessionHasNoErrors();
@@ -88,7 +88,7 @@ class ValidasiKolomTest extends TestCase
         ])->assertSessionHasErrors([
             'nama_lengkap' => 'Nama lengkap minimal 3 karakter.',
             'email'        => 'Format email tidak valid, contoh: nama@email.com.',
-            'no_telepon'   => 'No. telepon harus berupa angka 10–15 digit.',
+            'no_telepon'   => 'No. telepon tidak valid. Gunakan angka 10–15 digit, contoh 081234567890.',
             'usia'         => 'Usia minimal 17 tahun.',
             'pekerjaan'    => 'Pekerjaan wajib diisi.',
             'alamat'       => 'Alamat minimal 10 karakter.',
@@ -108,7 +108,7 @@ class ValidasiKolomTest extends TestCase
             ->assertSessionHasErrors([
                 'nama_admin'  => 'Nama hanya boleh berisi huruf.',
                 'email'       => 'Format email tidak valid, contoh: nama@email.com.',
-                'no_whatsapp' => 'No. WhatsApp harus berupa angka 10–15 digit.',
+                'no_whatsapp' => 'No. WhatsApp tidak valid. Gunakan angka 10–15 digit, contoh 081234567890.',
                 'alamat'      => 'Alamat minimal 10 karakter.',
             ]);
     }

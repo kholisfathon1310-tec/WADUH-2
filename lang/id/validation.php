@@ -153,8 +153,8 @@ return [
         'nama_admin'   => ['regex' => 'Nama hanya boleh berisi huruf.'],
         'email'        => ['email' => 'Format email tidak valid, contoh: nama@email.com.'],
         'admin_email'  => ['email' => 'Format email tidak valid, contoh: nama@email.com.'],
-        'no_telepon'   => ['regex' => 'No. telepon harus berupa angka 10–15 digit.'],
-        'no_whatsapp'  => ['regex' => 'No. WhatsApp harus berupa angka 10–15 digit.'],
+        'no_telepon'   => ['regex' => 'No. telepon tidak valid. Gunakan angka 10–15 digit, contoh 081234567890.'],
+        'no_whatsapp'  => ['regex' => 'No. WhatsApp tidak valid. Gunakan angka 10–15 digit, contoh 081234567890.'],
         'usia'         => ['integer' => 'Usia harus berupa angka.', 'min' => 'Usia minimal :min tahun.', 'max' => 'Usia maksimal :max tahun.'],
         'pekerjaan'    => ['regex' => 'Pekerjaan hanya boleh berisi huruf.'],
 

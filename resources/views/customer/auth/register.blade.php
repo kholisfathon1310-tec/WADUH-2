@@ -181,7 +181,7 @@
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label">No. Telepon</label>
-                        <input type="tel" name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" inputmode="numeric" maxlength="16" pattern="\+?[0-9]{10,15}" data-pesan-pola="No. telepon harus berupa angka 10–15 digit." autocomplete="off" required>
+                        <input type="tel" name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" inputmode="numeric" maxlength="16" pattern="\+?[0-9]{10,15}" data-pesan-pola="No. telepon tidak valid. Gunakan angka 10–15 digit, contoh 081234567890." autocomplete="off" required>
                         @error('no_telepon')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                     <div class="col-12 mb-3">
@@ -218,6 +218,8 @@
         </div>
     </div>
     <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <link href="{{ asset('vendor/waduh/popup.css') }}?v={{ filemtime(public_path('vendor/waduh/popup.css')) }}" rel="stylesheet">
+    <script src="{{ asset('vendor/waduh/popup.js') }}?v={{ filemtime(public_path('vendor/waduh/popup.js')) }}"></script>
     <script>
         @if (session('error'))
             Swal.fire({ icon: 'error', title: 'Gagal', text: @json(session('error')), confirmButtonColor: '#176b87', confirmButtonText: 'Mengerti' });
@@ -275,11 +277,6 @@
             note.querySelector('span').textContent = pesan;
             wadahKolom(el).insertAdjacentElement('afterend', note);
         };
-        document.addEventListener('input', e => {
-            if (e.target.tagName !== 'INPUT' || e.target.type !== 'tel') return;
-            const plus = e.target.value.startsWith('+') ? '+' : '';
-            e.target.value = plus + e.target.value.replace(/[^0-9]/g, '');
-        });
 
         document.querySelectorAll('form').forEach(f => {
             f.setAttribute('novalidate', '');

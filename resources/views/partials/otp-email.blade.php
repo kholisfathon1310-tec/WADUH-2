@@ -128,7 +128,7 @@
                     : sisaJeda > 0 ? 'Kirim ulang (' + sisaJeda + ')'
                     : (emailTerkirim === nilai() && emailTerkirim ? 'Kirim ulang' : 'Kirim OTP');
                 panel.hidden = !perlu || terverifikasi || !kodeAktif;
-                tombolVerif.disabled = sibuk || kode.value.length !== 6;
+                tombolVerif.disabled = sibuk;
                 box.hidden = !perlu && status.hidden;
 
                 const w = status.querySelector('[data-otp-waktu]');
@@ -187,6 +187,13 @@
             });
 
             tombolVerif.addEventListener('click', async () => {
+                // Periksa isian dulu: kosong / kurang dari 6 angka tidak dikirim ke server.
+                if (kode.value.length !== 6) {
+                    kode.classList.add('salah');
+                    tulis(kode.value === '' ? 'Kode OTP wajib diisi.' : 'Kode OTP harus 6 digit angka.', 'galat', 'bi-exclamation-circle-fill', berlakuSampai > detikIni());
+                    kode.focus();
+                    return;
+                }
                 sibuk = true; gambar();
                 try {
                     const { res, data } = await kirim(box.dataset.urlVerifikasi, { email: email.value.trim(), kode: kode.value });

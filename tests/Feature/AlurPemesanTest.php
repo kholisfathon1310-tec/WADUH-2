@@ -165,7 +165,18 @@ class AlurPemesanTest extends TestCase
             'lock_status'      => 'pending_approval',
         ]);
 
-        $this->post('/reservasi/RSV-TESTCANCEL/batalkan')->assertRedirect();
+        // Tanpa login: diarahkan ke halaman masuk, status tidak berubah.
+        \Illuminate\Support\Facades\Auth::guard('customer')->logout();
+        $this->post('/reservasi/RSV-TESTCANCEL/batalkan')->assertRedirect(route('customer.login'));
+        $this->assertSame('Menunggu', $reservasi->fresh()->status_reservasi->value);
+
+        // Pemesan lain tidak dapat membatalkan reservasi yang bukan miliknya.
+        $lain = Pemesan::factory()->create();
+        $this->actingAs($lain, 'customer')->post('/reservasi/RSV-TESTCANCEL/batalkan')->assertNotFound();
+        $this->assertSame('Menunggu', $reservasi->fresh()->status_reservasi->value);
+
+        $this->actingAs($pemesan, 'customer')->post('/reservasi/RSV-TESTCANCEL/batalkan')
+            ->assertRedirect(route('customer.reservasi-saya.show', 'TRX-TESTCANCEL'));
 
         $reservasi->refresh();
         $this->assertSame('Dibatalkan', $reservasi->status_reservasi->value);

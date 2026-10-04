@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\SatuanSewa;
+use App\Enums\StatusReservasi;
 use App\Enums\StatusVerifikasi;
 use App\Models\Reservasi;
 
@@ -74,8 +75,12 @@ class ReservasiApprovalService
             'jam_selesai'     => $reservasi->jam_selesai,
         ];
 
-        // Abaikan baris ini sendiri (statusnya Menunggu = aktif, akan cocok dengan dirinya).
-        $bentrok = $this->availability->hasReservationConflict($fasilitas->id_fasilitas, $slot, $reservasi->id_reservasi);
+        // Pembanding hanya reservasi yang SUDAH DISETUJUI. Dua pengajuan Menunggu untuk jadwal
+        // yang sama tidak boleh saling mengunci: yang pertama tetap bisa disetujui, dan begitu
+        // disetujui, pengajuan lainnya otomatis gagal pada butir ini.
+        $bentrok = $this->availability->hasReservationConflict(
+            $fasilitas->id_fasilitas, $slot, $reservasi->id_reservasi, [StatusReservasi::Disetujui->value],
+        );
 
         $lingkup = match ($satuan) {
             SatuanSewa::Jam => 'jam',
@@ -87,8 +92,8 @@ class ReservasiApprovalService
             'label'  => 'Tidak bentrok jadwal',
             'passed' => ! $bentrok,
             'note'   => $bentrok
-                ? "Ada reservasi lain yang bentrok pada {$lingkup} yang sama."
-                : "Tidak ada reservasi lain pada {$lingkup} yang sama.",
+                ? "Sudah ada reservasi lain yang disetujui pada {$lingkup} yang sama."
+                : "Tidak ada reservasi lain yang disetujui pada {$lingkup} yang sama.",
         ];
     }
 

@@ -45,8 +45,8 @@
 <div class="xcard lp-card" data-reveal>
     <div class="lp-head">
         <div>
-            <h2>Laporan Data Reservasi</h2>
-            <div class="sub">Periode {{ $judulBulan }} · reservasi berstatus Disetujui dan Selesai</div>
+            <h2>Laporan Data Reservasi Bulan {{ $judulBulan }}</h2>
+            <div class="sub">Reservasi berstatus Disetujui dan Selesai</div>
         </div>
         <div class="lp-ringkas">
             <div class="item"><small>Jumlah Data</small><b>{{ $rows->count() }}</b></div>

@@ -376,7 +376,23 @@
         (function () {
             // ── Tanggal ketersediaan: sekali pilih langsung memuat ulang kondisi ──
             const tgl = document.getElementById('fdTanggal');
-            tgl?.addEventListener('change', () => { if (tgl.value) document.getElementById('fdTanggalForm').submit(); });
+            // Tanggal lampau / Sabtu–Minggu ditolak dengan pesan dan tidak memuat ulang halaman.
+            if (tgl) {
+                const awal = tgl.value;
+                const akhirPekan = (v) => { const [y, m, d] = v.split('-').map(Number); const h = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); return h === 0 || h === 6; };
+                tgl.addEventListener('change', () => {
+                    if (!tgl.value) return;
+                    const pesan = tgl.value < tgl.min
+                        ? 'Tanggal yang sudah lewat tidak dapat dipilih. Pilih hari ini atau tanggal sesudahnya.'
+                        : (akhirPekan(tgl.value) ? 'Gedung tidak beroperasi pada hari Sabtu dan Minggu. Silakan pilih hari kerja (Senin–Jumat).' : '');
+                    if (pesan) {
+                        tgl.value = awal;
+                        Swal.fire({ icon: 'warning', title: 'Tanggal Tidak Dapat Dipilih', text: pesan, confirmButtonColor: '#176b87', confirmButtonText: 'Mengerti' });
+                        return;
+                    }
+                    document.getElementById('fdTanggalForm').submit();
+                });
+            }
 
             // ── Galeri per ruangan: foto utama berasio tetap, thumbnail & panah mengganti sumbernya ──
             document.querySelectorAll('[data-fd-galeri]').forEach((galeri) => {

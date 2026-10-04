@@ -15,7 +15,6 @@ use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\DashboardController as CustomerDashboardController;
 use App\Http\Controllers\Customer\ForgotPasswordController as CustomerForgotPasswordController;
 use App\Http\Controllers\Customer\ReservasiSayaController;
-use App\Http\Controllers\FasilitasController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ReservasiController;
 use App\Http\Controllers\StatusRealtimeController;
@@ -35,16 +34,15 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 
 /*
-| Alur Pemesan — Revisi: seluruh alur booking kini wajib login (guard `customer`).
-| Pengecualian: `batalkan` tetap publik karena juga dipakai halaman "Cek Status" (guest).
+| Alur Pemesan — seluruh alur booking (termasuk pembatalan) wajib login (guard `customer`).
 | Catatan urutan: route dengan segmen literal (fasilitas, keranjang, checkout) didaftarkan
 | sebelum route dinamis {kategori} agar tidak "tertelan" oleh parameter kategori.
 */
 Route::prefix('reservasi')->name('reservasi.')->group(function () {
-    Route::post('/{kode_reservasi}/batalkan', [ReservasiController::class, 'batalkan'])->name('batalkan');
-
     Route::middleware('auth:customer')->group(function () {
         Route::get('/', [ReservasiController::class, 'index'])->name('index');
+        // Hanya pemilik reservasi yang dapat membatalkan (diperiksa di controller).
+        Route::post('/{kode_reservasi}/batalkan', [ReservasiController::class, 'batalkan'])->name('batalkan');
 
         Route::get('/checkout', [ReservasiController::class, 'checkoutForm'])->name('checkout.form');
         Route::post('/checkout', [ReservasiController::class, 'checkout'])->name('checkout');
@@ -65,31 +63,17 @@ Route::prefix('reservasi')->name('reservasi.')->group(function () {
     });
 });
 
-/*
-| Jelajah Fasilitas (publik, tanpa auth) — TERPISAH dari alur reservasi di atas.
-| Murni informasi (denah + detail), tidak ada jalan ke keranjang/checkout.
-*/
-Route::prefix('fasilitas')->name('fasilitas.')->group(function () {
-    Route::get('/', [FasilitasController::class, 'index'])->name('index');
-    Route::get('/detail/{fasilitas}', [FasilitasController::class, 'detail'])->name('detail');
-    Route::get('/{kategori}/lantai', [FasilitasController::class, 'lantai'])->name('lantai');
-    Route::get('/{kategori}/denah/{lantai}', [FasilitasController::class, 'denah'])->name('denah');
-});
-
 // Polling ringan untuk halaman yang menampilkan status reservasi (lihat partials/pantau-status).
 Route::get('/status-reservasi/versi', [StatusRealtimeController::class, 'versi'])
     ->middleware('throttle:60,1,status-versi')
     ->name('status-reservasi.versi');
 
+// Cek Status publik hanya untuk MELIHAT status. Pembatalan dan unduh bukti reservasi
+// dilakukan pemesan yang login lewat menu Reservasi Saya.
 Route::get('/cek-status', [CekStatusController::class, 'form'])->name('cek-status.form');
 Route::post('/cek-status', [CekStatusController::class, 'cari'])->name('cek-status.cari');
-// GET dengan kode di URL — stabil (bisa di-bookmark/refresh) supaya setelah aksi seperti
-// "Batalkan" bisa redirect balik ke sini, bukan keluar ke form kosong.
+// GET dengan kode di URL — stabil (bisa di-bookmark/refresh).
 Route::get('/cek-status/{kode}', [CekStatusController::class, 'hasil'])->name('cek-status.hasil');
-Route::get('/cek-status/{kodeReservasi}/bukti-reservasi', [BuktiReservasiController::class, 'unduh'])->name('cek-status.bukti-reservasi');
-
-// Preview denah gedung BITC (visualisasi 5 lantai). Tidak melakukan reservasi.
-Route::view('/denah-preview', 'denah-preview')->name('denah-preview');
 
 /*
 | Alur Pemesan berlogin — Revisi. Guard `customer` (tabel pemesan, model App\Models\Pemesan).
@@ -119,6 +103,7 @@ Route::prefix('customer')->name('customer.')->group(function () {
 
         Route::get('/reservasi-saya', [ReservasiSayaController::class, 'index'])->name('reservasi-saya.index');
         Route::get('/reservasi-saya/{kode}', [ReservasiSayaController::class, 'show'])->name('reservasi-saya.show');
+        Route::get('/reservasi-saya/{kodeReservasi}/bukti-reservasi', [BuktiReservasiController::class, 'unduh'])->name('reservasi-saya.bukti');
 
         Route::get('/profil', [AkunController::class, 'profil'])->name('akun.profil');
         Route::put('/profil', [AkunController::class, 'updateProfil'])->name('akun.profil.update');
@@ -162,6 +147,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/reservasi/{kodeReservasi}/setujui', [ReservasiAdminController::class, 'setujui'])->name('reservasi.setujui');
         Route::post('/reservasi/{kodeReservasi}/tolak', [ReservasiAdminController::class, 'tolak'])->name('reservasi.tolak');
         Route::delete('/reservasi/{kodeReservasi}', [ReservasiAdminController::class, 'hapus'])->name('reservasi.hapus');
+        Route::get('/dokumen/{dokumen}', [ReservasiAdminController::class, 'lihatDokumen'])->name('reservasi.dokumen.lihat');
         Route::post('/dokumen/{dokumen}/verifikasi', [ReservasiAdminController::class, 'verifikasiDokumen'])->name('reservasi.dokumen.verifikasi');
 
         // Faktur — SATU faktur per kode reservasi/transaksi (multi-ruangan digabung 1 PDF).

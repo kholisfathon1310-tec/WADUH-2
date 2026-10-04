@@ -38,7 +38,7 @@ class BuktiReservasiTest extends TestCase
             'total_biaya' => 100000, 'status_reservasi' => 'Menunggu', 'lock_status' => 'pending_approval',
         ]);
 
-        $res = $this->get(route('cek-status.bukti-reservasi', $r->kode_reservasi));
+        $res = $this->actingAs($p, 'customer')->get(route('customer.reservasi-saya.bukti', $r->kode_reservasi));
         $res->assertOk();
         $this->assertStringStartsWith('%PDF', $res->getContent());
     }
@@ -71,8 +71,8 @@ class BuktiReservasiTest extends TestCase
 
         $r = $this->buatReservasi($t, $p, 'RSV-BATAL1', 'TRX-BATAL1', 'Dibatalkan');
 
-        $res = $this->get(route('cek-status.bukti-reservasi', $r->kode_reservasi));
-        $res->assertRedirect(route('cek-status.form'));
+        $res = $this->actingAs($p, 'customer')->get(route('customer.reservasi-saya.bukti', $r->kode_reservasi));
+        $res->assertRedirect(route('customer.reservasi-saya.show', 'TRX-BATAL1'));
         $res->assertSessionHas('error');
     }
 
@@ -97,7 +97,7 @@ class BuktiReservasiTest extends TestCase
         $rAktif = $this->buatReservasi($tAktif, $p, 'RSV-MULTI1', 'TRX-MULTI1', 'Menunggu');
         $this->buatReservasi($tBatal, $p, 'RSV-MULTI2', 'TRX-MULTI1', 'Dibatalkan');
 
-        $res = $this->get(route('cek-status.bukti-reservasi', $rAktif->kode_reservasi));
+        $res = $this->actingAs($p, 'customer')->get(route('customer.reservasi-saya.bukti', $rAktif->kode_reservasi));
         $res->assertOk();
         $this->assertStringStartsWith('%PDF', $res->getContent());
     }
@@ -118,7 +118,7 @@ class BuktiReservasiTest extends TestCase
             $r = $this->buatReservasi($t, $p, $kode, 'TRX-'.$kode, $status);
 
             $this->assertSame($boleh, $r->fresh()->buktiTersedia(), $status);
-            $res = $this->get(route('cek-status.bukti-reservasi', $r->kode_reservasi));
+            $res = $this->actingAs($p, 'customer')->get(route('customer.reservasi-saya.bukti', $r->kode_reservasi));
             if ($boleh) {
                 $res->assertOk();
                 $this->assertStringStartsWith('%PDF', $res->getContent());
@@ -126,5 +126,23 @@ class BuktiReservasiTest extends TestCase
                 $res->assertRedirect()->assertSessionHas('error');
             }
         }
+    }
+
+    /** Unduh bukti wajib login, dan hanya pemilik reservasi yang dapat mengunduhnya. */
+    public function test_unduh_bukti_wajib_login_dan_hanya_pemilik(): void
+    {
+        $jenis = JenisSewa::where('satuan', 'Jam')->firstOrFail();
+        $f = Fasilitas::factory()->create(['status_aktif' => 'Aktif']);
+        $t = TarifSewa::factory()->create([
+            'id_fasilitas' => $f->id_fasilitas, 'id_jenis_sewa' => $jenis->id_jenis_sewa,
+            'status_aktif' => 'Aktif', 'harga' => 50000,
+        ]);
+        $pemilik = Pemesan::factory()->create();
+        $lain = Pemesan::factory()->create();
+        $r = $this->buatReservasi($t, $pemilik, 'RSV-MILIK1', 'TRX-MILIK1', 'Menunggu');
+
+        $this->get(route('customer.reservasi-saya.bukti', $r->kode_reservasi))->assertRedirect(route('customer.login'));
+        $this->actingAs($lain, 'customer')->get(route('customer.reservasi-saya.bukti', $r->kode_reservasi))->assertNotFound();
+        $this->assertSame(404, $this->get('/cek-status/'.$r->kode_reservasi.'/bukti-reservasi')->getStatusCode());
     }
 }

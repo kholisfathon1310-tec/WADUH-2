@@ -364,8 +364,13 @@
 
                 {{-- Aksi bawah --}}
                 <div class="rs-actions">
+                    @if ($status === 'Selesai')
+                        <a href="{{ $r->tarifSewa->fasilitas->status_aktif === \App\Enums\StatusAktif::Aktif ? route('reservasi.fasilitas.show', $r->tarifSewa->fasilitas->id_fasilitas) : route('reservasi.index') }}" class="btn btn-brand">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Reservasi Kembali
+                        </a>
+                    @endif
                     @if ($r->buktiTersedia())
-                        <a href="{{ route('cek-status.bukti-reservasi', $r->kode_reservasi) }}" class="btn btn-brand">
+                        <a href="{{ route('customer.reservasi-saya.bukti', $r->kode_reservasi) }}" class="btn btn-brand">
                             <i class="bi bi-file-earmark-arrow-down me-1"></i>Unduh Bukti Reservasi
                         </a>
                     @endif

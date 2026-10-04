@@ -241,7 +241,8 @@ class PerbaruiStatusReservasiOtomatisTest extends TestCase
             // Middleware dilewati (jeda belum habis), jadi controller sendiri yang harus memeriksa batas.
             \Illuminate\Support\Facades\Cache::put('reservasi:status-otomatis:terakhir', 1, 60);
 
-            $this->post(route('reservasi.batalkan', $reservasi->kode_reservasi))->assertRedirect();
+            $this->actingAs($reservasi->pemesan, 'customer')
+                ->post(route('reservasi.batalkan', $reservasi->kode_reservasi))->assertRedirect();
 
             $this->assertSame('Kadaluwarsa', $reservasi->fresh()->status_reservasi->value);
         } finally {

@@ -108,7 +108,7 @@
                             <div class="col-12">
                                 <div class="fl-field @error('no_telepon') is-invalid @enderror">
                                     <input type="tel" name="no_telepon" id="flNoTelepon" class="fl-input" inputmode="numeric" maxlength="16"
-                                           pattern="\+?[0-9]{10,15}" data-pesan-pola="No. telepon harus berupa angka 10–15 digit." placeholder=" " autocomplete="tel"
+                                           pattern="\+?[0-9]{10,15}" data-pesan-pola="No. telepon tidak valid. Gunakan angka 10–15 digit, contoh 081234567890." placeholder=" " autocomplete="tel"
                                            value="{{ old('no_telepon', $pemesan->no_telepon) }}" required>
                                     <label for="flNoTelepon"><span class="fl-label-txt">No. Telepon</span></label>
                                 </div>

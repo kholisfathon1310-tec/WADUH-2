@@ -1,5 +1,8 @@
 <div class="d-flex align-items-center justify-content-between mb-3">
-    <p class="text-muted small mb-0"><i class="bi bi-collection me-1"></i>{{ $grup->count() }} reservasi · {{ $grup->flatten()->count() }} ruangan</p>
+    <p class="text-muted small mb-0"><i class="bi bi-collection me-1"></i>{{ $ringkasan['reservasi'] }} reservasi · {{ $ringkasan['ruangan'] }} ruangan</p>
+    @if ($grup->total() > 0)
+        <p class="text-muted small mb-0">Menampilkan {{ $grup->firstItem() }}–{{ $grup->lastItem() }} dari {{ $grup->total() }} reservasi</p>
+    @endif
 </div>
 
 @forelse ($grup as $kodeTransaksi => $baris)
@@ -67,3 +70,18 @@
         <div class="text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Tidak ada reservasi yang sesuai dengan filter.</div>
     </div>
 @endforelse
+
+@if ($grup->lastPage() > 1)
+    @php
+        $hal = $grup->currentPage(); $akhir = $grup->lastPage();
+        $nomor = collect([1, $akhir, $hal - 1, $hal, $hal + 1])->filter(fn ($n) => $n >= 1 && $n <= $akhir)->unique()->sort()->values();
+    @endphp
+    <nav class="rv-pagination" aria-label="Halaman Data Reservasi" data-pagination>
+        <a href="{{ $grup->previousPageUrl() ?? '#' }}" class="rv-page {{ $grup->onFirstPage() ? 'disabled' : '' }}" aria-label="Halaman sebelumnya" @if ($grup->onFirstPage()) aria-disabled="true" tabindex="-1" @endif><i class="bi bi-chevron-left"></i></a>
+        @foreach ($nomor as $i => $n)
+            @if ($i > 0 && $n - $nomor[$i - 1] > 1)<span class="rv-page-gap">…</span>@endif
+            <a href="{{ $grup->url($n) }}" class="rv-page {{ $n === $hal ? 'active' : '' }}" @if ($n === $hal) aria-current="page" @endif>{{ $n }}</a>
+        @endforeach
+        <a href="{{ $grup->nextPageUrl() ?? '#' }}" class="rv-page {{ $grup->hasMorePages() ? '' : 'disabled' }}" aria-label="Halaman berikutnya" @unless ($grup->hasMorePages()) aria-disabled="true" tabindex="-1" @endunless><i class="bi bi-chevron-right"></i></a>
+    </nav>
+@endif

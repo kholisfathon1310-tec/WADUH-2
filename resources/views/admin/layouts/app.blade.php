@@ -511,6 +511,8 @@
 </div>
 <script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+<link href="{{ asset('vendor/waduh/popup.css') }}?v={{ filemtime(public_path('vendor/waduh/popup.css')) }}" rel="stylesheet">
+<script src="{{ asset('vendor/waduh/popup.js') }}?v={{ filemtime(public_path('vendor/waduh/popup.js')) }}"></script>
 <script>
     // Kalau halaman ini dipulihkan dari bfcache (mis. admin pencet "Kembali" setelah
     // setujui/tolak pemesanan), muat ulang dari server. Header Cache-Control: no-store
@@ -622,7 +624,7 @@
         }
         if (v.patternMismatch && el.dataset.pesanPola) return el.dataset.pesanPola;
         if (el.type === 'email' && (v.typeMismatch || v.patternMismatch)) return 'Format email tidak valid, contoh: nama@email.com.';
-        if (v.patternMismatch && el.type === 'tel') return nama + ' harus berupa angka 10–15 digit.';
+        if (v.patternMismatch && el.type === 'tel') return nama + ' tidak valid. Gunakan angka 10–15 digit, contoh 081234567890.';
         if (v.rangeUnderflow) return el.dataset.pesanMin || (nama + ' minimal ' + el.min + '.');
         if (v.rangeOverflow) return el.dataset.pesanMaks || (nama + ' maksimal ' + el.max + '.');
         if (v.tooShort) return nama + ' minimal ' + el.minLength + ' karakter.';
@@ -670,6 +672,10 @@
     document.querySelectorAll('form').forEach(f => {
         f.setAttribute('novalidate', '');
         f.addEventListener('submit', e => {
+            // Spasi di awal/akhir isian teks diabaikan (sama seperti di server), supaya isian yang
+            // hanya berisi spasi dianggap kosong dan kode/nama yang tersalin dengan spasi tetap valid.
+            f.querySelectorAll('input[type=text], input[type=search], input[type=email], input[type=tel], input:not([type]), textarea')
+                .forEach(el => { if (! el.readOnly && el.value !== el.value.trim()) el.value = el.value.trim(); });
             const salah = [...f.querySelectorAll('input, select, textarea')].filter(el => ! el.disabled && ! el.checkValidity());
             if (! salah.length) return;
             e.preventDefault();
@@ -683,13 +689,6 @@
         f.addEventListener('change', e => { if (! e.target.checkValidity || e.target.checkValidity()) bersihkan(e.target); }, true);
     });
 
-    // Kolom nomor telepon/WhatsApp (input[type=tel]) — hanya menerima angka dan tanda "+" di depan.
-    document.addEventListener('input', (e) => {
-        if (e.target.tagName !== 'INPUT' || e.target.type !== 'tel') return;
-        const plus = e.target.value.startsWith('+') ? '+' : '';
-        const angka = e.target.value.replace(/[^0-9]/g, '');
-        e.target.value = plus + angka;
-    });
 
     // Form ber-atribut data-nav-replace redirect balik ke URL halaman yang SAMA (mis.
     // setujui/tolak di halaman detail) — submit form NATIVE akan menambah entri histori
@@ -697,7 +696,9 @@
     // keluar. Dikirim lewat fetch lalu location.replace() supaya entri histori DIGANTI, bukan
     // ditambah. Form lain (mis. cetak faktur — respons berupa file PDF) tetap submit native.
     const kirimTanpaDuplikatHistori = f => {
-        fetch(f.action, { method: f.method || 'POST', body: new FormData(f), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        // Header X-Nav-Replace ikut terkirim pada GET hasil redirect, sehingga server
+        // mempertahankan pesan flash untuk halaman yang dimuat lewat location.replace().
+        fetch(f.action, { method: f.method || 'POST', body: new FormData(f), headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-Nav-Replace': '1' } })
             .then(res => window.location.replace(res.url))
             .catch(() => f.submit()); // fallback: submit native kalau fetch gagal (mis. offline)
     };

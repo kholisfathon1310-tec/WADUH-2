@@ -78,9 +78,15 @@ class SkenarioLengkapTest extends TestCase
         $this->assertSame(['Menunggu'], $rows->pluck('status_reservasi')->map->value->unique()->values()->all());
         $this->assertEmpty(session('reservasi_cart', []), 'keranjang kosong setelah checkout');
 
-        // 4. Cek status: tracker "Diverifikasi", tombol Batalkan tersedia.
+        // 4. Cek status hanya untuk melihat: tracker "Diverifikasi" tampil, tanpa tombol
+        //    Batalkan / Unduh Bukti (aksi itu ada di Reservasi Saya).
         $this->followingRedirects()->post('/cek-status', ['kode' => $kode])->assertOk()
-            ->assertSee('Diverifikasi')->assertSee('Batalkan');
+            ->assertSee('Diverifikasi')
+            ->assertDontSee(route('reservasi.batalkan', $kode.'A'), false)
+            ->assertDontSee('Unduh Bukti Reservasi');
+        $this->get(route('customer.reservasi-saya.show', $kode))->assertOk()
+            ->assertSee(route('reservasi.batalkan', $kode.'A'), false)
+            ->assertSee(route('customer.reservasi-saya.bukti', $kode.'A'), false);
 
         // ===== ROLE ADMIN =====
         // 5. Login (kredensial salah dulu, lalu benar).

@@ -239,7 +239,7 @@
     <p class="eyebrow-line">Arti Status</p>
     <div class="row g-3" data-reveal>
         @foreach ([
-            ['bi-hourglass-split', 'dot-menunggu', 'Menunggu Verifikasi', 'Reservasi sedang diperiksa oleh admin. Pembatalan masih dapat dilakukan pada tahap ini.'],
+            ['bi-hourglass-split', 'dot-menunggu', 'Menunggu Verifikasi', 'Reservasi sedang diperiksa oleh admin. Pemesan masih dapat membatalkannya melalui menu Reservasi Saya.'],
             ['bi-check-circle',    'dot-setujui',  'Disetujui',    'Reservasi disetujui. Fasilitas dapat digunakan sesuai jadwal yang diajukan.'],
             ['bi-x-circle',        'dot-tolak',    'Ditolak',      'Reservasi tidak dapat diproses. Alasan penolakan tercantum di halaman hasil.'],
             ['bi-slash-circle',    'dot-batal',    'Dibatalkan',   'Reservasi dibatalkan oleh pemesan sebelum diproses oleh admin.'],
@@ -268,7 +268,7 @@
             @foreach ([
                 ['Masukkan kode reservasi', 'Kode ditampilkan setelah reservasi dikirim dan tersimpan pada menu Reservasi Saya.'],
                 ['Periksa status verifikasi', 'Pantau tahapan Diajukan → Diverifikasi → Disetujui beserta rincian jadwal dan biaya.'],
-                ['Batalkan bila diperlukan', 'Selama status masih Menunggu Verifikasi dan tanggal pemakaian belum terlewati, reservasi dapat dibatalkan dari halaman hasil.'],
+                ['Kelola lewat Reservasi Saya', 'Unduh bukti reservasi atau batalkan reservasi (selama masih Menunggu Verifikasi) dengan masuk sebagai Pemesan, lalu buka menu Reservasi Saya.'],
             ] as $i => [$judul, $desk])
                 <div class="col-12 col-md-4">
                     <div class="step-row">

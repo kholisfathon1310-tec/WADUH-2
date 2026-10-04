@@ -3,7 +3,8 @@
 @section('title', 'Detail Fasilitas')
 
 @section('actions')
-    <a href="{{ route('admin.monitoring', ['lantai' => $fasilitas->id_lantai]) }}" class="btn btn-brand-outline btn-sm d-none d-md-inline-flex align-items-center"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+    {{-- Kembali ke denah lantai yang sama DENGAN tanggal yang sedang dilihat. --}}
+    <a href="{{ route('admin.monitoring', ['lantai' => $fasilitas->id_lantai, 'tanggal_mulai' => $slot['tanggal_mulai']]) }}" class="btn btn-brand-outline btn-sm d-none d-md-inline-flex align-items-center"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
 @endsection
 
 @section('content')

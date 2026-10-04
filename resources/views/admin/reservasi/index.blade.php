@@ -3,6 +3,14 @@
 @section('title', 'Data Reservasi')
 
 @section('content')
+    <style>
+        .rv-pagination { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:.35rem; margin:.5rem 0 1.5rem; }
+        .rv-page { min-width:2.35rem; height:2.35rem; padding:0 .7rem; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:.65rem; background:#fff; color:var(--ink); font-weight:700; font-size:.85rem; text-decoration:none; transition:background .15s ease, border-color .15s ease; }
+        .rv-page:hover { border-color:var(--primary); color:var(--primary); }
+        .rv-page.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+        .rv-page.disabled { opacity:.45; pointer-events:none; }
+        .rv-page-gap { color:var(--muted); padding:0 .2rem; }
+    </style>
     @include('admin.partials.filter-ui')
     <style>
         /* Susunan kolom filter halaman ini. Kolom Kategori dibuat cukup lebar supaya nama
@@ -121,6 +129,26 @@
             pencarian?.addEventListener('input', () => {
                 clearTimeout(timer);
                 timer = setTimeout(terapkan, 350);
+            });
+
+            // Pindah halaman daftar tanpa memuat ulang; filter aktif ikut terbawa di URL tautan.
+            hasil.addEventListener('click', (e) => {
+                const a = e.target.closest('[data-pagination] a');
+                if (!a) return;
+                e.preventDefault();
+                if (a.classList.contains('disabled') || a.classList.contains('active')) return;
+                controller?.abort();
+                controller = new AbortController();
+                hasil.classList.add('opacity-50');
+                fetch(a.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: controller.signal })
+                    .then((r) => r.text())
+                    .then((html) => {
+                        hasil.innerHTML = html;
+                        hasil.classList.remove('opacity-50');
+                        window.history.replaceState(null, '', a.href);
+                        hasil.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    })
+                    .catch((err) => { if (err.name !== 'AbortError') window.location.href = a.href; });
             });
 
             // Submit manual (tombol/​Enter) tetap dipertahankan, tapi tanpa reload halaman.

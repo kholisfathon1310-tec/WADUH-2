@@ -91,6 +91,8 @@
             body.sidebar-collapsed .side-link .caret,
             body.sidebar-collapsed .side-link .badge { display:none; }
             body.sidebar-collapsed .side-sub { display:none !important; }
+            body.sidebar-collapsed .side-caret { display:none; }
+            body.sidebar-collapsed .side-item-split > .side-link { padding-right:.65rem; }
         }
 
         /* ─── BRAND ─────────────────────────────────────────────── */
@@ -135,6 +137,15 @@
         .side-link.active .mic { color:var(--primary); }
         .side-link .caret { margin-left:auto; font-size:.7rem; opacity:.5; transition:transform .2s; }
         .side-link[aria-expanded="true"] .caret { transform:rotate(90deg); }
+        /* Menu dengan submenu: tautan + tombol panah terpisah di sisi kanan. */
+        .side-item-split { position:relative; }
+        .side-item-split > .side-link { padding-right:2.6rem; }
+        .side-caret { position:absolute; top:.3rem; right:.3rem; width:2rem; height:2rem; display:grid; place-items:center;
+            border:0; border-radius:.6rem; background:transparent; color:#94a3b8; cursor:pointer; transition:background .15s ease, color .15s ease; }
+        .side-caret:hover { background:rgba(23,107,135,.12); color:var(--primary-dark); }
+        .side-caret:focus-visible { outline:2px solid var(--primary); outline-offset:1px; }
+        .side-caret i { font-size:.72rem; transition:transform .2s; }
+        .side-caret[aria-expanded="true"] i { transform:rotate(90deg); }
         .side-link .badge { margin-left:auto; font-size:.65rem !important; font-weight:800 !important;
             background:var(--primary) !important; color:#fff !important; border-radius:9999px !important; padding:.15rem .5rem !important; }
         .side-link.active .badge { background:var(--primary-dark) !important; }
@@ -458,12 +469,17 @@
                     <span class="mic"><i class="bi bi-grid-1x2"></i></span> <span class="lbl">Dashboard</span>
                 </a>
             </li>
-            <li>
-                <a class="side-link {{ $fasilitasAktifDiSidebar ? 'active' : '' }}" data-bs-toggle="collapse" href="#subFasilitas"
-                   aria-expanded="{{ $fasilitasAktifDiSidebar ? 'true' : 'false' }}" title="Fasilitas">
+            <li class="side-item-split">
+                {{-- Klik tulisan "Fasilitas" → halaman Fasilitas; klik panah → buka/tutup submenu. --}}
+                <a class="side-link {{ $fasilitasAktifDiSidebar ? 'active' : '' }}" href="{{ route('reservasi.index') }}" title="Fasilitas">
                     <span class="mic"><i class="bi bi-building"></i></span>
-                    <span class="lbl">Fasilitas</span> <i class="bi bi-chevron-right caret"></i>
+                    <span class="lbl">Fasilitas</span>
                 </a>
+                <button type="button" class="side-caret" data-bs-toggle="collapse" data-bs-target="#subFasilitas"
+                        aria-controls="subFasilitas" aria-expanded="{{ $fasilitasAktifDiSidebar ? 'true' : 'false' }}"
+                        aria-label="Tampilkan atau sembunyikan submenu Fasilitas" title="Tampilkan submenu">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
                 <ul class="side-sub collapse {{ $fasilitasAktifDiSidebar ? 'show' : '' }}" id="subFasilitas">
                     @foreach ($sideFasilitas as $kat => $lantaiList)
                         <li>
@@ -603,6 +619,8 @@
 </div>
 <script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+<link href="{{ asset('vendor/waduh/popup.css') }}?v={{ filemtime(public_path('vendor/waduh/popup.css')) }}" rel="stylesheet">
+<script src="{{ asset('vendor/waduh/popup.js') }}?v={{ filemtime(public_path('vendor/waduh/popup.js')) }}"></script>
 <script>
     (() => {
         const sidebar = document.getElementById('sidebar');
@@ -723,7 +741,7 @@
         }
         if (v.patternMismatch && el.dataset.pesanPola) return el.dataset.pesanPola;
         if (el.type === 'email' && (v.typeMismatch || v.patternMismatch)) return 'Format email tidak valid, contoh: nama@email.com.';
-        if (v.patternMismatch && el.type === 'tel') return nama + ' harus berupa angka 10–15 digit.';
+        if (v.patternMismatch && el.type === 'tel') return nama + ' tidak valid. Gunakan angka 10–15 digit, contoh 081234567890.';
         if (v.rangeUnderflow) return el.dataset.pesanMin || (nama + ' minimal ' + el.min + '.');
         if (v.rangeOverflow) return el.dataset.pesanMaks || (nama + ' maksimal ' + el.max + '.');
         if (v.tooShort) return nama + ' minimal ' + el.minLength + ' karakter.';
@@ -771,6 +789,10 @@
     document.querySelectorAll('form').forEach(f => {
         f.setAttribute('novalidate', '');
         f.addEventListener('submit', e => {
+            // Spasi di awal/akhir isian teks diabaikan (sama seperti di server), supaya isian yang
+            // hanya berisi spasi dianggap kosong dan kode/nama yang tersalin dengan spasi tetap valid.
+            f.querySelectorAll('input[type=text], input[type=search], input[type=email], input[type=tel], input:not([type]), textarea')
+                .forEach(el => { if (! el.readOnly && el.value !== el.value.trim()) el.value = el.value.trim(); });
             const salah = [...f.querySelectorAll('input, select, textarea')].filter(el => ! el.disabled && ! el.checkValidity());
             if (! salah.length) return;
             e.preventDefault();
@@ -784,13 +806,6 @@
         f.addEventListener('change', e => { if (! e.target.checkValidity || e.target.checkValidity()) bersihkan(e.target); }, true);
     });
 
-    // Kolom nomor telepon/WhatsApp (input[type=tel]) — hanya menerima angka dan tanda "+" di depan.
-    document.addEventListener('input', (e) => {
-        if (e.target.tagName !== 'INPUT' || e.target.type !== 'tel') return;
-        const plus = e.target.value.startsWith('+') ? '+' : '';
-        const angka = e.target.value.replace(/[^0-9]/g, '');
-        e.target.value = plus + angka;
-    });
 
     // Dialog konfirmasi untuk form/tautan ber-atribut data-confirm — didelegasikan ke document
     // supaya berlaku juga untuk konten yang disisipkan belakangan lewat AJAX.

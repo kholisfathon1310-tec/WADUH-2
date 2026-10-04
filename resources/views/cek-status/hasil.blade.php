@@ -177,6 +177,9 @@
         border:1px solid rgba(255,255,255,.25); color:#fff;
         display:inline-flex; align-items:center; gap:.35rem; }
 
+    .cs-info-aksi { display:flex; align-items:flex-start; gap:.55rem; padding:.85rem 1rem; border:1px solid #c9e6ea; border-radius:.9rem; background:#f3f9fa; color:#0f526b; font-size:.85rem; line-height:1.5; }
+    .cs-info-aksi i { margin-top:.15rem; flex:none; }
+    .cs-info-aksi a { font-weight:700; color:#0f526b; }
     .rs-actions { display:flex; align-items:center; gap:.65rem; margin-top:1.15rem; flex-wrap:wrap; }
     .rs-actions .btn { font-size:.82rem; padding:.65rem 1.15rem; }
 
@@ -294,7 +297,6 @@
             @php
                 $status = $r->status_reservasi->value;
                 $meta = \App\Support\KategoriMeta::get($r->tarifSewa->fasilitas->kategori_fasilitas);
-                $bolehBatal = $status === 'Menunggu' && $r->tanggal_mulai->startOfDay()->gte(\Illuminate\Support\Carbon::today());
                 $labelStatus = $chipLabel[$status] ?? $status;
 
                 $steps = match ($status) {
@@ -482,27 +484,6 @@
                         </div>
                     @endif
 
-                    {{-- Aksi bawah --}}
-                    <div class="rs-actions">
-                        @if ($r->buktiTersedia())
-                            <a href="{{ route('cek-status.bukti-reservasi', $r->kode_reservasi) }}" class="btn btn-brand">
-                                <i class="bi bi-file-earmark-arrow-down me-1"></i>Unduh Bukti Reservasi
-                            </a>
-                        @endif
-                        @if ($bolehBatal)
-                            <form method="POST" action="{{ route('reservasi.batalkan', $r->kode_reservasi) }}"
-                                  data-confirm="Reservasi {{ $r->kode_reservasi }} akan dibatalkan dan tidak dapat dikembalikan."
-                                  data-confirm-title="Batalkan reservasi ini?" data-icon="warning"
-                                  data-confirm-text="Ya, batalkan" data-confirm-color="#e11d48">
-                                @csrf
-                                <input type="hidden" name="kode" value="{{ $kode }}">
-                                <button class="btn btn-brand-outline" style="color:var(--rose); border-color:var(--rose);">
-                                    <i class="bi bi-x-circle me-1"></i>Batalkan
-                                </button>
-                            </form>
-                        @endif
-                    </div>
-
                     {{-- Riwayat status --}}
                     @if ($r->riwayatStatus->isNotEmpty())
                         <button class="rs-hist-btn" type="button" data-bs-toggle="collapse" data-bs-target="#riwayat-{{ $r->id_reservasi }}" aria-expanded="false">
@@ -531,6 +512,21 @@
                 </div>
             </div>
         @endforeach
+
+        {{-- Cek Status hanya untuk melihat status. Aksi (unduh bukti, batalkan) ada di Reservasi Saya. --}}
+        <div class="cs-info-aksi mt-4">
+            <i class="bi bi-info-circle-fill"></i>
+            @php $milikSaya = auth('customer')->check() && (int) $reservasi->first()?->id_pemesan === (int) auth('customer')->id(); @endphp
+            <span>Untuk mengunduh bukti reservasi atau membatalkan reservasi,
+                @if ($milikSaya)
+                    buka <a href="{{ route('customer.reservasi-saya.show', $kode) }}">detail reservasi di menu Reservasi Saya</a>.
+                @elseif (auth('customer')->check())
+                    gunakan menu Reservasi Saya pada akun pemesan yang mengajukan reservasi ini.
+                @else
+                    silakan <a href="{{ route('customer.login') }}">masuk sebagai Pemesan</a>, lalu buka detail reservasi di menu Reservasi Saya.
+                @endif
+            </span>
+        </div>
 
         <div class="text-center mt-4">
             <a href="{{ route('cek-status.form') }}" class="btn btn-brand-outline btn-sm px-4"><i class="bi bi-search me-1"></i>Cek Kode Lain</a>

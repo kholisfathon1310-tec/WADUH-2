@@ -52,10 +52,10 @@
                             <span class="pill pill-unit"><i class="bi bi-door-open"></i> {{ $l['total'] }} unit</span>
                             <span class="pill {{ $habis ? 'pill-habis' : 'pill-tersedia' }}">
                                 <i class="bi {{ $habis ? 'bi-slash-circle' : 'bi-check-circle' }}"></i>
-                                {{ $l['tersedia'] }} tersedia
+                                {{ $l['tersedia'] }} tersedia hari ini
                             </span>
-                            @if ($l['kapasitas_maks'])
-                                <span class="pill pill-unit"><i class="bi bi-people"></i> hingga {{ $l['kapasitas_maks'] }} orang</span>
+                            @if ($l['kap_maks'])
+                                <span class="pill pill-unit"><i class="bi bi-people"></i> Kapasitas {{ $l['kap_min'] && $l['kap_min'] !== $l['kap_maks'] ? $l['kap_min'].'–'.$l['kap_maks'] : $l['kap_maks'] }} orang</span>
                             @endif
                         </div>
                         <a href="{{ route('reservasi.denah', ['kategori' => $l['kategori'], 'lantai' => $l['id']]) }}" class="btn-lantai">

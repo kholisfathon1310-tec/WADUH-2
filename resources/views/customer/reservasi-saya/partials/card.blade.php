@@ -46,7 +46,8 @@
         </div>
         <div class="actions">
             @if ($statusVal === 'Selesai')
-                <a href="{{ route('reservasi.index') }}" class="btn btn-sm btn-brand">
+                {{-- Langsung ke fasilitas yang sama supaya pemesan tidak perlu memilih ulang dari denah. --}}
+                <a href="{{ $r->tarifSewa->fasilitas->status_aktif === \App\Enums\StatusAktif::Aktif ? route('reservasi.fasilitas.show', $r->tarifSewa->fasilitas->id_fasilitas) : route('reservasi.index') }}" class="btn btn-sm btn-brand">
                     <i class="bi bi-arrow-clockwise me-1"></i>Reservasi Kembali
                 </a>
             @endif

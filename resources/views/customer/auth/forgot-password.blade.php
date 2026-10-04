@@ -110,6 +110,8 @@
         </div>
     </div>
     <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <link href="{{ asset('vendor/waduh/popup.css') }}?v={{ filemtime(public_path('vendor/waduh/popup.css')) }}" rel="stylesheet">
+    <script src="{{ asset('vendor/waduh/popup.js') }}?v={{ filemtime(public_path('vendor/waduh/popup.js')) }}"></script>
     <script>
         @if (session('success'))
             Swal.fire({ icon: 'success', title: 'Berhasil', text: @json(session('success')), confirmButtonColor: '#176b87', confirmButtonText: 'Tutup' });

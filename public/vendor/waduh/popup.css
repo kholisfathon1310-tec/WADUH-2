@@ -1,0 +1,78 @@
+/* =====================================================================
+   WADUH — tema popup (SweetAlert2): konfirmasi, berhasil, gagal, peringatan.
+   Hanya tampilan; teks setiap popup tetap berasal dari halaman masing-masing.
+   ===================================================================== */
+.swal2-container.swal2-backdrop-show,
+.swal2-container.swal2-noanimation { background: rgba(15, 23, 42, .48) !important; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+
+.swal2-popup.wp-popup {
+    --wp-warna: #176b87; --wp-lembut: #e6f2f5; --wp-cincin: rgba(23, 107, 135, .14);
+    position: relative; width: min(27rem, calc(100vw - 2rem)); padding: 2.1rem 1.75rem 1.5rem;
+    border-radius: 1.35rem; background: #fff; overflow: hidden;
+    box-shadow: 0 30px 70px -18px rgba(15, 23, 42, .38), 0 0 0 1px rgba(15, 23, 42, .04);
+    font-family: 'Plus Jakarta Sans', 'DM Sans', system-ui, sans-serif; color: #15243b;
+}
+/* Garis aksen tipis di atas, mengikuti jenis popup */
+.swal2-popup.wp-popup::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--wp-warna); }
+.swal2-popup.wp-success  { --wp-warna: #059669; --wp-lembut: #e7f8f0; --wp-cincin: rgba(5, 150, 105, .14); }
+.swal2-popup.wp-error    { --wp-warna: #e11d48; --wp-lembut: #fdecef; --wp-cincin: rgba(225, 29, 72, .13); }
+.swal2-popup.wp-warning  { --wp-warna: #d97706; --wp-lembut: #fef4e4; --wp-cincin: rgba(217, 119, 6, .14); }
+.swal2-popup.wp-question { --wp-warna: #176b87; --wp-lembut: #e6f2f5; --wp-cincin: rgba(23, 107, 135, .14); }
+.swal2-popup.wp-info     { --wp-warna: #2f7fd1; --wp-lembut: #e8f1fb; --wp-cincin: rgba(47, 127, 209, .14); }
+
+/* Ikon: lingkaran lembut + cincin, ikon Bootstrap di tengah */
+.swal2-popup.wp-popup .swal2-icon.wp-icon {
+    width: 4.25rem; height: 4.25rem; margin: .35rem auto 1.15rem; border: 0 !important;
+    border-radius: 50%; background: var(--wp-lembut); color: var(--wp-warna) !important;
+    box-shadow: 0 0 0 .55rem var(--wp-cincin); display: grid !important; place-items: center;
+}
+.swal2-popup.wp-popup .swal2-icon.wp-icon .swal2-icon-content { font-size: 2rem; line-height: 1; }
+.swal2-popup.wp-popup .swal2-icon.wp-icon i { font-size: 2.05rem; -webkit-text-stroke: .6px currentColor; }
+.swal2-popup.wp-popup .swal2-icon.wp-icon.swal2-icon-show { animation: wpIkon .45s cubic-bezier(.2, .9, .3, 1.35) both; }
+
+.swal2-popup.wp-popup .swal2-title.wp-title {
+    padding: 0; margin: 0 0 .45rem; font-size: 1.22rem; font-weight: 800; line-height: 1.35;
+    letter-spacing: -.015em; color: #15243b;
+}
+.swal2-popup.wp-popup .swal2-html-container.wp-text {
+    margin: 0; padding: 0 .25rem; font-family: 'DM Sans', 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: .93rem; line-height: 1.6; color: #5b6880;
+}
+.swal2-popup.wp-popup .swal2-html-container.wp-text strong { color: #15243b; }
+
+/* Tombol: sejajar, sama lebar; batal di kiri, aksi utama di kanan */
+.swal2-popup.wp-popup .swal2-actions.wp-actions {
+    width: 100%; margin: 1.6rem 0 0; padding: 0; gap: .65rem; flex-wrap: nowrap;
+}
+.swal2-popup.wp-popup .wp-btn {
+    flex: 1 1 0; min-width: 0; margin: 0; padding: .78rem 1rem; border: 1px solid transparent; border-radius: .85rem;
+    font-family: inherit; font-size: .9rem; font-weight: 700; line-height: 1.2; cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.swal2-popup.wp-popup .wp-btn:focus { outline: none; }
+.swal2-popup.wp-popup .wp-btn:focus-visible { box-shadow: 0 0 0 .22rem var(--wp-cincin); }
+.swal2-popup.wp-popup .wp-btn:hover { transform: translateY(-1px); }
+.swal2-popup.wp-popup .wp-btn:active { transform: none; }
+
+.swal2-popup.wp-popup .wp-btn.wp-btn-primary { background: linear-gradient(135deg, #176b87, #0f526b); color: #fff; box-shadow: 0 10px 22px -10px rgba(23, 107, 135, .65); }
+.swal2-popup.wp-popup .wp-btn.wp-btn-primary:hover { box-shadow: 0 14px 26px -10px rgba(23, 107, 135, .7); }
+.swal2-popup.wp-popup .wp-btn.wp-btn-danger  { background: linear-gradient(135deg, #e11d48, #be123c); color: #fff; box-shadow: 0 10px 22px -10px rgba(225, 29, 72, .6); }
+.swal2-popup.wp-popup .wp-btn.wp-btn-success { background: linear-gradient(135deg, #10b981, #047857); color: #fff; box-shadow: 0 10px 22px -10px rgba(5, 150, 105, .6); }
+.swal2-popup.wp-popup .wp-btn.wp-btn-batal   { background: #fff; color: #475569; border-color: #dbe3ec; }
+.swal2-popup.wp-popup .wp-btn.wp-btn-batal:hover { background: #f5f8fb; border-color: #c5d1de; color: #1e293b; }
+
+/* Animasi masuk/keluar yang halus */
+.wp-masuk  { animation: wpMasuk .28s cubic-bezier(.2, .8, .25, 1) both; }
+.wp-keluar { animation: wpKeluar .18s ease-in both; }
+@keyframes wpMasuk  { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes wpKeluar { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(8px) scale(.97); } }
+@keyframes wpIkon   { from { opacity: 0; transform: scale(.55); } to { opacity: 1; transform: scale(1); } }
+
+@media (max-width: 420px) {
+    .swal2-popup.wp-popup { padding: 1.8rem 1.25rem 1.25rem; border-radius: 1.15rem; }
+    .swal2-popup.wp-popup .swal2-actions.wp-actions { flex-direction: column-reverse; }
+    .swal2-popup.wp-popup .wp-btn { width: 100%; flex: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .wp-masuk, .wp-keluar, .swal2-popup.wp-popup .swal2-icon.wp-icon.swal2-icon-show { animation: none; }
+}
