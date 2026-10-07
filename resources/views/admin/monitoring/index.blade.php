@@ -28,7 +28,7 @@
     </form>
 
     {{-- Denah interaktif SVG — klik ruangan untuk membuka detail monitoring --}}
-    <div id="hasil-monitoring" data-filter-hasil>
+    <div id="hasil-monitoring" data-filter-hasil data-live="monitoring">
         @include('admin.monitoring.partials.hasil')
     </div>
 

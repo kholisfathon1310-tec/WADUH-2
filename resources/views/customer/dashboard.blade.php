@@ -57,6 +57,8 @@
 @endphp
 
 @section('content')
+{{-- Wilayah live: isi dashboard diperbarui realtime — lihat partials/pantau-status. --}}
+<div data-live="dashboard">
     <style>
         /* ══════════════════════════════════════════════════════════
            DASHBOARD PEMESAN — Modern, Professional, Clean
@@ -340,4 +342,5 @@
             </div>
         </div>
     </div>
+</div>
 @endsection

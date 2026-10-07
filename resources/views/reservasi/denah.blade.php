@@ -129,6 +129,11 @@
             });
 
             form.addEventListener('submit', (e) => { e.preventDefault(); if (tanggalSah()) terapkan(); });
+            // Status ruangan ikut berubah begitu ada pemesanan baru (lihat partials/pantau-status);
+            // ditunda bila pemesan sedang membuka dialog atur jadwal.
+            document.addEventListener('realtime:berubah', () => {
+                if (!document.querySelector('.modal.show, .swal2-container') && tanggalSah()) terapkan();
+            });
         })();
     </script>
 @endsection

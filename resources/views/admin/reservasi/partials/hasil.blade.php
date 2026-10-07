@@ -1,7 +1,7 @@
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <p class="text-muted small mb-0"><i class="bi bi-collection me-1"></i>{{ $ringkasan['reservasi'] }} reservasi · {{ $ringkasan['ruangan'] }} ruangan</p>
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-3">
+    <p class="text-muted small mb-0 text-nowrap"><i class="bi bi-collection me-1"></i>{{ $ringkasan['reservasi'] }} reservasi · {{ $ringkasan['ruangan'] }} ruangan</p>
     @if ($grup->total() > 0)
-        <p class="text-muted small mb-0">Menampilkan {{ $grup->firstItem() }}–{{ $grup->lastItem() }} dari {{ $grup->total() }} reservasi</p>
+        <p class="text-muted small mb-0 text-nowrap">Data {{ $grup->firstItem() }}–{{ $grup->lastItem() }} dari {{ $grup->total() }}</p>
     @endif
 </div>
 
@@ -34,31 +34,32 @@
             </div>
         </div>
         <div class="table-responsive">
-            <table class="table mb-0 align-middle">
+            <table class="table mb-0 align-middle rv-tabel">
                 <thead><tr>
                     <th>Ruangan</th><th>Jenis Sewa</th><th>Periode</th><th class="text-center">Pengguna</th><th class="text-end">Total Biaya</th><th class="text-center">Status</th>
                 </tr></thead>
                 <tbody>
                 @foreach ($baris as $r)
                     <tr>
-                        <td>
-                            <span class="cell-main">{{ $r->tarifSewa->fasilitas->nama_fasilitas }}</span>
-                            <span class="cell-sub d-block">{{ $r->tarifSewa->fasilitas->kategori_fasilitas }} · Lantai {{ $r->tarifSewa->fasilitas->lantai->nomor_lantai }}</span>
+                        <td class="rv-ruang">
+                            <span class="cell-main text-nowrap">{{ $r->tarifSewa->fasilitas->nama_fasilitas }}</span>
+                            <span class="cell-sub d-block text-nowrap">{{ $r->tarifSewa->fasilitas->kategori_fasilitas }} · Lt {{ $r->tarifSewa->fasilitas->lantai->nomor_lantai }}</span>
                         </td>
-                        <td><span class="badge text-bg-light border">Per {{ $r->tarifSewa->jenisSewa->satuan->value }}</span></td>
-                        <td class="small text-nowrap">
+                        <td class="rv-jenis"><span class="badge text-bg-light border">Per {{ $r->tarifSewa->jenisSewa->satuan->value }}</span></td>
+                        <td class="rv-periode small text-nowrap">
                             @if ($r->jam_mulai)
                                 <i class="bi bi-calendar3 me-1 text-muted"></i>{{ $r->tanggal_mulai->translatedFormat('d M Y') }}
-                                <span class="text-muted">·</span> {{ \Illuminate\Support\Str::substr($r->jam_mulai,0,5) }}–{{ \Illuminate\Support\Str::substr($r->jam_selesai,0,5) }} WIB
+                                <span class="text-muted">·</span> {{ \Illuminate\Support\Str::substr($r->jam_mulai,0,5) }}–{{ \Illuminate\Support\Str::substr($r->jam_selesai,0,5) }}
                             @elseif ($r->tanggal_selesai->ne($r->tanggal_mulai))
-                                <i class="bi bi-calendar3 me-1 text-muted"></i>{{ $r->tanggal_mulai->translatedFormat('d M Y') }} – {{ $r->tanggal_selesai->translatedFormat('d M Y') }}
+                                {{-- Rentang dipadatkan: 22–23 Okt 2026, 28 Okt – 3 Nov 2026, atau lintas tahun lengkap. --}}
+                                <i class="bi bi-calendar3 me-1 text-muted"></i>{{ $r->tanggal_mulai->translatedFormat($r->tanggal_mulai->year !== $r->tanggal_selesai->year ? 'd M Y' : ($r->tanggal_mulai->month !== $r->tanggal_selesai->month ? 'd M' : 'd')) }}{{ $r->tanggal_mulai->isSameMonth($r->tanggal_selesai) ? '–' : ' – ' }}{{ $r->tanggal_selesai->translatedFormat('d M Y') }}
                             @else
                                 <i class="bi bi-calendar3 me-1 text-muted"></i>{{ $r->tanggal_mulai->translatedFormat('d M Y') }}
                             @endif
                         </td>
-                        <td class="text-center small text-nowrap">{{ $r->jumlah_pengguna }} orang</td>
-                        <td class="text-end fw-semibold text-nowrap">Rp {{ number_format($r->total_biaya, 0, ',', '.') }}</td>
-                        <td class="text-center"><span class="chip {{ strtolower($r->status_reservasi->value) }}">{{ $r->status_reservasi->value }}</span></td>
+                        <td class="rv-peng text-center small text-nowrap">{{ $r->jumlah_pengguna }} orang</td>
+                        <td class="rv-total text-end fw-semibold text-nowrap">Rp {{ number_format($r->total_biaya, 0, ',', '.') }}</td>
+                        <td class="rv-status text-center"><span class="chip {{ strtolower($r->status_reservasi->value) }}">{{ $r->status_reservasi->value }}</span></td>
                     </tr>
                 @endforeach
                 </tbody>

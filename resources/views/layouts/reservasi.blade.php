@@ -308,7 +308,7 @@
             }
             if (v.patternMismatch && el.dataset.pesanPola) return el.dataset.pesanPola;
             if (el.type === 'email' && (v.typeMismatch || v.patternMismatch)) return 'Format email tidak valid, contoh: nama@email.com.';
-            if (v.patternMismatch && el.type === 'tel') return nama + ' tidak valid. Gunakan angka 10–15 digit, contoh 081234567890.';
+            if (v.patternMismatch && el.type === 'tel') return nama + ' harus 10–15 digit angka.';
             if (v.rangeUnderflow) return el.dataset.pesanMin || (nama + ' minimal ' + el.min + '.');
             if (v.rangeOverflow) return el.dataset.pesanMaks || (nama + ' maksimal ' + el.max + '.');
             if (v.tooShort) return nama + ' minimal ' + el.minLength + ' karakter.';
@@ -322,7 +322,7 @@
         // Buang pesan lama milik kolom ini (pesan klien MAUPUN pesan server) supaya tidak dobel.
         const hapusPesan = wadah => {
             let n = wadah.nextElementSibling;
-            while (n && n.matches('.catatan-salah, .fl-err, .aj-field-err')) {
+            while (n && n.matches('.catatan-salah, .fl-err, .aj-field-err, .ck-edit-err')) {
                 const berikut = n.nextElementSibling;
                 n.remove();
                 n = berikut;
@@ -420,8 +420,6 @@
             dialogKonfirmasi(a).then(r => { if (r.isConfirmed) window.location.href = a.href; });
         });
     </script>
-@hasSection('pantau_status')
-    @include('partials.pantau-status')
-@endif
+@include('partials.pantau-status', ['peran' => auth('customer')->check() ? 'pemesan' : null])
 </body>
 </html>

@@ -46,7 +46,7 @@
     </form>
     {{-- Tombol Ekspor PDF ada di kaki kartu tabel --}}
 
-    <div id="hasil-laporan" data-filter-hasil>
+    <div id="hasil-laporan" data-filter-hasil data-live="laporan">
         @include('admin.laporan.partials.hasil')
     </div>
 

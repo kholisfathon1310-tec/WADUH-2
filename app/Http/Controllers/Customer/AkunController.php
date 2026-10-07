@@ -75,7 +75,7 @@ class AkunController extends Controller
         if ($gantiEmail && ! $otp->sudahTerverifikasi(OtpEmailService::TUJUAN_UBAH_EMAIL, $data['email'], $pemesan->id_pemesan)) {
             return redirect()->route('customer.akun.profil')
                 ->withInput()
-                ->withErrors(['email' => 'Email belum diverifikasi. Tekan "Kirim OTP", masukkan kode dari email, lalu tekan "Verifikasi".']);
+                ->withErrors(['email' => 'Verifikasi email dengan kode OTP terlebih dahulu.']);
         }
 
         $pemesan->update($data);

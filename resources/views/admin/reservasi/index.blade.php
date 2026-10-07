@@ -4,6 +4,23 @@
 
 @section('content')
     <style>
+        /* Tablet & ponsel: tiap baris ruangan menjadi kartu ringkas (tanpa gulir mendatar).
+           Baris 1: ruangan · status — baris 2: periode — baris 3: jenis sewa · pengguna · total. */
+        @media (max-width: 991.98px) {
+            .rv-tabel { min-width:0 !important; }
+            .rv-tabel thead { display:none; }
+            .rv-tabel, .rv-tabel tbody { display:block; width:100%; }
+            .rv-tabel tr { display:grid; grid-template-columns:auto auto 1fr; grid-template-areas:"ruang ruang status" "periode periode periode" "jenis peng total";
+                align-items:center; gap:.45rem .75rem; padding:.85rem 1.1rem; border-bottom:1px solid var(--line-soft); }
+            .rv-tabel tr:last-child { border-bottom:0; }
+            .rv-tabel td { display:block; padding:0 !important; border:0 !important; background:transparent !important; text-align:left !important; }
+            .rv-tabel .rv-ruang { grid-area:ruang; min-width:0; }
+            .rv-tabel .rv-status { grid-area:status; justify-self:end; }
+            .rv-tabel .rv-periode { grid-area:periode; color:var(--muted); }
+            .rv-tabel .rv-jenis { grid-area:jenis; }
+            .rv-tabel .rv-peng { grid-area:peng; color:var(--muted); }
+            .rv-tabel .rv-total { grid-area:total; justify-self:end; }
+        }
         .rv-pagination { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:.35rem; margin:.5rem 0 1.5rem; }
         .rv-page { min-width:2.35rem; height:2.35rem; padding:0 .7rem; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:.65rem; background:#fff; color:var(--ink); font-weight:700; font-size:.85rem; text-decoration:none; transition:background .15s ease, border-color .15s ease; }
         .rv-page:hover { border-color:var(--primary); color:var(--primary); }
@@ -83,7 +100,7 @@
         <div class="wf-chips" data-wf-chips hidden></div>
     </form>
 
-    <div id="hasil-reservasi" data-filter-hasil>
+    <div id="hasil-reservasi" data-filter-hasil data-live="reservasi">
         @include('admin.reservasi.partials.hasil')
     </div>
 

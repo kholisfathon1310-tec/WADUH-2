@@ -76,7 +76,7 @@ class ProfilController extends Controller
         if ($gantiEmail && ! $otp->sudahTerverifikasi(OtpEmailService::TUJUAN_UBAH_EMAIL_ADMIN, $data['email'], $admin->id_admin)) {
             return redirect()->route('admin.profil')
                 ->withInput()
-                ->withErrors(['email' => 'Email belum diverifikasi. Tekan "Kirim OTP", masukkan kode dari email, lalu tekan "Verifikasi".']);
+                ->withErrors(['email' => 'Verifikasi email dengan kode OTP terlebih dahulu.']);
         }
 
         $admin->nama_admin = $data['nama_admin'];

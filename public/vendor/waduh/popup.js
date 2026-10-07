@@ -38,3 +38,31 @@
     };
     Swal.__temaWaduh = true;
 })();
+
+/* Pesan validasi dari server: tandai kolomnya dengan garis merah (sama seperti validasi klien)
+   dan hapus tanda itu begitu kolom diperbaiki. */
+(function () {
+    var PESAN = '.catatan-salah, .fl-err, .aj-field-err, .ck-edit-err';
+    var kolomDari = function (pesan) {
+        for (var n = pesan.previousElementSibling; n; n = n.previousElementSibling) {
+            if (n.matches(PESAN)) continue;
+            if (n.matches('input, select, textarea')) return n;
+            return n.querySelector('input:not([type=hidden]):not([type=checkbox]), select, textarea, .jam-btn');
+        }
+        return null;
+    };
+    document.querySelectorAll(PESAN).forEach(function (pesan) {
+        var kolom = kolomDari(pesan);
+        if (!kolom || kolom.classList.contains('is-salah')) return;
+        kolom.classList.add('is-salah', 'tanpa-goyang');
+        var bersihkan = function () {
+            kolom.removeEventListener('input', bersihkan);
+            kolom.removeEventListener('change', bersihkan);
+            if (window.WaduhValidasi) return window.WaduhValidasi.bersihkan(kolom);
+            kolom.classList.remove('is-salah', 'tanpa-goyang');
+            if (pesan.parentElement) pesan.remove();
+        };
+        kolom.addEventListener('input', bersihkan);
+        kolom.addEventListener('change', bersihkan);
+    });
+})();

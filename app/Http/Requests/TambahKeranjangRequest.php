@@ -264,17 +264,17 @@ class TambahKeranjangRequest extends FormRequest
             'keperluan.max'                => 'Keperluan maksimal 1000 karakter.',
             'jam_mulai.date_format'        => 'Format jam mulai tidak valid.',
             'jam_selesai.date_format'      => 'Format jam selesai tidak valid.',
-            'no_telepon.regex'             => 'Nomor telepon pada profil tidak valid. Perbarui profil Anda terlebih dahulu.',
-            'nama_lengkap.required'        => 'Nama lengkap pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
-            'alamat.required'              => 'Alamat pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
-            'usia.required'                => 'Usia pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
+            // Data diri diambil dari profil pemesan — arahkan ke halaman Profil untuk melengkapinya.
+            'nama_lengkap.required'        => 'Lengkapi nama lengkap di Profil.',
+            'alamat.required'              => 'Lengkapi alamat di Profil.',
+            'usia.required'                => 'Lengkapi usia di Profil.',
             'usia.min'                     => 'Pemesan minimal berusia 17 tahun.',
-            'usia.max'                     => 'Usia pada profil tidak valid.',
-            'pekerjaan.required'           => 'Pekerjaan pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
-            'no_telepon.required'          => 'Nomor telepon pada profil belum diisi. Lengkapi profil Anda terlebih dahulu.',
+            'usia.max'                     => 'Usia di Profil tidak valid.',
+            'pekerjaan.required'           => 'Lengkapi pekerjaan di Profil.',
+            'no_telepon.required'          => 'Lengkapi no. telepon di Profil.',
+            'no_telepon.regex'             => 'No. telepon di Profil tidak valid.',
             'dokumen.*.mimes'              => 'Dokumen harus berformat PDF, JPG, atau PNG.',
             'dokumen.*.max'                => 'Ukuran tiap dokumen maksimal 5 MB.',
-            'no_telepon.regex'             => 'Nomor telepon pada profil hanya boleh berisi angka (boleh diawali tanda +).',
         ];
     }
 }

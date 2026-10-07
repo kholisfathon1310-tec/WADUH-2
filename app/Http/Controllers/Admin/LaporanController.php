@@ -15,9 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Laporan Data Reservasi — rekap reservasi yang SUDAH DISETUJUI (bukan lagi rekap
- * inventaris fasilitas), difilter per bulan. Begitu admin menyetujui sebuah reservasi,
- * baris itu otomatis muncul di laporan bulan tanggal_mulai-nya (tanpa langkah tambahan,
- * karena data selalu diquery langsung dari tabel Reservasi).
+ * inventaris fasilitas), difilter per bulan PERSETUJUAN (tanggal_diproses), bukan per periode
+ * sewa. Reservasi bulanan 3 bulan hanya tercatat sekali, di bulan saat admin menyetujuinya,
+ * karena ini laporan reservasi, bukan laporan penggunaan ruangan. Data selalu diquery langsung
+ * dari tabel Reservasi, jadi baris muncul begitu reservasi disetujui.
  */
 class LaporanController extends Controller
 {
@@ -74,10 +75,10 @@ class LaporanController extends Controller
         // disetujui) yang masuk laporan; Menunggu/Ditolak/Dibatalkan tidak dianggap "sudah dipesan".
         $rows = Reservasi::query()
             ->whereIn('status_reservasi', [StatusReservasi::Disetujui->value, StatusReservasi::Selesai->value])
-            ->whereYear('tanggal_mulai', $tahun)
-            ->whereMonth('tanggal_mulai', $bulan)
+            ->whereYear('tanggal_diproses', $tahun)
+            ->whereMonth('tanggal_diproses', $bulan)
             ->with(['pemesan', 'tarifSewa.fasilitas.lantai', 'tarifSewa.jenisSewa'])
-            ->orderBy('tanggal_mulai')
+            ->orderBy('tanggal_diproses')
             ->orderBy('kode_reservasi')
             ->get()
             ->map(function (Reservasi $r, int $i) {
@@ -160,11 +161,11 @@ class LaporanController extends Controller
     {
         $jumlahPerTahun = Reservasi::query()
             ->whereIn('status_reservasi', [StatusReservasi::Disetujui->value, StatusReservasi::Selesai->value])
-            ->selectRaw('YEAR(tanggal_mulai) AS tahun, COUNT(*) AS jumlah')
+            ->selectRaw('YEAR(tanggal_diproses) AS tahun, COUNT(*) AS jumlah')
             ->groupBy('tahun')
             ->pluck('jumlah', 'tahun');
 
-        $awal = Reservasi::min('tanggal_mulai');
+        $awal = Reservasi::min('tanggal_diproses');
         $tahunAwal = min(
             $awal ? Carbon::parse($awal)->year : now()->year,
             now()->year - self::RENTANG_TAHUN_LALU,

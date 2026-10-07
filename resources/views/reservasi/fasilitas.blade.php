@@ -278,12 +278,15 @@
                     <p class="fd-desc">{{ $f->deskripsi ?: $fMeta['desk'] }}</p>
 
                     {{-- Keterangan hanya untuk ruangan yang sudah (sebagian) terisi — kondisi Tersedia tidak perlu ditampilkan. --}}
+                    {{-- Wilayah live: ketersediaan diperbarui realtime (lihat partials/pantau-status). --}}
+                    <div data-live="kondisi-{{ $f->id_fasilitas }}">
                     @if ($fKondisi['status'] !== 'hijau')
                     <div class="fd-avail {{ $fKondisi['status'] }}">
                         <span class="fd-status {{ $fKondisi['status'] }}"><i class="bi {{ $ikonStatus[$fKondisi['status']] }}"></i>{{ $fKondisi['label'] }}</span>
                         <p><b>{{ $tanggalAcuanC->translatedFormat('l, j F Y') }}.</b> {{ $ketKondisi($fKondisi) }}</p>
                     </div>
                     @endif
+                    </div>
 
                     <ul class="fd-tarif-list" aria-label="Tarif {{ $f->nama_fasilitas }}">
                         @foreach ($fTarif as $t)
@@ -313,6 +316,7 @@
                 </form>
             </div>
 
+            <div data-live="harga">
             <div class="fd-price-grid">
                 @foreach ($kartuHarga as $k)
                     @php $t = $k['tarif']; $s = $k['satuan']; $aktif = $t->id_jenis_sewa === $jenis->id_jenis_sewa; @endphp
@@ -347,6 +351,7 @@
                 <p class="fd-tutup-note"><i class="bi bi-info-circle-fill"></i><span>{{ $isMulti ? 'Fasilitas terpilih' : 'Fasilitas' }} tidak dapat dipesan pada {{ $tanggalAcuanC->translatedFormat('j F Y') }}@if ($isMulti && $penghalang) karena {{ $penghalang }}@endif. Pilih
  tanggal lain pada kolom <b>Ketersediaan pada</b> untuk memeriksa jadwal yang masih kosong.@if ($editItem) <a href="#" data-fd-buka>Ubah jadwal item keranjang</a>.@endif</span></p>
             @endif
+            </div>
         </div>
 
         {{-- ═══ FASILITAS TERMASUK ═══ --}}
@@ -423,7 +428,12 @@
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && lb.classList.contains('show')) tutupLb(); });
 
             // ── Tombol "Isi Jadwal" — membuka modal Atur Jadwal Sewa ──
-            document.querySelectorAll('[data-fd-buka]').forEach((b) => b.addEventListener('click', (e) => { e.preventDefault(); window.ajBukaModal?.(); }));
+            // Didelegasikan: tombol di kartu harga bisa diganti saat ketersediaan diperbarui realtime.
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('[data-fd-buka]')) return;
+                e.preventDefault();
+                window.ajBukaModal?.();
+            });
             @if (($editItem ?? null) || $errors->any() || request()->boolean('buka'))
                 {{-- Dari "Ubah" di Keranjang, setelah validasi gagal, atau baru berganti jenis sewa. --}}
                 window.ajBukaModal?.();

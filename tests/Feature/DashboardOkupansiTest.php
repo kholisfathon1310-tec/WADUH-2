@@ -55,7 +55,7 @@ class DashboardOkupansiTest extends TestCase
             ->get('/admin/dashboard')
             ->assertOk()
             ->assertSee('Okupansi per Bulan')
-            ->assertSee('Okupansi per Fasilitas')
+            ->assertSee('Tingkat Pemakaian Fasilitas')
             ->assertSee(now()->translatedFormat('F Y'));
     }
 

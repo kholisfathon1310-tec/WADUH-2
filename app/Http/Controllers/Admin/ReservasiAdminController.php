@@ -157,7 +157,7 @@ class ReservasiAdminController extends Controller
         $data = $request->validate(
             ['alasan' => ['required', 'string', 'min:10', 'max:1000']],
             [
-                'alasan.required' => 'Alasan penolakan wajib diisi. Alasan ini akan ditampilkan kepada pemesan pada riwayat status.',
+                'alasan.required' => 'Alasan penolakan wajib diisi.',
                 'alasan.min'      => 'Alasan penolakan minimal 10 karakter.',
                 'alasan.max'      => 'Alasan penolakan maksimal 1000 karakter.',
             ],

@@ -48,7 +48,7 @@
     .rd-card-head { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:1rem 1.3rem; border-bottom:1px solid var(--line-soft); }
     .rd-card-title { display:flex; align-items:center; gap:.6rem; font-weight:800; font-size:.95rem; color:var(--ink); margin:0; }
     .rd-card-title i { display:grid; place-items:center; width:2rem; height:2rem; border-radius:.6rem; background:var(--primary-soft); color:var(--primary-dark); font-size:.9rem; }
-    .rd-count { font-size:.72rem; font-weight:700; color:var(--muted); background:var(--surface); border:1px solid var(--line); padding:.2rem .6rem; border-radius:2rem; }
+    .rd-count { flex:none; white-space:nowrap; font-size:.72rem; font-weight:700; color:var(--muted); background:var(--surface); border:1px solid var(--line); padding:.2rem .6rem; border-radius:2rem; }
     .rd-card-body { padding:1.2rem 1.3rem; }
 
     /* ══════════ RUANGAN ══════════ */
@@ -159,7 +159,7 @@
             {{-- Ruangan yang direservasi --}}
             <div class="xcard rd-card mb-3">
                 <div class="rd-card-head">
-                    <h2 class="rd-card-title"><i class="bi bi-door-open"></i>Ruangan yang Direservasi</h2>
+                    <h2 class="rd-card-title"><i class="bi bi-door-open"></i>Ruangan Dipesan</h2>
                     <span class="rd-count">{{ $items->count() }} ruangan</span>
                 </div>
                 <div class="rd-card-body">

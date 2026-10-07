@@ -67,6 +67,9 @@ Route::prefix('reservasi')->name('reservasi.')->group(function () {
 Route::get('/status-reservasi/versi', [StatusRealtimeController::class, 'versi'])
     ->middleware('throttle:60,1,status-versi')
     ->name('status-reservasi.versi');
+Route::get('/status-reservasi/ringkasan', [StatusRealtimeController::class, 'ringkasan'])
+    ->middleware('throttle:90,1,status-ringkasan')
+    ->name('status-reservasi.ringkasan');
 
 // Cek Status publik hanya untuk MELIHAT status. Pembatalan dan unduh bukti reservasi
 // dilakukan pemesan yang login lewat menu Reservasi Saya.

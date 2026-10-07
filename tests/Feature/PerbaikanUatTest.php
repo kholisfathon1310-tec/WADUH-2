@@ -130,7 +130,7 @@ class PerbaikanUatTest extends TestCase
         $res->assertSee($jumlahKode.' reservasi');
         if ($jumlahKode > 10) {
             $res->assertSee('data-pagination', false);
-            $this->get(route('admin.reservasi.index', ['page' => 2]))->assertOk()->assertSee('Menampilkan 11');
+            $this->get(route('admin.reservasi.index', ['page' => 2]))->assertOk()->assertSee('Data 11–20');
         }
     }
 

@@ -311,4 +311,37 @@ class AlurAdminTest extends TestCase
         $this->get(route('admin.laporan', ['bulan' => 13, 'tahun' => 99999]))->assertOk();
         $this->get(route('admin.laporan.pdf', ['bulan' => 0, 'tahun' => 'abc']))->assertOk();
     }
+
+    public function test_laporan_dikelompokkan_per_bulan_disetujui_bukan_periode_sewa(): void
+    {
+        $this->actingAs($this->admin(), 'admin');
+
+        // Sewa mulai ~7 bulan lagi, tetapi disetujui hari ini → masuk laporan bulan ini saja.
+        $r = $this->reservasiMenunggu('Hari', 215);
+        $this->post(route('admin.reservasi.setujui', $r->kode_reservasi));
+        $this->assertSame('Disetujui', $r->fresh()->status_reservasi->value);
+
+        $this->get(route('admin.laporan', ['bulan' => now()->month, 'tahun' => now()->year]))
+            ->assertOk()->assertSee($r->kode_reservasi);
+
+        $mulai = $r->tanggal_mulai;
+        $this->get(route('admin.laporan', ['bulan' => $mulai->month, 'tahun' => $mulai->year]))
+            ->assertOk()->assertDontSee($r->kode_reservasi);
+    }
+
+    public function test_kalender_hari_dan_minggu_menampilkan_sewa_harian(): void
+    {
+        $this->actingAs($this->admin(), 'admin');
+
+        $r = $this->reservasiMenunggu('Hari', 220);
+        $this->post(route('admin.reservasi.setujui', $r->kode_reservasi));
+        $tanggal = $r->tanggal_mulai->toDateString();
+
+        // Sewa tanpa jam tampil sebagai blok penuh (08.00–17.00) di time grid, bertautan ke detailnya.
+        $pola = '~href="'.preg_quote(route('admin.reservasi.show', $r->kode_reservasi), '~').'"\s+class="db-cal-time-event"\s+style="top:0rem;~';
+        foreach (['hari', 'minggu'] as $view) {
+            $html = $this->get(route('admin.dashboard', ['view' => $view, 'tanggal' => $tanggal]))->assertOk()->getContent();
+            $this->assertMatchesRegularExpression($pola, $html);
+        }
+    }
 }

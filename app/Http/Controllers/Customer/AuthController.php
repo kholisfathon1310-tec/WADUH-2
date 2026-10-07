@@ -114,7 +114,7 @@ class AuthController extends Controller
         // (tombol Verifikasi) — memastikan email yang didaftarkan benar-benar aktif.
         if (! $otp->sudahTerverifikasi(OtpEmailService::TUJUAN_REGISTRASI, $data['email'])) {
             return back()->withInput($request->except('password', 'password_confirmation'))
-                ->withErrors(['email' => 'Email belum diverifikasi. Tekan "Kirim OTP", masukkan kode dari email, lalu tekan "Verifikasi".']);
+                ->withErrors(['email' => 'Verifikasi email dengan kode OTP terlebih dahulu.']);
         }
 
         $pemesan = Pemesan::updateOrCreate(

@@ -43,6 +43,33 @@
         })->values();
     });
 
+    // Isi tooltip kartu (lihat skrip "Tooltip kalender" di bawah) — dipakai mode Bulan, Minggu, & Hari.
+    $dataTooltip = function ($r) use ($chipClass) {
+        $fs = $r->tarifSewa->fasilitas;
+        $satuan = $r->tarifSewa->jenisSewa->satuan->value ?? '';
+        $statusVal = $r->status_reservasi->value;
+        $perJam = (bool) $r->jam_mulai;
+
+        return [
+            'nama'        => $fs->nama_fasilitas,
+            'kategori'    => $fs->kategori_fasilitas,
+            'lantai'      => $fs->lantai->nomor_lantai ?? '-',
+            'jenis'       => 'Sewa per '.$satuan,
+            // Satu hari → satu tanggal; rentang dipadatkan (22–23 Okt 2026, 28 Okt – 3 Nov 2026).
+            'tanggal'     => $perJam || $r->tanggal_mulai->isSameDay($r->tanggal_selesai)
+                ? $r->tanggal_mulai->translatedFormat('l, d F Y')
+                : $r->tanggal_mulai->translatedFormat($r->tanggal_mulai->year !== $r->tanggal_selesai->year ? 'd M Y' : ($r->tanggal_mulai->month !== $r->tanggal_selesai->month ? 'd M' : 'd'))
+                    .($r->tanggal_mulai->isSameMonth($r->tanggal_selesai) ? '–' : ' – ')
+                    .$r->tanggal_selesai->translatedFormat('d M Y'),
+            'waktu'       => $perJam
+                ? substr($r->jam_mulai, 0, 5).' – '.substr($r->jam_selesai, 0, 5).' WIB'
+                : 'Seharian · '.$r->durasi.' '.strtolower($satuan),
+            'kode'        => $r->kode_reservasi,
+            'statusLabel' => $statusVal,
+            'statusChip'  => $chipClass[$statusVal] ?? '',
+        ];
+    };
+
     // Jam operasional gedung BITC: 08:00 – 17:00 WIB
     $jamMulaiGrid = 8;
     $jamAkhirGrid = 17;
@@ -56,6 +83,10 @@
     // ditampilkan berdampingan (kolom terpisah), bukan menumpuk/menyatu jadi satu blok.
     $layoutEventsOverlap = function ($events) use ($jamMulaiGrid, $jamAkhirGrid) {
         $items = $events->map(function ($ev) use ($jamMulaiGrid, $jamAkhirGrid) {
+            // Sewa Harian/Bulanan tidak punya jam → ditandai satu blok penuh sepanjang jam operasional.
+            if (! $ev->jam_mulai) {
+                return ['ev' => $ev, 'start' => $jamMulaiGrid, 'end' => $jamAkhirGrid];
+            }
             $jmHour = (int) substr($ev->jam_mulai, 0, 2) + ((int) substr($ev->jam_mulai, 3, 2)) / 60;
             $jsHour = (int) substr($ev->jam_selesai, 0, 2) + ((int) substr($ev->jam_selesai, 3, 2)) / 60;
             $jmHour = max($jamMulaiGrid, $jmHour);
@@ -201,6 +232,9 @@
     .db-cal-time-body { display:grid; position:relative;
         max-height:32rem; overflow-y:auto; background:#fff; }
     .db-cal-time-labels { grid-column:1; }
+    /* Kolom jam & sel "WIB" tetap menempel di kiri saat kisi Minggu digeser mendatar (layar sempit). */
+    .db-cal-time-labels, .db-cal-time-head-cell:first-child { position:sticky; left:0; z-index:4; background:#fff; }
+    .db-cal-time-labels { box-shadow:1px 0 0 var(--line-soft); }
     .db-cal-time-col { position:relative; border-left:1px solid var(--line-soft); }
     .db-cal-time-col:nth-child(2) { border-left:0; }
     .db-cal-time-col.today { background:linear-gradient(rgba(15,118,110,.035), rgba(15,118,110,.015)); }
@@ -239,7 +273,12 @@
     .db-cal-time-empty i { font-size:2rem; color:var(--soft); }
     .db-cal-time-empty p { margin:.75rem 0 0; font-weight:600; }
 
-    @media (max-width: 767.98px) { .db-cal-time-inner { min-width:44rem; } }
+    /* Layar sempit: kisi digeser mendatar oleh .db-cal-time-wrap; gulir vertikal diserahkan ke halaman
+       supaya kolom jam yang sticky mengacu ke wadah geser yang benar. */
+    @media (max-width: 767.98px) {
+        .db-cal-time-inner { min-width:44rem; }
+        .db-cal-time-body { max-height:none; overflow:visible; }
+    }
 
     .db-cal-more { font-size:.58rem; color:var(--muted); font-weight:700; text-align:center; margin-top:.15rem; white-space:nowrap; }
     .db-cal-wrap { scroll-margin-top:6.25rem; }
@@ -267,6 +306,33 @@
         .db-day-body { padding:1rem 1.1rem 1.2rem; }
         .db-day-event { padding:.9rem .95rem; }
     }
+
+    /* ══════════════ TOOLTIP KALENDER — kartu mengambang saat kursor di atas reservasi ══════════════ */
+    .db-cal-tip { position:fixed; top:0; left:0; z-index:1090; width:max-content; max-width:min(18.5rem, calc(100vw - 1.5rem));
+        background:#fff; border:1px solid var(--line); border-radius:.9rem; overflow:hidden; pointer-events:none;
+        box-shadow:0 18px 40px -12px rgba(15,23,42,.28), 0 4px 10px -4px rgba(15,23,42,.08);
+        opacity:0; transform:translateY(4px); transition:opacity .14s ease, transform .14s ease; }
+    .db-cal-tip.bawah { transform:translateY(-4px); }
+    .db-cal-tip.show { opacity:1; transform:translateY(0); }
+    .db-cal-tip-head { display:flex; align-items:flex-start; justify-content:space-between; gap:.75rem;
+        padding:.75rem .9rem .65rem; border-bottom:1px solid var(--line-soft); border-top:3px solid #2563eb; }
+    .db-cal-tip-nama { font-size:.84rem; font-weight:800; color:var(--ink); line-height:1.3; }
+    .db-cal-tip-sub { font-size:.68rem; font-weight:600; color:var(--muted); margin-top:.1rem; }
+    .db-cal-tip-status { flex:none; font-size:.62rem; font-weight:800; letter-spacing:.03em; padding:.2rem .5rem;
+        border-radius:2rem; background:#f1f5f9; color:#475569; white-space:nowrap; }
+    .db-cal-tip-status.disetujui { background:#e2f7ef; color:#0d7a55; }
+    .db-cal-tip-status.menunggu { background:#fef3c7; color:#a16207; }
+    .db-cal-tip-status.ditolak { background:#fee2e2; color:#b91c1c; }
+    .db-cal-tip-status.selesai { background:#dbeafe; color:#1d4ed8; }
+    .db-cal-tip-body { display:grid; gap:.4rem; padding:.65rem .9rem .75rem; }
+    .db-cal-tip-row { display:flex; align-items:flex-start; gap:.55rem; font-size:.74rem; color:#334155; line-height:1.35; }
+    .db-cal-tip-row i { flex:none; width:1rem; text-align:center; color:#2563eb; font-size:.8rem; }
+    .db-cal-tip-kode { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.7rem; font-weight:700;
+        letter-spacing:.04em; background:#f1f5f9; padding:.05rem .4rem; border-radius:.35rem; color:var(--ink); }
+    .db-cal-tip-item { display:flex; justify-content:space-between; gap:1rem; font-size:.74rem; color:#334155; }
+    .db-cal-tip-item span:last-child { font-weight:700; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .db-cal-tip-foot { padding:.5rem .9rem; background:#f8fafc; border-top:1px solid var(--line-soft);
+        font-size:.66rem; font-weight:600; color:var(--muted); }
 
     /* ══════════════ FLOATING CARD (detail hari, muncul dekat tanggal yang diklik) ══════════════ */
     .db-floating-card { position:fixed; z-index:1080; width:25rem; max-width:calc(100vw - 1.5rem);
@@ -385,19 +451,24 @@
                                         $fs = $ev->tarifSewa->fasilitas;
                                         $namaSingkat = \Illuminate\Support\Str::limit($fs->nama_fasilitas, 10);
                                         $jam = $ev->jam_mulai ? substr($ev->jam_mulai, 0, 5) : '';
-                                        $statusEvLabel = $chipLabel[$ev->status_reservasi->value] ?? $ev->status_reservasi->value;
-                                        $jamAtauDurasi = $ev->jam_mulai
-                                            ? substr($ev->jam_mulai, 0, 5) . '–' . substr($ev->jam_selesai, 0, 5) . ' WIB'
-                                            : $ev->durasi . ' ' . strtolower($ev->tarifSewa->jenisSewa->satuan->value ?? '');
-                                        $tipMonth = "{$fs->nama_fasilitas} · Lt {$fs->lantai->nomor_lantai} · {$jamAtauDurasi} · {$statusEvLabel}";
                                     @endphp
-                                    <span class="db-cal-event-month" data-tip="{{ $tipMonth }}"
+                                    <span class="db-cal-event-month" data-cal-tip="{{ json_encode($dataTooltip($ev)) }}"
                                           style="background:{{ $warnaEvent['bg'] }}; color:{{ $warnaEvent['text'] }}; border-color:{{ $warnaEvent['border'] }};">
                                         @if ($jam)<span class="ev-time">{{ $jam }}</span> @endif{{ $namaSingkat }}
                                     </span>
                                 @endforeach
                                 @if ($eventsHariItu->count() > 2)
-                                    <div class="db-cal-more">+{{ $eventsHariItu->count() - 2 }} lagi</div>
+                                    @php
+                                        $tipLainnya = [
+                                            'judul'  => ($eventsHariItu->count() - 2).' reservasi lainnya',
+                                            'daftar' => $eventsHariItu->slice(2)->take(5)->map(fn ($r) => [
+                                                'nama'  => $r->tarifSewa->fasilitas->nama_fasilitas,
+                                                'waktu' => $r->jam_mulai ? substr($r->jam_mulai, 0, 5).'–'.substr($r->jam_selesai, 0, 5) : 'Seharian',
+                                            ])->values(),
+                                            'sisa'   => max(0, $eventsHariItu->count() - 7),
+                                        ];
+                                    @endphp
+                                    <div class="db-cal-more" data-cal-tip="{{ json_encode($tipLainnya) }}">+{{ $eventsHariItu->count() - 2 }} lagi</div>
                                 @endif
                             </div>
                         @endif
@@ -417,9 +488,8 @@
                 ? '4.5rem 1fr'
                 : '4.5rem repeat(' . $kolomHari->count() . ', minmax(0, 1fr))';
 
-            $eventsWithTime = $reservasiKalender->filter(fn ($r) => $r->jam_mulai);
         @endphp
-        <div class="db-cal-time-wrap">
+        <div class="db-cal-time-wrap" data-live-gulir="kalender">
             <div class="db-cal-time-inner">
                 {{-- Header hari --}}
                 <div class="db-cal-time-head" style="grid-template-columns:{{ $gridCols }};">
@@ -447,7 +517,7 @@
                     @foreach ($kolomHari as $hari)
                         @php
                             $isToday = $hari->isToday();
-                            $eventsHari = $eventsWithTime->filter(fn ($r) => $r->tanggal_mulai->toDateString() === $hari->toDateString());
+                            $eventsHari = $reservasiKalender->filter(fn ($r) => $r->tanggal_mulai->toDateString() === $hari->toDateString());
                         @endphp
                         <div class="db-cal-time-col {{ $isToday ? 'today' : '' }}">
                             @for ($h = $jamMulaiGrid; $h < $jamAkhirGrid; $h++)
@@ -467,8 +537,10 @@
                                     $leftPct = $p['col'] * $widthPct;
                                 @endphp
                                 @php
-                                    $statusEvLabel = $chipLabel[$ev->status_reservasi->value] ?? $ev->status_reservasi->value;
-                                    $tipEvent = "{$fs->nama_fasilitas} · Lt {$fs->lantai->nomor_lantai} · " . substr($ev->jam_mulai, 0, 5) . '–' . substr($ev->jam_selesai, 0, 5) . " WIB · {$statusEvLabel}";
+                                    // Sewa tanpa jam cukup berlabel "Seharian"; durasinya ada di tooltip.
+                                    $labelWaktu = $ev->jam_mulai
+                                        ? substr($ev->jam_mulai, 0, 5) . ' – ' . substr($ev->jam_selesai, 0, 5)
+                                        : 'Seharian';
                                 @endphp
                                 <a href="{{ route($routeDetail, $ev->kode_reservasi) }}"
                                    class="db-cal-time-event"
@@ -476,8 +548,8 @@
                                           left:calc({{ $leftPct }}% + 3px); width:calc({{ $widthPct }}% - 6px);
                                           background:{{ $warnaEvent['bg'] }}; color:{{ $warnaEvent['text'] }};
                                           border-left-color:{{ $warnaEvent['accent'] }};"
-                                   data-tip="{{ $tipEvent }}">
-                                    <div class="ev-time-label">{{ substr($ev->jam_mulai,0,5) }} – {{ substr($ev->jam_selesai,0,5) }}</div>
+                                   data-cal-tip="{{ json_encode($dataTooltip($ev)) }}">
+                                    <div class="ev-time-label">{{ $labelWaktu }}</div>
                                     <div class="ev-nm">{{ $fs->nama_fasilitas }}</div>
                                     @if ($p['cols'] > 1)
                                         <div class="ev-lantai"><i class="bi bi-geo-alt"></i>Lt {{ $fs->lantai->nomor_lantai ?? '-' }}</div>
@@ -487,7 +559,7 @@
                         </div>
                     @endforeach
 
-                    @if ($eventsWithTime->isEmpty())
+                    @if ($reservasiKalender->isEmpty())
                         <div class="db-cal-time-empty">
                             <i class="bi bi-calendar-x"></i>
                             <p>Tidak ada reservasi pada rentang ini.</p>
@@ -498,6 +570,106 @@
         </div>
     @endif
 </div>
+
+<script>
+    // Mode Minggu di layar sempit (kisi lebih lebar dari layar): geser supaya kolom hari ini
+    // berada di tengah. Tidak dijalankan bila posisi geser sudah dipulihkan pembaruan realtime.
+    (function () {
+        const wrap = document.querySelector('.db-cal-time-wrap');
+        const hariIni = wrap?.querySelector('.db-cal-time-head-cell.today');
+        if (!wrap || !hariIni || wrap.scrollLeft > 0 || wrap.scrollWidth <= wrap.clientWidth) return;
+        const w = wrap.getBoundingClientRect();
+        const t = hariIni.getBoundingClientRect();
+        wrap.scrollLeft += (t.left + t.width / 2) - (w.left + w.width / 2);
+    })();
+</script>
+
+{{-- ══════════════ TOOLTIP KALENDER — satu elemen dipakai bersama semua [data-cal-tip] ══════════════ --}}
+<div class="db-cal-tip" id="dbCalTip" role="tooltip" hidden></div>
+<script>
+    // Tooltip kalender: muncul di atas (atau bawah bila tidak muat) elemen reservasi yang disorot,
+    // pada mode Bulan, Minggu, & Hari. Hanya di perangkat ber-kursor; di layar sentuh detail
+    // tetap lewat kartu tanggal (klik). Elemen di luar sel (position:fixed) supaya tidak
+    // terpotong overflow sel/kolom kalender.
+    (function () {
+        const tip = document.getElementById('dbCalTip');
+        if (!tip || !window.matchMedia('(hover: hover)').matches) return;
+
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+        const baris = (ikon, isi) => `<div class="db-cal-tip-row"><i class="bi ${ikon}"></i><span>${isi}</span></div>`;
+
+        const isiReservasi = (d) => `
+            <div class="db-cal-tip-head">
+                <div>
+                    <div class="db-cal-tip-nama">${esc(d.nama)}</div>
+                    <div class="db-cal-tip-sub">${esc(d.kategori)} · Lantai ${esc(d.lantai)}</div>
+                </div>
+                <span class="db-cal-tip-status ${esc(d.statusChip)}">${esc(d.statusLabel)}</span>
+            </div>
+            <div class="db-cal-tip-body">
+                ${baris('bi-calendar3', esc(d.tanggal))}
+                ${baris('bi-clock', esc(d.waktu))}
+                ${baris('bi-tag', esc(d.jenis))}
+                ${baris('bi-upc', `<span class="db-cal-tip-kode">${esc(d.kode)}</span>`)}
+            </div>
+            <div class="db-cal-tip-foot">Klik untuk melihat detail reservasi</div>`;
+
+        const isiLainnya = (d) => `
+            <div class="db-cal-tip-head"><div class="db-cal-tip-nama">${esc(d.judul)}</div></div>
+            <div class="db-cal-tip-body">
+                ${d.daftar.map((x) => `<div class="db-cal-tip-item"><span>${esc(x.nama)}</span><span>${esc(x.waktu)}</span></div>`).join('')}
+                ${d.sisa > 0 ? `<div class="db-cal-tip-item"><span>dan ${d.sisa} lainnya</span><span></span></div>` : ''}
+            </div>
+            <div class="db-cal-tip-foot">Klik tanggal untuk melihat semua reservasi</div>`;
+
+        let aktif = null;
+
+        const posisikan = (el) => {
+            const r = el.getBoundingClientRect();
+            const t = tip.getBoundingClientRect();
+            const jarak = 8, tepi = 12;
+            let top = r.top - t.height - jarak;
+            const bawah = top < tepi;
+            if (bawah) top = Math.min(r.bottom + jarak, window.innerHeight - t.height - tepi);
+            let left = r.left + r.width / 2 - t.width / 2;
+            left = Math.max(tepi, Math.min(left, window.innerWidth - t.width - tepi));
+            tip.classList.toggle('bawah', bawah);
+            tip.style.transform = '';
+            tip.style.top = `${Math.max(tepi, top)}px`;
+            tip.style.left = `${left}px`;
+        };
+
+        const tampilkan = (el) => {
+            let d;
+            try { d = JSON.parse(el.dataset.calTip); } catch (e) { return; }
+            aktif = el;
+            tip.innerHTML = d.daftar ? isiLainnya(d) : isiReservasi(d);
+            tip.hidden = false;
+            tip.classList.remove('show');
+            posisikan(el);
+            requestAnimationFrame(() => { if (aktif === el) tip.classList.add('show'); });
+        };
+
+        const sembunyikan = () => {
+            aktif = null;
+            tip.classList.remove('show');
+            tip.hidden = true;
+        };
+
+        document.querySelectorAll('[data-cal-tip]').forEach((el) => {
+            el.addEventListener('mouseenter', () => tampilkan(el));
+            el.addEventListener('mouseleave', sembunyikan);
+            el.addEventListener('focus', () => tampilkan(el));
+            el.addEventListener('blur', sembunyikan);
+            el.addEventListener('click', sembunyikan);
+        });
+        // Posisi elemen berubah saat halaman/kalender digulir — tutup supaya tidak "tertinggal".
+        // Pendengar global dilepas saat kalender diperbarui realtime (lihat partials/pantau-status).
+        const sinyal = (window.__liveAC ??= new AbortController()).signal;
+        window.addEventListener('scroll', sembunyikan, { passive: true, capture: true, signal: sinyal });
+        window.addEventListener('resize', sembunyikan, { signal: sinyal });
+    })();
+</script>
 
 {{-- ══════════════ FLOATING CARD (detail hari, muncul dekat tanggal yang diklik) ══════════════ --}}
 <div class="db-floating-card" id="dbFloatingCard">
@@ -582,17 +754,19 @@
         };
 
         document.getElementById('dbFcClose').addEventListener('click', hideCard);
+        // Pendengar global dilepas saat kalender diperbarui realtime (lihat partials/pantau-status).
+        const sinyal = (window.__liveAC ??= new AbortController()).signal;
         document.addEventListener('click', (e) => {
             if (!card.classList.contains('show')) return;
             if (card.contains(e.target)) return;
             if (lastAnchor && lastAnchor.contains(e.target)) return;
             hideCard();
-        });
+        }, { signal: sinyal });
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') hideCard();
-        });
-        window.addEventListener('scroll', () => { if (card.classList.contains('show')) hideCard(); }, true);
-        window.addEventListener('resize', () => { if (card.classList.contains('show')) hideCard(); });
+        }, { signal: sinyal });
+        window.addEventListener('scroll', () => { if (card.classList.contains('show')) hideCard(); }, { capture: true, signal: sinyal });
+        window.addEventListener('resize', () => { if (card.classList.contains('show')) hideCard(); }, { signal: sinyal });
 
         document.querySelectorAll('.db-cal-day.clickable').forEach((cell) => {
             cell.addEventListener('click', () => {

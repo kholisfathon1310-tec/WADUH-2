@@ -409,7 +409,8 @@
             .d-room.is-rroom { min-height: 110px; flex-basis: 132px; width: 132px; }
             .d-room.is-kroom { flex-basis: 68px; width: 68px; }
             .d-room.koridor { flex: 0 0 auto; width: auto; min-width: 320px; }
-            .dl-grid { grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: 92px; overflow: visible; }
+            /* Lebar kolom mengikuti kartunya (R = 132px, lainnya 92px) supaya kartu tidak saling menimpa. */
+            .dl-grid { grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: max-content; overflow: visible; }
             .dl-table { width: 66px; height: 66px; }
         }
         .dl-scroll-hint { display: none; }

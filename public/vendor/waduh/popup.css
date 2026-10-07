@@ -76,3 +76,18 @@
 @media (prefers-reduced-motion: reduce) {
     .wp-masuk, .wp-keluar, .swal2-popup.wp-popup .swal2-icon.wp-icon.swal2-icon-show { animation: none; }
 }
+
+/* ═══ Pesan validasi kolom — satu tampilan untuk pesan server & klien di seluruh sistem ═══ */
+body .catatan-salah, body .fl-err, body .aj-field-err, body .ck-edit-err {
+    display:flex; align-items:flex-start; gap:.35rem; margin-top:.35rem;
+    color:#c0262d; font-size:.78rem; font-weight:600; line-height:1.4; text-align:left;
+}
+body .catatan-salah i, body .aj-field-err i { flex:none; margin-top:.1rem; font-size:.8rem; }
+body .fl-err::before, body .ck-edit-err::before {
+    content:"\f332"; font-family:"bootstrap-icons"; font-weight:400; font-size:.8rem;
+    flex:none; line-height:1; margin-top:.2rem;
+}
+/* Kolom di dalam grup (ikon/tombol mata): seluruh grup ikut ditandai, bukan hanya kotak tengahnya. */
+body .input-group:has(> .is-salah) > :is(.input-group-text, .btn, .form-control, .form-select) {
+    border-color:#e11d48 !important; background-color:#fff5f6 !important; box-shadow:none !important;
+}

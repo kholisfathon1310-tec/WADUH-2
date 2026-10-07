@@ -181,7 +181,7 @@
                     </div>
                     <div class="col-12 mb-3">
                         <label class="form-label">No. Telepon</label>
-                        <input type="tel" name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" inputmode="numeric" maxlength="16" pattern="\+?[0-9]{10,15}" data-pesan-pola="No. telepon tidak valid. Gunakan angka 10–15 digit, contoh 081234567890." autocomplete="off" required>
+                        <input type="tel" name="no_telepon" class="form-control" placeholder="08xxxxxxxxxx" value="{{ old('no_telepon') }}" inputmode="numeric" maxlength="16" pattern="\+?[0-9]{10,15}" data-pesan-pola="No. telepon harus 10–15 digit angka." autocomplete="off" required>
                         @error('no_telepon')<div class="catatan-salah"><i class="bi bi-exclamation-circle-fill"></i><span>{{ $message }}</span></div>@enderror
                     </div>
                     <div class="col-12 mb-3">

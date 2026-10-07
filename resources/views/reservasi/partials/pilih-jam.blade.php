@@ -185,6 +185,9 @@
                 .catch(() => segarkan(form));
         };
 
+        // Jam yang baru dipesan pemesan lain langsung ikut terkunci (lihat partials/pantau-status).
+        document.addEventListener('realtime:berubah', () => grup.forEach((g, form) => muat(form)));
+
         grup.forEach((g, form) => {
             segarkan(form);
             muat(form);

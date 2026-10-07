@@ -40,7 +40,7 @@ class OtpEmailService
 
             return [
                 'ok'            => false,
-                'pesan'         => "Kode OTP baru saja dikirim. Silakan tunggu {$tunggu} detik sebelum mengirim ulang.",
+                'pesan'         => "Tunggu {$tunggu} detik sebelum mengirim ulang kode OTP.",
                 'berlaku_detik' => max(0, $lama['kedaluwarsa'] - now()->getTimestamp()),
                 'jeda_detik'    => $tunggu,
             ];
@@ -53,7 +53,7 @@ class OtpEmailService
         } catch (\Throwable $e) {
             report($e);
 
-            return ['ok' => false, 'pesan' => 'Kode OTP gagal dikirim. Pastikan alamat email benar, lalu coba beberapa saat lagi.'];
+            return ['ok' => false, 'pesan' => 'Kode OTP gagal dikirim. Periksa alamat email, lalu coba lagi.'];
         }
 
         Cache::put($kunci, [

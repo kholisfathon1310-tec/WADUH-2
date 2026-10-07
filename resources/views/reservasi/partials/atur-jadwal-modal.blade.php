@@ -367,7 +367,8 @@
     .aj-label, .aj-sublabel { display:flex; align-items:center; gap:.4rem; margin:0 0 .4rem;
         font-size:.72rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--primary-dark); }
 
-    .aj-jenis-tabs { display:grid; grid-template-columns:repeat(auto-fit, minmax(7.5rem, 1fr)); gap:.5rem; }
+    /* Tiga jenis sewa muat sebaris di ponsel (bukan 2 + 1). */
+    .aj-jenis-tabs { display:grid; grid-template-columns:repeat(auto-fit, minmax(6.1rem, 1fr)); gap:.45rem; }
     .aj-jenis-tab { display:flex; align-items:center; justify-content:center; gap:.4rem;
         padding:.65rem .75rem; border-radius:.7rem; border:1px solid var(--line);
         background:#fff; color:var(--muted); font-size:.82rem; font-weight:700; text-decoration:none;
@@ -839,6 +840,8 @@
     // ─── Keadaan awal ───
     hitung();
     if (elMulai?.value) { validasiTanggal(); cekJadwal(); }
+    // Jadwal yang baru dipesan pemesan lain langsung diperiksa ulang (lihat partials/pantau-status).
+    document.addEventListener('realtime:berubah', () => { if (elMulai?.value) cekJadwal(); });
     btnSubmit.disabled = false; // pesan bentrok dari server tetap tampil; pemesan boleh langsung mencoba jadwal lain
 })();
 </script>

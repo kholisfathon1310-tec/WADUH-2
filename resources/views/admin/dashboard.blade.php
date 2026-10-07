@@ -72,6 +72,8 @@
 @endphp
 
 @section('content')
+{{-- Wilayah live: seluruh isi dashboard (termasuk skripnya) diperbarui realtime — lihat partials/pantau-status. --}}
+<div data-live="dashboard">
 <div class="dash">
 
     {{-- ═══════════════════════════════════════════════════════════
@@ -155,7 +157,7 @@
             </div>
         </div>
         <div class="dash-card-body">
-            <div class="dash-okup-scroll">
+            <div class="dash-okup-scroll" data-live-gulir="okupansi">
                 <div class="dash-okup-plot">
                     {{-- Sumbu Y --}}
                     <svg class="dash-okup-axis" width="100%" height="{{ $okSvgTinggi }}" aria-hidden="true">
@@ -230,7 +232,7 @@
          ═══════════════════════════════════════════════════════════ --}}
     <section class="dash-card dash-anchor dash-section-gap" data-reveal>
         <div class="dash-card-head dash-card-head-wrap">
-            <span><i class="bi bi-door-open-fill"></i> Okupansi per Fasilitas</span>
+            <span><i class="bi bi-door-open-fill"></i> Tingkat Pemakaian Fasilitas</span>
             <div class="dash-month-nav" role="group" aria-label="Pilih bulan">
                 <a href="{{ $urlOkupansi($okupansiNav['bulanPrev']) }}" class="dash-cal-nav-btn" data-tip="Bulan sebelumnya" aria-label="Bulan sebelumnya"><i class="bi bi-chevron-left"></i></a>
                 <span class="dash-month-lbl">{{ $okupansiNav['bulanLabel'] }}</span>
@@ -238,25 +240,26 @@
             </div>
         </div>
         <div class="dash-card-body">
+            <p class="dash-okf-intro">Persentase hari kerja yang terisi reservasi pada {{ $okupansiNav['bulanLabel'] }}.</p>
             <div class="dash-kpi">
                 <div class="dash-kpi-item">
-                    <span class="dash-kpi-l">Okupansi gedung</span>
+                    <span class="dash-kpi-l">Rata-rata seluruh gedung</span>
                     <span class="dash-kpi-v">{{ $fmtPct($okTerpilih['pct'] ?? 0) }}%</span>
-                    <span class="dash-kpi-s">{{ number_format($okTerpilih['terisi'] ?? 0, 0, ',', '.') }} hari terpakai dari {{ number_format($okTerpilih['kapasitas'] ?? 0, 0, ',', '.') }} hari tersedia ({{ $okTotalFasilitas }} fasilitas × {{ $okTerpilih['hariKerja'] ?? 0 }} hari kerja)</span>
+                    <span class="dash-kpi-s">{{ number_format($okTerpilih['terisi'] ?? 0, 0, ',', '.') }} dari {{ number_format($okTerpilih['kapasitas'] ?? 0, 0, ',', '.') }} hari kerja terisi</span>
                 </div>
                 <div class="dash-kpi-item">
-                    <span class="dash-kpi-l">Fasilitas terpakai</span>
+                    <span class="dash-kpi-l">Fasilitas yang dipakai</span>
                     <span class="dash-kpi-v">{{ $okTerpakai }}<small> / {{ $okTotalFasilitas }}</small></span>
-                    <span class="dash-kpi-s">{{ $okTerpilih['hariKerja'] ?? 0 }} hari kerja pada bulan ini</span>
+                    <span class="dash-kpi-s">Ada reservasi pada bulan ini</span>
                 </div>
                 <div class="dash-kpi-item">
-                    <span class="dash-kpi-l">Okupansi tertinggi</span>
+                    <span class="dash-kpi-l">Paling sering dipakai</span>
                     @if ($okTertinggi)
                         <span class="dash-kpi-v">{{ $okTertinggi['pct'] }}%</span>
                         <span class="dash-kpi-s">{{ $okTertinggi['nama'] }} · Lantai {{ $okTertinggi['lantai'] }}</span>
                     @else
                         <span class="dash-kpi-v">–</span>
-                        <span class="dash-kpi-s">Belum ada fasilitas terpakai</span>
+                        <span class="dash-kpi-s">Belum ada fasilitas yang dipakai</span>
                     @endif
                 </div>
             </div>
@@ -265,7 +268,7 @@
                 <p class="text-muted small mb-0">Belum ada fasilitas aktif.</p>
             @else
                 <div class="dash-floor-bar">
-                    <span class="dash-floor-bar-l">{{ $okTotalFasilitas }} fasilitas aktif · {{ $okPerLantai->count() }} lantai</span>
+                    <span class="dash-floor-bar-l">{{ $okTotalFasilitas }} fasilitas · {{ $okPerLantai->count() }} lantai</span>
                     <button type="button" class="dash-btn dash-btn-outline dash-btn-sm" id="dashFloorToggle" data-mode="buka">
                         <i class="bi bi-arrows-expand me-1"></i><span>Buka semua</span>
                     </button>
@@ -277,16 +280,16 @@
                         $terpakaiLantai = $daftar->where('terisi', '>', 0)->count();
                         $kapLantai = $daftar->sum('hariKerja');
                         $pctLantai = $kapLantai > 0 ? round($daftar->sum('terisi') / $kapLantai * 100, 1) : 0.0;
-                        $buka = $terpakaiLantai > 0 || $daftar->count() <= 8;
                     @endphp
-                    <details class="dash-floor" style="--fl:{{ $warna }}" @if ($buka) open @endif>
+                    {{-- Semua lantai tertutup saat halaman dibuka; rincian tampil bila lantai diklik. --}}
+                    <details class="dash-floor" style="--fl:{{ $warna }}" data-live-key="lantai-{{ $lantai }}">
                         <summary>
                             <span class="dash-floor-dot"></span>
                             <span class="dash-floor-name">Lantai {{ $lantai }}</span>
-                            <span class="dash-floor-meta">{{ $daftar->count() }} fasilitas · {{ $terpakaiLantai }} terpakai</span>
-                            <span class="dash-floor-avg">
+                            <span class="dash-floor-meta">{{ $terpakaiLantai }} dari {{ $daftar->count() }} fasilitas dipakai</span>
+                            <span class="dash-floor-avg" title="Rata-rata hari kerja terisi di lantai ini">
                                 <span class="dash-floor-track"><span class="dash-floor-fill" style="width:{{ min(100, $pctLantai) }}%"></span></span>
-                                <b>{{ $fmtPct($pctLantai) }}%</b>
+                                <b>{{ $fmtPct($pctLantai) }}%<small> terisi</small></b>
                             </span>
                             <i class="bi bi-chevron-down dash-floor-caret"></i>
                         </summary>
@@ -294,13 +297,13 @@
                             @foreach ($daftar as $f)
                                 <a href="{{ route('admin.monitoring.detail', $f['id_fasilitas']) }}"
                                    class="dash-fac {{ $f['terisi'] > 0 ? '' : 'is-empty' }}"
-                                   title="{{ $f['nama'] }} · {{ $f['kategori'] }}">
+                                   title="{{ $f['nama'] }} · {{ $f['kategori'] }} — klik untuk melihat jadwal">
                                     <span class="dash-fac-top">
                                         <span class="dash-fac-kode">{{ $f['kode'] }}</span>
                                         <span class="dash-fac-pct">{{ $f['pct'] }}%</span>
                                     </span>
                                     <span class="dash-fac-track"><span class="dash-fac-fill" style="width:{{ $f['terisi'] > 0 ? max(4, min(100, $f['pct'])) : 0 }}%"></span></span>
-                                    <span class="dash-fac-sub">{{ $f['terisi'] }} dari {{ $f['hariKerja'] }} hari kerja</span>
+                                    <span class="dash-fac-sub">{{ $f['terisi'] > 0 ? 'Terisi '.$f['terisi'].' dari '.$f['hariKerja'].' hari kerja' : 'Belum ada reservasi' }}</span>
                                 </a>
                             @endforeach
                         </div>
@@ -641,6 +644,8 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dash-kpi-s { white-space:normal; overflow:visible; text-overflow:clip; line-height:1.45; }
 
+.dash-okf-intro { margin:0 0 1rem; font-size:.8rem; line-height:1.55; color:var(--dash-muted); }
+.dash-floor-avg b small { font-size:.68rem; font-weight:600; color:var(--dash-muted); }
 .dash-floor-bar { display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap;
     margin-bottom:.7rem; }
 .dash-floor-bar-l { font-size:.78rem; font-weight:700; color:var(--dash-muted); }
@@ -915,10 +920,6 @@
         const btn = document.getElementById('dashFloorToggle');
         if (!btn) return;
         const lantai = [...document.querySelectorAll('.dash-floor')];
-        // Di ponsel, lantai dengan banyak fasilitas dimulai tertutup supaya halaman tidak terlalu panjang.
-        if (window.matchMedia('(max-width: 575.98px)').matches) {
-            lantai.forEach(d => { if (d.querySelectorAll('.dash-fac').length > 8) d.open = false; });
-        }
         const segarkan = () => {
             const semuaTerbuka = lantai.every(d => d.open);
             btn.dataset.mode = semuaTerbuka ? 'tutup' : 'buka';
@@ -934,4 +935,5 @@
         segarkan();
     })();
 </script>
+</div>
 @endsection

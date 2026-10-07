@@ -87,6 +87,8 @@
             .rs-toolbar { flex-direction:column; align-items:stretch; }
             .rs-filter-box { width:100%; }
             .rs-filter-btn { width:100%; }
+            /* Toolbar bertumpuk vertikal: flex-basis 18rem jangan sampai menjadi TINGGI kotak cari. */
+            .rs-search { flex:0 0 auto; }
             .rs-filter-menu { left:0; right:0; min-width:0; }
         }
 
@@ -156,7 +158,7 @@
                         <button type="button" class="rs-filter-opt {{ $key === 'semua' ? 'active' : '' }}" data-value="{{ $key }}" role="option" aria-selected="{{ $key === 'semua' ? 'true' : 'false' }}">
                             <span class="dot {{ $key === 'semua' ? 'semua' : ($chipClass[$key] ?? '') }}"></span>
                             <span class="lbl">{{ $label }}</span>
-                            <span class="cnt">{{ $n }}</span>
+                            <span class="cnt" data-live="rs-cnt-{{ $key }}">{{ $n }}</span>
                         </button>
                     @endforeach
                 </div>
@@ -167,7 +169,7 @@
             </div>
         </div>
 
-        <div id="rsList" data-reveal>
+        <div id="rsList" data-reveal data-live="rs-list">
             @if ($terbaru->isNotEmpty())
                 <div class="rs-section-head">
                     <h2>Reservasi Terbaru</h2>
@@ -212,7 +214,8 @@
                 const btnLabel = document.getElementById('rsFilterBtnLabel');
                 const menu = document.getElementById('rsFilterMenu');
                 const opts = menu.querySelectorAll('.rs-filter-opt');
-                const cards = document.querySelectorAll('#rsList [data-rs-status]');
+                // Kartu dicari ulang setiap kali karena daftar bisa diperbarui realtime.
+                const cards = () => document.querySelectorAll('#rsList [data-rs-status]');
                 const search = document.getElementById('rsSearch');
                 const empty = document.getElementById('rsEmptyFilter');
                 let statusAktif = 'semua';
@@ -220,7 +223,7 @@
                 const terapkan = () => {
                     const kw = search.value.trim().toLowerCase();
                     let terlihat = 0;
-                    cards.forEach((c) => {
+                    cards().forEach((c) => {
                         const cocokStatus = statusAktif === 'semua' || c.dataset.rsStatus === statusAktif;
                         const cocokCari = ! kw || c.dataset.rsSearch.includes(kw);
                         const tampil = cocokStatus && cocokCari;
@@ -251,6 +254,11 @@
                 });
 
                 search.addEventListener('input', terapkan);
+                document.getElementById('rsList').addEventListener('realtime:diperbarui', () => {
+                    const opt = menu.querySelector('.rs-filter-opt.active');
+                    btnLabel.textContent = opt.querySelector('.lbl').textContent + ' (' + opt.querySelector('.cnt').textContent + ')';
+                    terapkan();
+                });
             })();
         </script>
     @endif

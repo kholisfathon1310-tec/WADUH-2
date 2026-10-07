@@ -46,7 +46,7 @@
     <div class="lp-head">
         <div>
             <h2>Laporan Data Reservasi Bulan {{ $judulBulan }}</h2>
-            <div class="sub">Reservasi berstatus Disetujui dan Selesai</div>
+            <div class="sub">Reservasi yang disetujui pada bulan ini</div>
         </div>
         <div class="lp-ringkas">
             <div class="item"><small>Jumlah Data</small><b>{{ $rows->count() }}</b></div>

@@ -208,7 +208,7 @@
                             <div class="col-12">
                                 <div class="fl-field @error('no_whatsapp') is-invalid @enderror">
                                     <input type="tel" name="no_whatsapp" id="flWhatsappAdmin" class="fl-input" inputmode="numeric" maxlength="16"
-                                           pattern="\+?[0-9]{10,15}" data-pesan-pola="No. WhatsApp tidak valid. Gunakan angka 10–15 digit, contoh 081234567890." placeholder=" " autocomplete="tel"
+                                           pattern="\+?[0-9]{10,15}" data-pesan-pola="No. WhatsApp harus 10–15 digit angka." placeholder=" " autocomplete="tel"
                                            value="{{ old('no_whatsapp', $me->no_whatsapp) }}" required>
                                     <label for="flWhatsappAdmin"><span class="fl-label-txt">No. WhatsApp</span></label>
                                 </div>

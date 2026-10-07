@@ -457,14 +457,14 @@ class ReservasiController extends Controller
                 if ($editIndex !== null) {
                     if ($idsLain !== []) {
                         return back()->withInput()->withErrors([
-                            'edit_index' => 'Jadwal tidak dapat diubah bersamaan dengan penambahan fasilitas baru. Batalkan pilihan fasilitas lain terlebih dahulu.',
+                            'edit_index' => 'Batalkan pilihan fasilitas lain sebelum mengubah jadwal.',
                         ]);
                     }
 
                     $existing = $this->cart->get($editIndex);
                     if (! $existing || (int) $existing['id_fasilitas'] !== (int) $tarifUtama->id_fasilitas) {
                         return back()->withInput()->withErrors([
-                            'edit_index' => 'Item yang akan diubah tidak ditemukan. Silakan ulangi dari halaman Keranjang.',
+                            'edit_index' => 'Item tidak ditemukan. Ulangi dari halaman Keranjang.',
                         ]);
                     }
                 }
@@ -481,7 +481,7 @@ class ReservasiController extends Controller
 
                     if (! $t) {
                         return back()->withInput()->withErrors([
-                            'antrian' => 'Salah satu fasilitas yang dipilih tidak tersedia untuk jenis sewa ini. Silakan pilih ulang melalui denah.',
+                            'antrian' => 'Salah satu fasilitas tidak tersedia untuk jenis sewa ini. Pilih ulang melalui denah.',
                         ]);
                     }
                     $daftarTarif->push($t);
@@ -552,7 +552,7 @@ class ReservasiController extends Controller
             });
         } catch (LockTimeoutException) {
             return back()->withInput()->withErrors([
-                'antrian' => 'Keranjang Anda sedang memproses permintaan lain. Silakan coba kembali beberapa saat lagi.',
+                'antrian' => 'Keranjang sedang memproses permintaan lain. Coba lagi sebentar.',
             ]);
         }
     }
